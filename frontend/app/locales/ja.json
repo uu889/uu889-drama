@@ -406,15 +406,31 @@
       "providerRequired": "プロバイダーを選択してください",
       "tempInvalid": "Temperature は 0〜2 の数値で入力してください",
       "comfy": {
-        "apiKeyOptional": "ローカル ComfyUI は空欄可",
-        "apiKeyPlaceholder": "認証付きリバースプロキシの場合のみ入力",
         "workflow": "ComfyUI ワークフロー（API 形式 JSON）",
         "workflowHint": "空欄なら内蔵の Wan 2.2 TI2V 5B テンプレートを使用",
         "workflowPlaceholder": "ComfyUI の「エクスポート (API)」で出力した JSON を貼り付け。送信前に下記のプレースホルダーを置換します",
         "placeholders": "使用できるプレースホルダー（値がプレースホルダーのみの場合は数値/テキストとして置換。素材のない画像プレースホルダーは LoadImage ノードごと除去）：",
         "negativePrompt": "ネガティブプロンプト",
         "negativePlaceholder": "空欄なら Wan 公式のデフォルトを使用",
-        "workflowInvalid": "ComfyUI ワークフローが正しい JSON ではありません"
+        "workflowInvalid": "ComfyUI ワークフローが正しい JSON ではありません",
+        "workflowHintImage": "空欄なら内蔵の SDXL テキストから画像テンプレートを使用。モデル一覧には checkpoint ファイル名を入力"
+      },
+      "local": {
+        "apiKeyOptional": "ローカルサービスは空欄可",
+        "apiKeyPlaceholder": "認証を有効にした場合のみ。SD WebUI の --api-auth は「ユーザー名:パスワード」",
+        "baseSize": "基準サイズ",
+        "baseSizeHint": "SDXL は 1024、SD1.5 は 512。幅と高さはプロジェクトの画面比率から換算（64 の倍数）。ステップ既定 25、CFG 既定 7",
+        "steps": "ステップ数",
+        "sampler": "サンプラー",
+        "samplerPlaceholder": "空欄なら WebUI の既定（例：DPM++ 2M）",
+        "negativePlaceholder": "空欄なら汎用ネガティブプロンプト（lowres, bad anatomy…）",
+        "sdHint": "WebUI は --api 付きで起動してください。モデルは checkpoint 名、default なら読み込み済みのモデル。参照画像は使用しません。キャラクターの一貫性が必要なら ComfyUI のカスタムワークフローか Fooocus を使用してください。"
+      },
+      "fooocus": {
+        "hint": "Fooocus-API（既定ポート 8888）が必要です。モデルは checkpoint ファイル名、または default。ショットの参照画像は「画像プロンプト」として送信します（最大 4 枚）。",
+        "performance": "パフォーマンス",
+        "styles": "スタイル",
+        "stylesPlaceholder": "カンマ区切り。空欄なら Fooocus の既定スタイル"
       }
     },
     "styleDialog": {

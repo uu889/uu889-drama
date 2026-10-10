@@ -7,9 +7,9 @@
  * 参数：model、prompt、mode、duration_seconds、ratio、video_resolution（时长 / 比例 / 分辨率均必填）
  * 模式：
  * - text_to_video         无图，JSON
- * - image_to_video        multipart 文件字段 image
+ * - image_to_video        multipart 文件字段 image[]（wokey 官方客户端写法）
  * - first_last_frames     multipart 文件字段 first_frame + last_frame
- * - multimodal_reference  multipart 文件字段 reference_images（可重复，Grok Imagine Video 1.5 最多 7 张）
+ * - multimodal_reference  multipart 文件字段 image[]（可重复，与 wokey 官方 Video Studio 一致；Grok Imagine Video 1.5 最多 7 张）
  * 分镜绑定的角色 / 场景 / 道具图属于"参考图"而非首帧，默认走 multimodal_reference；
  * 不支持多模态参考的模型（*-lite）退化为 image_to_video，取第一张参考图。
  */
@@ -102,19 +102,21 @@ export class AiaskVideoAdapter implements VideoProviderAdapter {
       files.push(['first_frame', firstFrame], ['last_frame', lastFrame])
     } else if (firstFrame || lastFrame) {
       mode = 'image_to_video'
-      files.push(['image', firstFrame || lastFrame])
+      files.push(['image[]', firstFrame || lastFrame])
     } else if (refImages.length) {
       if (supportsMultimodalReference(model)) {
         mode = 'multimodal_reference'
-        for (const ref of refImages.slice(0, MAX_REFERENCE_IMAGES)) files.push(['reference_images', ref])
+        // 上游只认 image / first_frame / last_frame / video / audio（多文件用 image[]），
+        // 其它字段名会被拒绝：A reference file uses an unsupported multipart field name
+        for (const ref of refImages.slice(0, MAX_REFERENCE_IMAGES)) files.push(['image[]', ref])
       } else {
         mode = 'image_to_video'
-        files.push(['image', refImages[0]])
+        files.push(['image[]', refImages[0]])
       }
     }
 
     // Grok Imagine 的多参考图用 <IMAGE_0>… 指代参考图
-    const referenceCount = files.filter(([field]) => field === 'reference_images').length
+    const referenceCount = mode === 'multimodal_reference' ? files.length : 0
     const finalPrompt = referenceCount && /^grok/i.test(model) ? toGrokImageRefs(prompt, referenceCount) : prompt
 
     const fields: Record<string, string | number> = {

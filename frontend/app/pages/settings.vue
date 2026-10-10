@@ -149,8 +149,8 @@
                 <div class="config-main">
                   <div class="config-line">
                     <span class="config-name">{{ c.name || `${c.provider}-${c.service_type}` }}</span>
-                    <!-- 本地 ComfyUI 默认无鉴权，不提示缺密钥 -->
-                    <span v-if="c.provider !== 'comfyui' || c.api_key" :class="['tag', c.api_key ? 'tag-success' : 'tag-error']">{{ c.api_key ? t('settings.ai.hasKey') : t('settings.ai.noKey') }}</span>
+                    <!-- 本地服务默认无鉴权，不提示缺密钥 -->
+                    <span v-if="!LOCAL_BASE_URLS[c.provider] || c.api_key" :class="['tag', c.api_key ? 'tag-success' : 'tag-error']">{{ c.api_key ? t('settings.ai.hasKey') : t('settings.ai.noKey') }}</span>
                     <span v-if="!c.is_active" class="tag">{{ t('settings.common.disabled') }}</span>
                   </div>
                   <div class="config-models">
@@ -166,7 +166,7 @@
                   </div>
                   <div class="config-sub mono truncate">{{ c.base_url || t('settings.ai.noBaseUrl') }}</div>
                 </div>
-                <button v-if="st.type === 'text' || ['aiask', 'xai', 'comfyui'].includes(c.provider)" class="btn btn-ghost btn-sm" @click="testExistingCfg(c)">{{ t('settings.ai.test') }}</button>
+                <button v-if="st.type === 'text' || ['aiask', 'xai', 'comfyui', 'sdwebui', 'fooocus'].includes(c.provider)" class="btn btn-ghost btn-sm" @click="testExistingCfg(c)">{{ t('settings.ai.test') }}</button>
                 <label class="config-switch">
                   <input type="checkbox" class="sr-only" :checked="c.is_active" @change="toggleCfg(c)">
                   <span class="switch" :class="{ on: c.is_active }"></span>
@@ -507,10 +507,10 @@
             <span class="field-hint">{{ t('settings.cfg.priorityHint') }}</span>
           </label>
           <label class="field">
-            <span class="field-label">API Key <span v-if="isComfyForm" class="dim">({{ t('settings.cfg.comfy.apiKeyOptional') }})</span></span>
-            <input v-model="cfgForm.api_key" class="input" type="password" :placeholder="isComfyForm ? t('settings.cfg.comfy.apiKeyPlaceholder') : 'sk-...'" />
+            <span class="field-label">API Key <span v-if="isLocalForm" class="dim">({{ t('settings.cfg.local.apiKeyOptional') }})</span></span>
+            <input v-model="cfgForm.api_key" class="input" type="password" :placeholder="isLocalForm ? t('settings.cfg.local.apiKeyPlaceholder') : 'sk-...'" />
           </label>
-          <label class="field"><span class="field-label">Base URL</span><input v-model="cfgForm.base_url" class="input" :placeholder="isComfyForm ? 'http://127.0.0.1:8188' : 'https://...'" /></label>
+          <label class="field"><span class="field-label">Base URL</span><input v-model="cfgForm.base_url" class="input" :placeholder="LOCAL_BASE_URLS[cfgForm.provider] || 'https://...'" /></label>
           <div class="field">
             <span class="field-label">{{ t('settings.cfg.models') }}</span>
             <div v-if="cfgForm.models.length" class="model-chips">
@@ -536,19 +536,62 @@
           </div>
           <template v-if="isComfyForm">
             <label class="field">
-              <span class="field-label">{{ t('settings.cfg.comfy.workflow') }} <span class="dim">({{ t('settings.cfg.comfy.workflowHint') }})</span></span>
+              <span class="field-label">{{ t('settings.cfg.comfy.workflow') }} <span class="dim">({{ cfgForm.service_type === 'image' ? t('settings.cfg.comfy.workflowHintImage') : t('settings.cfg.comfy.workflowHint') }})</span></span>
               <textarea v-model="cfgForm.comfyui_workflow" class="textarea mono comfy-workflow-input" rows="8" spellcheck="false" :placeholder="t('settings.cfg.comfy.workflowPlaceholder')"></textarea>
               <span class="field-hint">{{ t('settings.cfg.comfy.placeholders') }}</span>
-              <span class="field-hint mono comfy-placeholder-list">{{ COMFY_PLACEHOLDERS }}</span>
+              <span class="field-hint mono comfy-placeholder-list">{{ cfgForm.service_type === 'image' ? COMFY_IMAGE_PLACEHOLDERS : COMFY_PLACEHOLDERS }}</span>
             </label>
-            <div class="comfy-row">
-              <label class="field">
+            <div :class="cfgForm.service_type === 'video' ? 'comfy-row' : ''">
+              <label v-if="cfgForm.service_type === 'video'" class="field">
                 <span class="field-label">FPS</span>
                 <input v-model="cfgForm.comfyui_fps" class="input" type="number" min="1" max="120" placeholder="24" />
               </label>
               <label class="field comfy-negative">
                 <span class="field-label">{{ t('settings.cfg.comfy.negativePrompt') }}</span>
-                <input v-model="cfgForm.comfyui_negative_prompt" class="input" :placeholder="t('settings.cfg.comfy.negativePlaceholder')" />
+                <input v-model="cfgForm.comfyui_negative_prompt" class="input" :placeholder="cfgForm.service_type === 'image' ? t('settings.cfg.local.negativePlaceholder') : t('settings.cfg.comfy.negativePlaceholder')" />
+              </label>
+            </div>
+          </template>
+          <template v-if="isSdForm || isFooocusForm">
+            <p class="field-hint">{{ isSdForm ? t('settings.cfg.local.sdHint') : t('settings.cfg.fooocus.hint') }}</p>
+            <label class="field">
+              <span class="field-label">{{ t('settings.cfg.comfy.negativePrompt') }}</span>
+              <input v-model="cfgForm.image_negative_prompt" class="input" :placeholder="t('settings.cfg.local.negativePlaceholder')" />
+            </label>
+          </template>
+          <template v-if="showLocalImageParams">
+            <div class="local-row">
+              <label class="field">
+                <span class="field-label">{{ t('settings.cfg.local.baseSize') }}</span>
+                <input v-model="cfgForm.image_base_size" class="input" type="number" min="256" max="2048" step="64" placeholder="1024" />
+              </label>
+              <label class="field">
+                <span class="field-label">{{ t('settings.cfg.local.steps') }}</span>
+                <input v-model="cfgForm.image_steps" class="input" type="number" min="1" max="150" placeholder="25" />
+              </label>
+              <label class="field">
+                <span class="field-label">CFG</span>
+                <input v-model="cfgForm.image_cfg_scale" class="input" type="number" min="0" max="30" step="0.5" placeholder="7" />
+              </label>
+            </div>
+            <span class="field-hint">{{ t('settings.cfg.local.baseSizeHint') }}</span>
+            <label v-if="isSdForm" class="field">
+              <span class="field-label">{{ t('settings.cfg.local.sampler') }}</span>
+              <input v-model="cfgForm.image_sampler" class="input" :placeholder="t('settings.cfg.local.samplerPlaceholder')" />
+            </label>
+          </template>
+          <template v-if="isFooocusForm">
+            <div class="comfy-row">
+              <label class="field">
+                <span class="field-label">{{ t('settings.cfg.fooocus.performance') }}</span>
+                <select v-model="cfgForm.fooocus_performance" class="input">
+                  <option value="">Speed</option>
+                  <option v-for="opt in FOOOCUS_PERFORMANCE.slice(1)" :key="opt" :value="opt">{{ opt }}</option>
+                </select>
+              </label>
+              <label class="field">
+                <span class="field-label">{{ t('settings.cfg.fooocus.styles') }}</span>
+                <input v-model="cfgForm.fooocus_styles" class="input" :placeholder="t('settings.cfg.fooocus.stylesPlaceholder')" />
               </label>
             </div>
           </template>
@@ -730,11 +773,21 @@ const cfgTestResult = ref(null)
 const AIASK_SITE_URL = 'https://aiask.me'
 const aiaskApiKey = ref('')
 const aiaskSaving = ref(false)
-const EMPTY_CFG_FORM = { name: '', provider: '', api_key: '', base_url: '', models: [], service_type: 'text', priority: 0, temperature: '', comfyui_workflow: '', comfyui_fps: '', comfyui_negative_prompt: '' }
+// 本地服务（ComfyUI / SD WebUI / Fooocus）专属参数存后端 settings JSON，接口上以顶层字段读写
+const LOCAL_SETTING_FIELDS = ['comfyui_workflow', 'comfyui_fps', 'comfyui_negative_prompt', 'image_base_size', 'image_steps', 'image_cfg_scale', 'image_sampler', 'image_negative_prompt', 'fooocus_performance', 'fooocus_styles']
+const EMPTY_CFG_FORM = { name: '', provider: '', api_key: '', base_url: '', models: [], service_type: 'text', priority: 0, temperature: '', ...Object.fromEntries(LOCAL_SETTING_FIELDS.map(k => [k, ''])) }
 const cfgForm = reactive({ ...EMPTY_CFG_FORM })
-const isComfyForm = computed(() => cfgForm.service_type === 'video' && cfgForm.provider === 'comfyui')
+const LOCAL_BASE_URLS = { comfyui: 'http://127.0.0.1:8188', sdwebui: 'http://127.0.0.1:7860', fooocus: 'http://127.0.0.1:8888' }
+const FOOOCUS_PERFORMANCE = ['Speed', 'Quality', 'Extreme Speed', 'Lightning', 'Hyper-SD']
+const isLocalForm = computed(() => !!LOCAL_BASE_URLS[cfgForm.provider])
+const isComfyForm = computed(() => cfgForm.provider === 'comfyui' && ['image', 'video'].includes(cfgForm.service_type))
+const isSdForm = computed(() => cfgForm.provider === 'sdwebui' && cfgForm.service_type === 'image')
+const isFooocusForm = computed(() => cfgForm.provider === 'fooocus' && cfgForm.service_type === 'image')
+// 基准尺寸 / 步数 / CFG：ComfyUI 生图（内置模板）与 SD WebUI 使用
+const showLocalImageParams = computed(() => cfgForm.service_type === 'image' && ['comfyui', 'sdwebui'].includes(cfgForm.provider))
 // ComfyUI 工作流支持的占位符（与后端 comfyui-video.ts 保持一致）
 const COMFY_PLACEHOLDERS = '{{prompt}} {{negative_prompt}} {{seed}} {{width}} {{height}} {{duration}} {{fps}} {{frames}} {{aspect_ratio}} {{resolution}} {{model}} {{image}} {{first_frame}} {{last_frame}} {{reference_image_1}} ... {{reference_image_9}}'
+const COMFY_IMAGE_PLACEHOLDERS = '{{prompt}} {{negative_prompt}} {{seed}} {{width}} {{height}} {{steps}} {{cfg}} {{model}} {{aspect_ratio}} {{image}} {{reference_image_1}} ... {{reference_image_6}}'
 // 模型标签编辑器：首位即默认模型；输入框支持回车添加、逗号/换行批量粘贴
 const modelInput = ref('')
 function addModel() {
@@ -762,7 +815,7 @@ const serviceTypes = computed(() => [
   { type: 'image', label: t('common.serviceType.image') },
   { type: 'video', label: t('common.serviceType.video') },
 ])
-const providers = ['aiask', 'xai', 'gemini', 'openai', 'volcengine', 'minimax', 'aliyun', 'comfyui']
+const providers = ['aiask', 'xai', 'gemini', 'openai', 'volcengine', 'minimax', 'aliyun', 'comfyui', 'sdwebui', 'fooocus']
 const providerSelectOptions = computed(() => providers.map(p => ({ label: p, value: p })))
 const serviceMeta = computed(() => ({
   text: { label: t('common.serviceType.text'), desc: t('settings.ai.meta.text') },
@@ -777,6 +830,10 @@ const providerPresets = {
   },
   image: {
     aiask: { label: 'aiask.me', baseUrl: AIASK_SITE_URL, models: ['gpt-image-2', 'grok-imagine-image', 'gemini-3-pro-image'] },
+    // 本地生图：模型名填 checkpoint 文件名（ComfyUI 内置模板的 ckpt_name）；SD WebUI / Fooocus 填 default 沿用当前模型
+    comfyui: { label: '本地 ComfyUI', baseUrl: 'http://127.0.0.1:8188', models: ['sd_xl_base_1.0.safetensors'] },
+    sdwebui: { label: 'Stable Diffusion WebUI', baseUrl: 'http://127.0.0.1:7860', models: ['default'] },
+    fooocus: { label: 'Fooocus（Fooocus-API）', baseUrl: 'http://127.0.0.1:8888', models: ['default'] },
     gemini: { label: 'Gemini 官方', baseUrl: 'https://generativelanguage.googleapis.com', models: ['gemini-3-pro-image', 'gemini-3.1-flash-image'] },
     openai: { label: 'OpenAI 官方', baseUrl: 'https://api.openai.com', models: ['gpt-image-2'] },
   },
@@ -898,9 +955,8 @@ function startEditCfg(c) {
     service_type: c.service_type,
     priority: c.priority ?? 0,
     temperature: c.temperature ?? '',
+    ...Object.fromEntries(LOCAL_SETTING_FIELDS.map(k => [k, c[k] ?? ''])),
     comfyui_workflow: formatWorkflow(c.comfyui_workflow),
-    comfyui_fps: c.comfyui_fps ?? '',
-    comfyui_negative_prompt: c.comfyui_negative_prompt || '',
   })
   cfgDialog.value = true
 }
@@ -935,6 +991,22 @@ async function testExistingCfg(c) {
     model: Array.isArray(c.model) ? c.model : [],
   })
 }
+/** 当前服务商用到的本地参数（空值发 null，后端据此删除该项） */
+function localSettingsPayload() {
+  const num = v => (v === '' || v === null || v === undefined ? null : Number(v))
+  const text = v => String(v ?? '').trim()
+  const imageParams = () => ({ image_base_size: num(cfgForm.image_base_size), image_steps: num(cfgForm.image_steps), image_cfg_scale: num(cfgForm.image_cfg_scale) })
+  if (isComfyForm.value) {
+    return {
+      comfyui_workflow: text(cfgForm.comfyui_workflow),
+      comfyui_negative_prompt: text(cfgForm.comfyui_negative_prompt),
+      ...(cfgForm.service_type === 'video' ? { comfyui_fps: num(cfgForm.comfyui_fps) } : imageParams()),
+    }
+  }
+  if (isSdForm.value) return { image_negative_prompt: text(cfgForm.image_negative_prompt), image_sampler: text(cfgForm.image_sampler), ...imageParams() }
+  if (isFooocusForm.value) return { image_negative_prompt: text(cfgForm.image_negative_prompt), fooocus_performance: text(cfgForm.fooocus_performance), fooocus_styles: text(cfgForm.fooocus_styles) }
+  return {}
+}
 // 工作流以紧凑 JSON 存库，编辑时格式化展示
 function formatWorkflow(raw) {
   if (!raw) return ''
@@ -947,10 +1019,8 @@ async function saveCfg() {
   if (temperature !== null && (!Number.isFinite(temperature) || temperature < 0 || temperature > 2)) {
     toast.warning(t('settings.cfg.tempInvalid')); return
   }
-  // ComfyUI 专属字段：工作流 JSON 先在前端校验一次，后端还会校验是否为 API 格式
-  const comfy = isComfyForm.value
-    ? { comfyui_workflow: cfgForm.comfyui_workflow.trim(), comfyui_fps: cfgForm.comfyui_fps === '' ? null : Number(cfgForm.comfyui_fps), comfyui_negative_prompt: cfgForm.comfyui_negative_prompt }
-    : {}
+  // 本地服务专属字段：工作流 JSON 先在前端校验一次，后端还会校验是否为 API 格式
+  const comfy = localSettingsPayload()
   if (comfy.comfyui_workflow) {
     try { JSON.parse(comfy.comfyui_workflow) } catch { toast.warning(t('settings.cfg.comfy.workflowInvalid')); return }
   }
@@ -1656,6 +1726,8 @@ onBeforeUnmount(stopUsagePoll)
 .provider-badge[data-provider="gemini"] { background: #4285f4; }
 .provider-badge[data-provider="volcengine"] { background: #ff5c39; }
 .provider-badge[data-provider="comfyui"] { background: #5b5bd6; }
+.provider-badge[data-provider="sdwebui"] { background: #e8622a; }
+.provider-badge[data-provider="fooocus"] { background: #2b8a6e; }
 /* 有厂商图标时用中性底，彩色图标直接展示 */
 .provider-badge.has-icon { background: var(--bg-2); }
 .provider-badge-icon { width: 20px; height: 20px; object-fit: contain; }
@@ -1828,6 +1900,7 @@ onBeforeUnmount(stopUsagePoll)
 .comfy-workflow-input { min-height: 160px; font-size: 11.5px; line-height: 1.5; resize: vertical; }
 .comfy-placeholder-list { overflow-wrap: anywhere; }
 .comfy-row { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 12px; }
+.local-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .test-result {
   display: flex;
   flex-direction: column;

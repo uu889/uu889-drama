@@ -273,8 +273,8 @@ async function processTask(id: number, config: AIConfig) {
 
     if (!resp.ok) {
       const text = await resp.text()
-      const videoAdapter = type === 'video' ? getVideoAdapter(config.provider) : null
-      throw new Error(videoAdapter?.describeError?.(resp.status, text) || formatUpstreamError(resp.status, text))
+      const mediaAdapter = type === 'video' ? getVideoAdapter(config.provider) : getImageAdapter(config.provider)
+      throw new Error(mediaAdapter.describeError?.(resp.status, text) || formatUpstreamError(resp.status, text))
     }
     const result = await resp.json() as any
     logTaskPayload(label, 'response payload', { id, provider: config.provider, result })
@@ -285,7 +285,7 @@ async function processTask(id: number, config: AIConfig) {
 
       if (!isAsync && imageUrl) {
         logTaskProgress(label, 'sync-complete', { id, imageUrl })
-        await handleImageComplete(record, imageUrl)
+        await handleImageComplete(record, config, imageUrl)
         return
       }
 
@@ -369,29 +369,30 @@ async function pollTask(record: SysTaskRecord, config: AIConfig, taskId: string)
   const type = record.type as TaskType
   const label = taskLabel(type)
   const adapter = type === 'image' ? getImageAdapter(config.provider) : getVideoAdapter(config.provider)
-  const videoAdapter = type === 'video' ? adapter as VideoProviderAdapter : null
-  const profile = { ...POLL_PROFILES[type], ...(videoAdapter?.pollProfile || {}) }
+  // 图片 / 视频适配器的可选钩子（轮询节奏、自定义取状态、取消）签名一致
+  const hooks = adapter as Pick<VideoProviderAdapter, 'pollProfile' | 'fetchPollResult' | 'cancel'>
+  const profile = { ...POLL_PROFILES[type], ...(hooks.pollProfile || {}) }
   const startedAt = Date.now()
   let clientErrors = 0
 
   const giveUp = async (message: string) => {
     // 放弃前尽量取消上游任务（如 ComfyUI 队列），失败不影响落库
-    await videoAdapter?.cancel?.(config, taskId).catch(() => {})
+    await hooks.cancel?.(config, taskId).catch(() => {})
     await failTask(record.id, message)
   }
 
   for (let i = 0; i < profile.attempts; i++) {
     if (profile.maxDurationMs && Date.now() - startedAt >= profile.maxDurationMs) {
-      await giveUp('Timeout: Polling exceeded 10 minutes')
+      await giveUp(`Timeout: Polling exceeded ${Math.round(profile.maxDurationMs / 60_000)} minutes`)
       return
     }
     await new Promise(r => setTimeout(r, profile.intervalMs))
 
     let result: any
     try {
-      if (videoAdapter?.fetchPollResult) {
+      if (hooks.fetchPollResult) {
         logTaskProgress(label, 'poll-request', { id: record.id, taskId, provider: config.provider, attempt: i + 1 })
-        result = await videoAdapter.fetchPollResult(config, taskId)
+        result = await hooks.fetchPollResult(config, taskId)
       } else {
         const { url, method, headers } = adapter.buildPollRequest(config, taskId)
         logTaskProgress(label, 'poll-request', {
@@ -448,7 +449,7 @@ async function pollTask(record: SysTaskRecord, config: AIConfig, taskId: string)
       if (type === 'image') {
         if (pollResp.imageUrl) {
           logTaskSuccess(label, 'poll-complete', { id: record.id, taskId, imageUrl: pollResp.imageUrl })
-          await withRetry(() => handleImageComplete(record, pollResp.imageUrl))
+          await withRetry(() => handleImageComplete(record, config, pollResp.imageUrl))
           return
         }
         // 部分厂商（Gemini、OpenAI 兼容网关）完成结果只有 base64
@@ -475,8 +476,13 @@ async function pollTask(record: SysTaskRecord, config: AIConfig, taskId: string)
   await giveUp('Timeout: polling attempts exhausted')
 }
 
-async function handleImageComplete(record: SysTaskRecord, imageUrl: string) {
-  const localPath = await downloadFile(imageUrl, 'images')
+async function handleImageComplete(record: SysTaskRecord, config: AIConfig, imageUrl: string) {
+  // 结果图地址可能需要补全或鉴权（如 ComfyUI /view），由适配器给出下载方式
+  const download = getImageAdapter(config.provider).resolveDownload?.(config, imageUrl) ?? { url: imageUrl }
+  const localPath = await downloadFile(download.url, 'images', {
+    headers: download.headers,
+    fallbackExt: download.fallbackExt,
+  })
   // 列表页缩略图（前端按命名约定推导地址，失败不影响主流程）
   await generateImageThumb(localPath)
 

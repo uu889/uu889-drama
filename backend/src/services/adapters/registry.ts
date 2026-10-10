@@ -12,6 +12,9 @@ import { AiaskImageAdapter } from './aiask-image'
 import { AiaskVideoAdapter } from './aiask-video'
 import { ComfyUIVideoAdapter } from './comfyui-video'
 import { XaiVideoAdapter } from './xai-video'
+import { ComfyUIImageAdapter } from './comfyui-image'
+import { SdWebuiImageAdapter } from './sdwebui-image'
+import { FooocusImageAdapter } from './fooocus-image'
 import type { ImageProviderAdapter, VideoProviderAdapter } from './types'
 
 // 图片 Adapter 注册表
@@ -20,6 +23,10 @@ export const imageAdapters: Record<string, ImageProviderAdapter> = {
   openai: new OpenAIImageAdapter(),
   gemini: new GeminiImageAdapter(),
   volcengine: new VolcEngineImageAdapter(),
+  // 本地生图服务
+  comfyui: new ComfyUIImageAdapter(),
+  sdwebui: new SdWebuiImageAdapter(),
+  fooocus: new FooocusImageAdapter(),
 }
 
 // 视频 Adapter 注册表

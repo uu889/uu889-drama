@@ -41,6 +41,22 @@ export interface ImageProviderAdapter {
    * 仅用于 Gemini 等只返回 base64 的厂商
    */
   extractImageBase64(result: any): { data: string; mimeType: string } | null
+
+  /** 可选：结果图下载需要鉴权或相对地址需要补全（如 ComfyUI /view） */
+  resolveDownload?(config: AIConfig, imageUrl: string): DownloadRequest
+
+  /** 以下可选钩子含义同 VideoProviderAdapter（本地生图服务排队久、需要按队列判断状态） */
+  pollProfile?: PollProfile
+  fetchPollResult?(config: AIConfig, taskId: string): Promise<any>
+  cancel?(config: AIConfig, taskId: string): Promise<void>
+  describeError?(status: number, bodyText: string): string | null
+}
+
+/** 轮询节奏：attempts 次、每次间隔 intervalMs；maxDurationMs 为总时长上限（null 不限） */
+export interface PollProfile {
+  attempts: number
+  intervalMs: number
+  maxDurationMs?: number | null
 }
 
 /**
@@ -67,7 +83,7 @@ export interface VideoProviderAdapter {
   resolveDownload?(config: AIConfig, videoUrl: string): DownloadRequest
 
   /** 可选：覆盖默认轮询节奏（如本地 ComfyUI 串行出片，排队时间长） */
-  pollProfile?: { attempts: number; intervalMs: number }
+  pollProfile?: PollProfile
 
   /**
    * 可选：自定义取状态（需要多次请求才能判断时，如 ComfyUI 先查 history 再查 queue）。

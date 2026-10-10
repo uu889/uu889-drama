@@ -12,7 +12,7 @@
 
 [English](README.md) | **简体中文** | [日本語](README.ja.md) | [한국어](README.ko.md)
 
-[功能特性](#-功能特性) • [快速开始](#-快速开始) • [aiask.me 接入](#-aiaskme-接入) • [本地 ComfyUI](#-本地-comfyui-视频) • [部署指南](#-部署指南)
+[功能特性](#-功能特性) • [快速开始](#-快速开始) • [aiask.me 接入](#-aiaskme-接入) • [本地生图](#-本地生图comfyui--stable-diffusion-webui--fooocus) • [本地 ComfyUI 视频](#-本地-comfyui-视频) • [部署指南](#-部署指南)
 
 <h3>🔑 <a href="https://aiask.me">获取 aiask.me API Key</a></h3>
 
@@ -51,7 +51,7 @@ data/       — 生成资源文件与 SQLite 数据库
 | 类型 | 支持厂商 |
 |---|---|
 | **文本** | **aiask.me**、OpenAI（兼容接口）、Gemini、火山引擎 |
-| **图片** | **aiask.me**（gpt-image / grok-imagine-image / gemini-image）、OpenAI、Gemini、火山引擎 |
+| **图片** | **aiask.me**（gpt-image / grok-imagine-image / gemini-image）、OpenAI、Gemini、火山引擎、**本地 ComfyUI / Stable Diffusion WebUI / Fooocus** |
 | **视频** | **aiask.me Grok 视频**（grok-imagine-video-1.5）、**Grok 视频（xAI 原生）**、**本地 ComfyUI**、火山引擎 Seedance 2.0、MiniMax H3、阿里云百炼 Wan 3.0 |
 
 ---
@@ -131,7 +131,7 @@ aiask.me 是 OpenAI 兼容的 AI API 网关，一个 Key 覆盖文本、图片�
   - 无参考图 → `text_to_video`（JSON）
   - 有首帧 → `image_to_video`（multipart 字段 `image`）
   - 有首帧 + 尾帧 → `first_last_frames`（`first_frame` / `last_frame`）
-  - 分镜绑定的角色/场景/道具图 → `multimodal_reference`（`reference_images`，最多 7 张）；`*-lite` 模型不支持多参考，退化为取第一张图做 `image_to_video`
+  - 分镜绑定的角色/场景/道具图 → `multimodal_reference`（多个 `image[]` 文件，最多 7 张）；`*-lite` 模型不支持多参考，退化为取第一张图做 `image_to_video`
   - `1080p` 仅文生/图生可用，其余模式自动降到 `720p`
 - **轮询**：`GET /v1/videos/{id}`，`in_progress`（排队时带 `queue.position`）→ `completed` / `failed` / `cancelled`
 - **取回**：完成后带同一个 API Key 请求 `content_url`（`/v1/videos/{id}/content`），成片下载到本地 `data/static/videos/`
@@ -144,6 +144,24 @@ aiask.me 是 OpenAI 兼容的 AI API 网关，一个 Key 覆盖文本、图片�
 - **图片**：有首帧时 `image: {url}` 图生视频（xAI 没有尾帧参数，只有尾帧时当作首帧）；分镜绑定的参考图走 `reference_images: [{url}]`（grok-imagine-video-1.5 最多 14 张、其它 7 张，最高 720p，非 1.5 模型最长 10 秒），提示词里的 `@图片1角色名` 自动换成 xAI 要求的 `<IMAGE_0>角色名`
 - **轮询**：`GET /v1/videos/{request_id}`，`pending` → `done` / `failed` / `expired`
 - **取回**：`video.url`（xAI 临时直链，不带 Key 下载；网关改写成的 `/v1/videos/{id}/content` 自动带 Key）
+
+---
+
+## 🎨 本地生图（ComfyUI / Stable Diffusion WebUI / Fooocus）
+
+「设置 → 图片服务 → 添加」选择对应模板，API Key 一般留空。保存前点「测试配置」会列出该服务可用的模型，把名字填进「模型」列表即可。
+
+| 服务 | 默认地址 | 接口 | 模型名填什么 | 参考图 |
+|---|---|---|---|---|
+| **ComfyUI** | `http://127.0.0.1:8188` | `/prompt` → `/history/{id}` → `/view`（与视频共用排队 / 取消 / 丢失检测） | checkpoint 文件名（内置模板的 `ckpt_name` 取 `{{model}}`） | 自定义工作流里用 `{{image}}` / `{{reference_image_N}}` 引用时上传 |
+| **Stable Diffusion WebUI**（A1111 / Forge 等） | `http://127.0.0.1:7860` | `POST /sdapi/v1/txt2img`（需 `--api` 启动） | checkpoint 名；`default` 沿用当前加载的模型 | 不使用 |
+| **Fooocus**（[Fooocus-API](https://github.com/mrhan1993/Fooocus-API)） | `http://127.0.0.1:8888` | `/v1/generation/text-to-image`；有参考图走 `/v2/generation/text-to-image-with-ip` → `query-job` 轮询 | checkpoint 文件名；`default` 沿用默认模型 | 作为「图片提示」（IP-Adapter，最多 4 张） |
+
+- **尺寸**：项目尺寸按画面比例换算到「基准尺寸²」附近并对齐 64（SDXL 填 1024：1920×1080 → 1344×768；SD1.5 填 512）；Fooocus 取最接近的内置 SDXL 比例
+- **参数**：负向提示词（留空用通用负向词）、步数（默认 25）、CFG（默认 7）、SD WebUI 采样器、Fooocus 性能模式（Speed / Quality / Extreme Speed / Lightning / Hyper-SD）与风格
+- **ComfyUI 生图占位符**：`{{prompt}}` `{{negative_prompt}}` `{{seed}}` `{{width}}` `{{height}}` `{{steps}}` `{{cfg}}` `{{model}}` `{{aspect_ratio}}` `{{image}}` `{{reference_image_1..6}}`，内置模板为 Checkpoint + KSampler + SaveImage（SDXL / SD1.5 通用）
+- **鉴权**：SD WebUI 开了 `--api-auth` 时 API Key 填 `用户名:密码`；Fooocus-API 开了 `--apikey` 时填同一个值
+- 本地 GPU 排队：ComfyUI 生图最长等 6 小时、Fooocus 1 小时；SD WebUI 为同步接口，单张最长 10 分钟
 
 ---
 

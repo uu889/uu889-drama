@@ -12,7 +12,7 @@
 
 **English** | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) | [한국어](README.ko.md)
 
-[Features](#-features) • [Quick Start](#-quick-start) • [aiask.me](#-aiaskme-integration) • [Local ComfyUI](#-local-comfyui-video) • [Deployment](#-deployment)
+[Features](#-features) • [Quick Start](#-quick-start) • [aiask.me](#-aiaskme-integration) • [Local image generation](#-local-image-generation-comfyui--stable-diffusion-webui--fooocus) • [Local ComfyUI video](#-local-comfyui-video) • [Deployment](#-deployment)
 
 <h3>🔑 <a href="https://aiask.me">Get an aiask.me API Key</a></h3>
 
@@ -51,7 +51,7 @@ data/       — Generated media and the SQLite database
 | Type | Providers |
 |---|---|
 | **Text** | **aiask.me**, OpenAI (compatible), Gemini, Volcengine |
-| **Image** | **aiask.me** (gpt-image / grok-imagine-image / gemini-image), OpenAI, Gemini, Volcengine |
+| **Image** | **aiask.me** (gpt-image / grok-imagine-image / gemini-image), OpenAI, Gemini, Volcengine, **local ComfyUI / Stable Diffusion WebUI / Fooocus** |
 | **Video** | **aiask.me Grok video** (grok-imagine-video-1.5), **Grok video (xAI native)**, **local ComfyUI**, Volcengine Seedance 2.0, MiniMax H3, Alibaba Cloud Wan 3.0 |
 
 ---
@@ -118,7 +118,7 @@ Text requests only carry parameters each model family accepts: OpenAI reasoning 
   - no images → `text_to_video` (JSON)
   - first frame → `image_to_video` (multipart `image`)
   - first + last frame → `first_last_frames` (`first_frame` / `last_frame`)
-  - shot reference images (characters / scenes / props) → `multimodal_reference` (`reference_images`, up to 7); `*-lite` models fall back to `image_to_video` with the first image
+  - shot reference images (characters / scenes / props) → `multimodal_reference` (repeated `image[]` files, up to 7); `*-lite` models fall back to `image_to_video` with the first image
   - `1080p` is only used for text/image-to-video; other modes are capped at `720p`
 - **Poll** `GET /v1/videos/{id}`: `in_progress` (with `queue.position` while queued) → `completed` / `failed` / `cancelled`
 - **Download** `content_url` (`/v1/videos/{id}/content`) with the same API key; the MP4 is saved under `data/static/videos/`
@@ -131,6 +131,23 @@ Text requests only carry parameters each model family accepts: OpenAI reasoning 
 - **Images**: a first frame becomes `image: {url}` (xAI has no last-frame field; a lone last frame is used as the image); shot reference images become `reference_images: [{url}]` (up to 14 on grok-imagine-video-1.5, 7 otherwise; max 720p; non-1.5 models max 10 s), and `@图片1name` in the prompt is rewritten to xAI's `<IMAGE_0>name`
 - **Poll** `GET /v1/videos/{request_id}`: `pending` → `done` / `failed` / `expired`
 - **Download** `video.url` (xAI's temporary URL is fetched without the key; a gateway-rewritten `/v1/videos/{id}/content` gets the key)
+
+---
+
+## 🎨 Local Image Generation (ComfyUI / Stable Diffusion WebUI / Fooocus)
+
+**Settings → Image → Add** and pick the template; the API key is usually empty. **Test** lists the models the service has — put those names in the model list.
+
+| Service | Default URL | API | Model name | Reference images |
+|---|---|---|---|---|
+| **ComfyUI** | `http://127.0.0.1:8188` | `/prompt` → `/history/{id}` → `/view` (same queue / cancel / lost-task handling as video) | checkpoint file name (the built-in template's `ckpt_name` is `{{model}}`) | uploaded when a custom workflow references `{{image}}` / `{{reference_image_N}}` |
+| **Stable Diffusion WebUI** (A1111 / Forge …) | `http://127.0.0.1:7860` | `POST /sdapi/v1/txt2img` (start with `--api`) | checkpoint name; `default` keeps the loaded model | not used |
+| **Fooocus** ([Fooocus-API](https://github.com/mrhan1993/Fooocus-API)) | `http://127.0.0.1:8888` | `/v1/generation/text-to-image`, or `/v2/generation/text-to-image-with-ip` with references → `query-job` polling | checkpoint file name; `default` keeps the default | sent as Image Prompts (IP-Adapter, up to 4) |
+
+- **Size**: the project size keeps its aspect ratio at about base-size² pixels, aligned to 64 (base 1024 for SDXL: 1920×1080 → 1344×768; 512 for SD1.5); Fooocus snaps to its closest built-in SDXL ratio
+- **Parameters**: negative prompt (generic default), steps (25), CFG (7), SD WebUI sampler, Fooocus performance (Speed / Quality / Extreme Speed / Lightning / Hyper-SD) and styles
+- **ComfyUI image placeholders**: `{{prompt}}` `{{negative_prompt}}` `{{seed}}` `{{width}}` `{{height}}` `{{steps}}` `{{cfg}}` `{{model}}` `{{aspect_ratio}}` `{{image}}` `{{reference_image_1..6}}`; the built-in template is Checkpoint + KSampler + SaveImage (SDXL / SD1.5)
+- **Auth**: SD WebUI with `--api-auth` → API key `user:password`; Fooocus-API with `--apikey` → the same key
 
 ---
 

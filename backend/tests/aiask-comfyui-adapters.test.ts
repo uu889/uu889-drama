@@ -67,7 +67,8 @@ test('aiask grok video: reference images go multipart as multimodal_reference (7
   assert.equal(form.get('video_resolution'), '720p')
   assert.equal(form.get('ratio'), '9:16')
   assert.equal(form.get('duration_seconds'), '6')
-  assert.equal(form.getAll('reference_images').length, 2)
+  assert.equal(form.getAll('image[]').length, 2)
+  assert.equal(form.getAll('reference_images').length, 0, 'upstream rejects unknown multipart field names')
   assert.equal(req.headers['Content-Type'], undefined, 'multipart boundary is set by fetch')
 })
 
@@ -82,7 +83,7 @@ test('aiask grok video: first/last frames and lite models', async () => {
     id: 4, prompt: 'p', model: 'grok-imagine-video-1.5-lite', referenceImageUrls: JSON.stringify([PNG, PNG]),
   })
   assert.equal((lite.body as FormData).get('mode'), 'image_to_video')
-  assert.equal((lite.body as FormData).getAll('image').length, 1)
+  assert.equal((lite.body as FormData).getAll('image[]').length, 1)
 })
 
 test('aiask grok video: create / poll / download lifecycle', () => {

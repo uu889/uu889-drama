@@ -28,7 +28,7 @@ test('settings page exposes official provider templates only', () => {
   assert.doesNotMatch(useApi, /huobaoPreset/i)
   assert.doesNotMatch(useApi, /\/huobao-preset/)
 
-  assert.match(settingsPage, /const providers = \['aiask', 'xai', 'gemini', 'openai', 'volcengine', 'minimax', 'aliyun', 'comfyui'\]/)
+  assert.match(settingsPage, /const providers = \['aiask', 'xai', 'gemini', 'openai', 'volcengine', 'minimax', 'aliyun', 'comfyui', 'sdwebui', 'fooocus'\]/)
   assert.match(settingsPage, /https:\/\/generativelanguage\.googleapis\.com/)
   assert.match(settingsPage, /https:\/\/api\.openai\.com/)
   assert.match(settingsPage, /https:\/\/ark\.cn-beijing\.volces\.com/)
@@ -77,7 +77,7 @@ test('settings page offers official default model IDs', () => {
 })
 
 test('text configs and aiask / ComfyUI configs expose the connection test button', () => {
-  assert.match(settingsPage, /v-if="st\.type === 'text' \|\| \['aiask', 'xai', 'comfyui'\]\.includes\(c\.provider\)" class="btn btn-ghost btn-sm" @click="testExistingCfg\(c\)">\{\{ t\('settings\.ai\.test'\) \}\}/)
+  assert.match(settingsPage, /v-if="st\.type === 'text' \|\| \['aiask', 'xai', 'comfyui', 'sdwebui', 'fooocus'\]\.includes\(c\.provider\)" class="btn btn-ghost btn-sm" @click="testExistingCfg\(c\)">\{\{ t\('settings\.ai\.test'\) \}\}/)
 })
 
 test('settings page offers the supported official provider presets', () => {
@@ -92,6 +92,9 @@ test('settings page offers the supported official provider presets', () => {
   assert.match(providerPresetBlock('video'), /xai: \{ label: 'Grok 视频（xAI 原生）', baseUrl: 'https:\/\/api\.x\.ai'/)
   assert.match(providerPresetBlock('text'), /aiask:/)
   assert.match(providerPresetBlock('image'), /aiask:.*grok-imagine-image/)
+  assert.match(providerPresetBlock('image'), /comfyui: \{ label: '本地 ComfyUI', baseUrl: 'http:\/\/127\.0\.0\.1:8188'/)
+  assert.match(providerPresetBlock('image'), /sdwebui: \{ label: 'Stable Diffusion WebUI', baseUrl: 'http:\/\/127\.0\.0\.1:7860'/)
+  assert.match(providerPresetBlock('image'), /fooocus: \{ label: 'Fooocus（Fooocus-API）', baseUrl: 'http:\/\/127\.0\.0\.1:8888'/)
   assert.doesNotMatch(providerPresetBlock('video'), /'vidu'/i)
   assert.doesNotMatch(settingsPage, /audio:\s*\{/)
 })
@@ -107,8 +110,17 @@ test('aiask.me quick config writes text, image and Grok video configs', () => {
 })
 
 test('ComfyUI video configs expose workflow / fps / negative prompt fields', () => {
-  assert.match(settingsPage, /const isComfyForm = computed\(\(\) => cfgForm\.service_type === 'video' && cfgForm\.provider === 'comfyui'\)/)
+  assert.match(settingsPage, /const isComfyForm = computed\(\(\) => cfgForm\.provider === 'comfyui' && \['image', 'video'\]\.includes\(cfgForm\.service_type\)\)/)
   assert.match(settingsPage, /v-model="cfgForm\.comfyui_workflow"/)
   assert.match(settingsPage, /v-model="cfgForm\.comfyui_fps"/)
   assert.match(settingsPage, /v-model="cfgForm\.comfyui_negative_prompt"/)
+})
+
+test('local image services (ComfyUI / SD WebUI / Fooocus) expose their parameters', () => {
+  assert.match(settingsPage, /const isSdForm = computed\(\(\) => cfgForm\.provider === 'sdwebui' && cfgForm\.service_type === 'image'\)/)
+  assert.match(settingsPage, /const isFooocusForm = computed\(\(\) => cfgForm\.provider === 'fooocus' && cfgForm\.service_type === 'image'\)/)
+  for (const field of ['image_base_size', 'image_steps', 'image_cfg_scale', 'image_sampler', 'image_negative_prompt', 'fooocus_performance', 'fooocus_styles']) {
+    assert.match(settingsPage, new RegExp(`v-model="cfgForm\.${field}"`), field)
+  }
+  assert.match(settingsPage, /function localSettingsPayload\(\)/)
 })

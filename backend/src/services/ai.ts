@@ -43,7 +43,7 @@ export function parseConfigSettings(settingsRaw: string | null | undefined): Rec
 
 export const officialProviders: Record<ServiceType, readonly string[]> = {
   text: ['aiask', 'openai', 'gemini', 'volcengine'],
-  image: ['aiask', 'openai', 'gemini', 'volcengine'],
+  image: ['aiask', 'openai', 'gemini', 'volcengine', 'comfyui', 'sdwebui', 'fooocus'],
   video: ['aiask', 'xai', 'comfyui', 'volcengine', 'minimax', 'aliyun'],
 }
 

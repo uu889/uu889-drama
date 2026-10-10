@@ -5,7 +5,8 @@ import { success, notFound, created, badRequest, now } from '../utils/response.j
 import { toSnakeCase } from '../utils/transform.js'
 import { joinProviderUrl } from '../services/adapters/url.js'
 import { isOfficialProvider, parseConfigSettings, parseConfigTemperature } from '../services/ai.js'
-import { parseComfyWorkflow } from '../services/adapters/comfyui-video.js'
+import { parseComfyWorkflow } from '../services/adapters/comfyui-common.js'
+import { localAuthHeaders } from '../services/adapters/local-image.js'
 import { redactUrl, logTaskError, logTaskProgress, logTaskSuccess } from '../utils/task-logger.js'
 
 const app = new Hono()
@@ -18,28 +19,67 @@ function normalizeTemperature(v: any): number | null {
   return n
 }
 
-/** ComfyUI 专属配置项（存 settings JSON，接口上以顶层字段读写） */
-const COMFYUI_SETTING_KEYS = ['comfyui_workflow', 'comfyui_fps', 'comfyui_negative_prompt'] as const
+/**
+ * 厂商专属配置项（存 settings JSON，接口上以顶层字段读写）：键 → 校验规则。
+ * 本地生图 / 生视频服务（ComfyUI、Stable Diffusion WebUI、Fooocus）的工作流与出图参数。
+ */
+type SettingRule =
+  | { kind: 'workflow' }
+  | { kind: 'text'; max?: number }
+  | { kind: 'number'; min: number; max: number; integer?: boolean }
+
+const IMAGE_PARAM_RULES: Record<string, SettingRule> = {
+  image_base_size: { kind: 'number', min: 256, max: 2048, integer: true },
+  image_steps: { kind: 'number', min: 1, max: 150, integer: true },
+  image_cfg_scale: { kind: 'number', min: 0, max: 30 },
+}
+
+const PROVIDER_SETTING_RULES: Record<string, Record<string, SettingRule>> = {
+  comfyui: {
+    comfyui_workflow: { kind: 'workflow' },
+    comfyui_fps: { kind: 'number', min: 1, max: 120, integer: true },
+    comfyui_negative_prompt: { kind: 'text', max: 4000 },
+    ...IMAGE_PARAM_RULES,
+  },
+  sdwebui: {
+    image_negative_prompt: { kind: 'text', max: 4000 },
+    image_sampler: { kind: 'text', max: 100 },
+    ...IMAGE_PARAM_RULES,
+  },
+  fooocus: {
+    image_negative_prompt: { kind: 'text', max: 4000 },
+    fooocus_performance: { kind: 'text', max: 50 },
+    fooocus_styles: { kind: 'text', max: 1000 },
+  },
+}
+
+const ALL_PROVIDER_SETTING_KEYS = [...new Set(Object.values(PROVIDER_SETTING_RULES).flatMap((rules) => Object.keys(rules)))]
 
 /**
- * 从请求体提取 ComfyUI 配置：返回需要写入（值）或删除（null）的键；工作流 JSON 非法时抛错。
+ * 从请求体提取该厂商的专属配置：返回需要写入（值）或删除（null）的键；非法值抛错（错误信息直接给用户看）。
  * 只处理请求体中出现的键，未出现的保持原值。
  */
-function pickComfySettings(body: any): Record<string, any> {
+function pickProviderSettings(provider: string, body: any): Record<string, any> {
+  const rules = PROVIDER_SETTING_RULES[provider] || {}
   const out: Record<string, any> = {}
-  if ('comfyui_workflow' in body) {
-    const raw = typeof body.comfyui_workflow === 'string' ? body.comfyui_workflow.trim() : body.comfyui_workflow
-    const workflow = parseComfyWorkflow(raw)
-    out.comfyui_workflow = workflow ? JSON.stringify(workflow) : null
-  }
-  if ('comfyui_fps' in body) {
-    const fps = body.comfyui_fps === '' || body.comfyui_fps == null ? null : Number(body.comfyui_fps)
-    if (fps !== null && (!Number.isFinite(fps) || fps < 1 || fps > 120)) throw new Error('comfyui_fps 须为 1 到 120 之间的数字')
-    out.comfyui_fps = fps === null ? null : Math.round(fps)
-  }
-  if ('comfyui_negative_prompt' in body) {
-    const text = String(body.comfyui_negative_prompt ?? '').trim()
-    out.comfyui_negative_prompt = text || null
+  for (const [key, rule] of Object.entries(rules)) {
+    if (!(key in body)) continue
+    const raw = body[key]
+    if (rule.kind === 'workflow') {
+      const workflow = parseComfyWorkflow(typeof raw === 'string' ? raw.trim() : raw)
+      out[key] = workflow ? JSON.stringify(workflow) : null
+    } else if (rule.kind === 'text') {
+      const text = String(raw ?? '').trim()
+      out[key] = text ? text.slice(0, rule.max ?? 4000) : null
+    } else {
+      if (raw === '' || raw == null) {
+        out[key] = null
+        continue
+      }
+      const n = Number(raw)
+      if (!Number.isFinite(n) || n < rule.min || n > rule.max) throw new Error(`${key} 须为 ${rule.min} 到 ${rule.max} 之间的数字`)
+      out[key] = rule.integer ? Math.round(n) : n
+    }
   }
   return out
 }
@@ -53,18 +93,18 @@ function mergeSettings(existing: string | null | undefined, patch: Record<string
   return Object.keys(settings).length ? JSON.stringify(settings) : null
 }
 
-/** 把 settings JSON 中的 temperature / ComfyUI 配置透出为顶层字段，便于前端直接读写 */
+/** 把 settings JSON 中的 temperature / 厂商专属配置透出为顶层字段，便于前端直接读写 */
 function withParsedFields(r: any) {
   const settings = parseConfigSettings(r.settings) || {}
-  const comfy: Record<string, any> = {}
-  for (const key of COMFYUI_SETTING_KEYS) {
-    if (settings[key] != null) comfy[key] = settings[key]
+  const extra: Record<string, any> = {}
+  for (const key of ALL_PROVIDER_SETTING_KEYS) {
+    if (settings[key] != null) extra[key] = settings[key]
   }
   return {
     ...toSnakeCase(r),
     model: r.model ? JSON.parse(r.model) : [],
     temperature: parseConfigTemperature(r.settings),
-    ...comfy,
+    ...extra,
   }
 }
 
@@ -114,11 +154,31 @@ function buildProbe(serviceType: string, provider: string, baseUrl: string, mode
   }
 
   if (p === 'comfyui') {
-    // 本地 ComfyUI：/system_stats 返回版本与显卡信息，不占用队列
+    // 本地 ComfyUI：生图时列出可用 checkpoint（模型名即 ckpt 文件名），生视频时看 /system_stats；都不占用队列
     return {
       method: 'GET',
-      url: joinProviderUrl(baseUrl || 'http://127.0.0.1:8188', '', '/system_stats'),
+      url: joinProviderUrl(baseUrl || 'http://127.0.0.1:8188', '', serviceType === 'image' ? '/object_info/CheckpointLoaderSimple' : '/system_stats'),
       headers: bearerHeaders(apiKey),
+      body: undefined,
+    }
+  }
+
+  if (p === 'sdwebui') {
+    // Stable Diffusion WebUI（需 --api）：列出可用 checkpoint，模型名填其 title 或 model_name
+    return {
+      method: 'GET',
+      url: joinProviderUrl(baseUrl || 'http://127.0.0.1:7860', '', '/sdapi/v1/sd-models'),
+      headers: localAuthHeaders(apiKey),
+      body: undefined,
+    }
+  }
+
+  if (p === 'fooocus') {
+    // Fooocus-API：列出 model_filenames / lora_filenames
+    return {
+      method: 'GET',
+      url: joinProviderUrl(baseUrl || 'http://127.0.0.1:8888', '', '/v1/engines/all-models'),
+      headers: localAuthHeaders(apiKey),
       body: undefined,
     }
   }
@@ -199,9 +259,9 @@ app.post('/', async (c) => {
       return badRequest(c, 'temperature 须为 0 到 2 之间的数字')
     }
   }
-  let comfySettings: Record<string, any> = {}
+  let providerSettings: Record<string, any> = {}
   try {
-    comfySettings = body.provider === 'comfyui' ? pickComfySettings(body) : {}
+    providerSettings = pickProviderSettings(body.provider, body)
   } catch (err: any) {
     return badRequest(c, err.message)
   }
@@ -215,7 +275,7 @@ app.post('/', async (c) => {
     model: JSON.stringify(body.model || []),
     priority: body.priority || 0,
     isActive: true,
-    settings: mergeSettings(null, { temperature, ...comfySettings }),
+    settings: mergeSettings(null, { temperature, ...providerSettings }),
     createdAt: ts,
     updatedAt: ts,
   })
@@ -338,12 +398,10 @@ app.put('/:id', async (c) => {
       return badRequest(c, 'temperature 须为 0 到 2 之间的数字')
     }
   }
-  if (provider === 'comfyui') {
-    try {
-      Object.assign(settingsPatch, pickComfySettings(body))
-    } catch (err: any) {
-      return badRequest(c, err.message)
-    }
+  try {
+    Object.assign(settingsPatch, pickProviderSettings(provider, body))
+  } catch (err: any) {
+    return badRequest(c, err.message)
   }
   if (Object.keys(settingsPatch).length) updates.settings = mergeSettings(existing.settings, settingsPatch)
 

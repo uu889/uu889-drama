@@ -29,7 +29,7 @@
 | 種類 | プロバイダー |
 |---|---|
 | **テキスト** | **aiask.me**、OpenAI（互換）、Gemini、Volcengine |
-| **画像** | **aiask.me**（gpt-image / grok-imagine-image / gemini-image）、OpenAI、Gemini、Volcengine |
+| **画像** | **aiask.me**（gpt-image / grok-imagine-image / gemini-image）、OpenAI、Gemini、Volcengine、**ローカル ComfyUI / Stable Diffusion WebUI（`/sdapi/v1/txt2img`）/ Fooocus（Fooocus-API）** |
 | **動画** | **aiask.me Grok 動画**（grok-imagine-video-1.5）、**Grok 動画（xAI ネイティブ API：`/v1/videos/generations`）**、**ローカル ComfyUI**、Seedance 2.0、MiniMax H3、Wan 3.0 |
 
 ## 🚀 クイックスタート

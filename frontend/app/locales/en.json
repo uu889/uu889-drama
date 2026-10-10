@@ -406,15 +406,31 @@
       "providerRequired": "Select a provider",
       "tempInvalid": "Temperature must be a number between 0 and 2",
       "comfy": {
-        "apiKeyOptional": "optional for local ComfyUI",
-        "apiKeyPlaceholder": "Only needed behind an authenticating reverse proxy",
         "workflow": "ComfyUI workflow (API-format JSON)",
         "workflowHint": "leave empty to use the built-in Wan 2.2 TI2V 5B template",
         "workflowPlaceholder": "Use \"Export (API)\" in ComfyUI and paste the JSON; the placeholders below are filled in before submitting",
         "placeholders": "Placeholders (a field that is exactly one placeholder gets a typed number/text value; image placeholders without media remove their LoadImage node):",
         "negativePrompt": "Negative prompt",
         "negativePlaceholder": "Leave empty for the official Wan default negative prompt",
-        "workflowInvalid": "The ComfyUI workflow is not valid JSON"
+        "workflowInvalid": "The ComfyUI workflow is not valid JSON",
+        "workflowHintImage": "leave empty for the built-in SDXL text-to-image template; put checkpoint file names in the model list"
+      },
+      "local": {
+        "apiKeyOptional": "optional for local services",
+        "apiKeyPlaceholder": "Only when auth is enabled; for SD WebUI --api-auth enter user:password",
+        "baseSize": "Base size",
+        "baseSizeHint": "1024 for SDXL, 512 for SD1.5; width and height follow the project aspect ratio (multiples of 64). Steps default 25, CFG default 7",
+        "steps": "Steps",
+        "sampler": "Sampler",
+        "samplerPlaceholder": "Leave empty for the WebUI default, e.g. DPM++ 2M",
+        "negativePlaceholder": "Leave empty for a generic negative prompt (lowres, bad anatomy…)",
+        "sdHint": "Start WebUI with --api. Use a checkpoint name as the model, or default to keep the loaded one. Reference images are not used; for character consistency use a custom ComfyUI workflow or Fooocus."
+      },
+      "fooocus": {
+        "hint": "Requires Fooocus-API (port 8888 by default). Use a checkpoint file name as the model, or default. Shot reference images are sent as Image Prompts (up to 4).",
+        "performance": "Performance",
+        "styles": "Styles",
+        "stylesPlaceholder": "Comma separated; leave empty for Fooocus defaults"
       }
     },
     "styleDialog": {

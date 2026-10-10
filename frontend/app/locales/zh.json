@@ -406,15 +406,31 @@
       "providerRequired": "选择服务商",
       "tempInvalid": "Temperature 需为 0~2 的数字",
       "comfy": {
-        "apiKeyOptional": "本地 ComfyUI 可留空",
-        "apiKeyPlaceholder": "反向代理鉴权时填写，否则留空",
         "workflow": "ComfyUI 工作流（API 格式 JSON）",
         "workflowHint": "留空使用内置 Wan 2.2 TI2V 5B 模板",
         "workflowPlaceholder": "在 ComfyUI 中「导出 (API)」后粘贴 JSON，提交前会替换下列占位符",
         "placeholders": "可用占位符（字段值恰好为占位符时按数字/文本类型替换；图片占位符缺素材时自动移除对应 LoadImage 节点）：",
         "negativePrompt": "负向提示词",
         "negativePlaceholder": "留空使用 Wan 官方默认负向提示词",
-        "workflowInvalid": "ComfyUI 工作流不是合法 JSON"
+        "workflowInvalid": "ComfyUI 工作流不是合法 JSON",
+        "workflowHintImage": "留空使用内置 SDXL 文生图模板，模型列表里填 checkpoint 文件名"
+      },
+      "local": {
+        "apiKeyOptional": "本地服务可留空",
+        "apiKeyPlaceholder": "开启鉴权时填写；SD WebUI 的 --api-auth 填「用户名:密码」",
+        "baseSize": "基准尺寸",
+        "baseSizeHint": "SDXL 填 1024，SD1.5 填 512；按项目画面比例换算宽高（对齐 64），步数默认 25、CFG 默认 7",
+        "steps": "步数",
+        "sampler": "采样器",
+        "samplerPlaceholder": "留空使用 WebUI 默认采样器，如 DPM++ 2M",
+        "negativePlaceholder": "留空使用通用负向提示词（lowres, bad anatomy…）",
+        "sdHint": "WebUI 需用 --api 参数启动；模型填 checkpoint 名，填 default 沿用当前加载的模型。参考图不会使用，需要角色一致性请用 ComfyUI 自定义工作流或 Fooocus。"
+      },
+      "fooocus": {
+        "hint": "需运行 Fooocus-API（默认端口 8888）；模型填 checkpoint 文件名，填 default 沿用默认模型。分镜参考图会作为「图片提示」（最多 4 张）。",
+        "performance": "性能模式",
+        "styles": "风格",
+        "stylesPlaceholder": "逗号分隔，留空使用 Fooocus 默认风格"
       }
     },
     "styleDialog": {
