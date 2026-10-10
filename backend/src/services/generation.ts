@@ -9,7 +9,7 @@ import { now } from '../utils/response.js'
 import { downloadFile, fetchImageAsCompressedDataUrl, generateImageThumb, readImageAsCompressedDataUrl, readImageAsDataUrl, saveBase64Image } from '../utils/storage.js'
 import { extractVideoPoster } from '../utils/video-poster.js'
 import { getImageAdapter, getVideoAdapter } from './adapters/registry'
-import type { AIConfig } from './adapters/types'
+import type { AIConfig, ImageProviderAdapter, VideoProviderAdapter } from './adapters/types'
 import { logTaskError, logTaskPayload, logTaskProgress, logTaskStart, logTaskSuccess, logTaskWarn, redactUrl } from '../utils/task-logger.js'
 
 type TaskType = 'image' | 'video'
@@ -271,7 +271,11 @@ async function processTask(id: number, config: AIConfig) {
       signal: AbortSignal.timeout(600_000),
     })
 
-    if (!resp.ok) throw new Error(`API error ${resp.status}: ${await resp.text()}`)
+    if (!resp.ok) {
+      const text = await resp.text()
+      const videoAdapter = type === 'video' ? getVideoAdapter(config.provider) : null
+      throw new Error(videoAdapter?.describeError?.(resp.status, text) || formatUpstreamError(resp.status, text))
+    }
     const result = await resp.json() as any
     logTaskPayload(label, 'response payload', { id, provider: config.provider, result })
 
@@ -333,81 +337,142 @@ async function failTask(id: number, message: string) {
 
 type SysTaskRecord = typeof schema.sysTask.$inferSelect
 
+/** 上游错误响应 → 可读文案：优先取 JSON 里的 error.message，否则截断原文 */
+function formatUpstreamError(status: number, text: string): string {
+  let detail = ''
+  try {
+    const body = JSON.parse(text)
+    detail = body?.error?.message || body?.message || (typeof body?.error === 'string' ? body.error : '')
+  } catch { /* 非 JSON */ }
+  return `API error ${status}: ${String(detail || text).replace(/\s+/g, ' ').trim().slice(0, 500)}`
+}
+
+// 轮询时连续出现即判定为终态的客户端错误（鉴权失效、任务不存在等），不再空等到超时
+const TERMINAL_POLL_STATUS = new Set([400, 401, 403, 404, 410, 422])
+const TERMINAL_POLL_THRESHOLD = 3
+
+/** 结果下载/落盘：短暂重试（网络抖动），仍失败则抛出 */
+async function withRetry<T>(fn: () => Promise<T>, attempts = 3, delayMs = 3000): Promise<T> {
+  let lastErr: unknown
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn()
+    } catch (err) {
+      lastErr = err
+      if (i < attempts - 1) await new Promise(r => setTimeout(r, delayMs * (i + 1)))
+    }
+  }
+  throw lastErr
+}
+
 async function pollTask(record: SysTaskRecord, config: AIConfig, taskId: string) {
   const type = record.type as TaskType
   const label = taskLabel(type)
-  const profile = POLL_PROFILES[type]
   const adapter = type === 'image' ? getImageAdapter(config.provider) : getVideoAdapter(config.provider)
+  const videoAdapter = type === 'video' ? adapter as VideoProviderAdapter : null
+  const profile = { ...POLL_PROFILES[type], ...(videoAdapter?.pollProfile || {}) }
   const startedAt = Date.now()
+  let clientErrors = 0
+
+  const giveUp = async (message: string) => {
+    // 放弃前尽量取消上游任务（如 ComfyUI 队列），失败不影响落库
+    await videoAdapter?.cancel?.(config, taskId).catch(() => {})
+    await failTask(record.id, message)
+  }
 
   for (let i = 0; i < profile.attempts; i++) {
     if (profile.maxDurationMs && Date.now() - startedAt >= profile.maxDurationMs) {
-      await failTask(record.id, 'Timeout: Polling exceeded 10 minutes')
+      await giveUp('Timeout: Polling exceeded 10 minutes')
       return
     }
     await new Promise(r => setTimeout(r, profile.intervalMs))
+
+    let result: any
     try {
-      const { url, method, headers } = adapter.buildPollRequest(config, taskId)
-      logTaskProgress(label, 'poll-request', {
-        id: record.id,
-        taskId,
-        provider: config.provider,
-        method,
-        url: redactUrl(url),
-        attempt: i + 1,
-      })
-      const remainingMs = profile.maxDurationMs
-        ? Math.max(1_000, profile.maxDurationMs - (Date.now() - startedAt))
-        : 600_000
-      const resp = await fetch(url, {
-        method,
-        headers,
-        signal: AbortSignal.timeout(remainingMs),
-      })
-      if (!resp.ok) continue
-      const result = await resp.json() as any
-
-      // 图片/视频 PollResponse 结构不同，这里统一按 any 取值后按 type 分支
-      const pollResp: any = adapter.parsePollResponse(result)
-
-      if (pollResp.status === 'completed') {
-        if (type === 'image') {
-          if (pollResp.imageUrl) {
-            logTaskSuccess(label, 'poll-complete', { id: record.id, taskId, imageUrl: pollResp.imageUrl })
-            await handleImageComplete(record, pollResp.imageUrl)
+      if (videoAdapter?.fetchPollResult) {
+        logTaskProgress(label, 'poll-request', { id: record.id, taskId, provider: config.provider, attempt: i + 1 })
+        result = await videoAdapter.fetchPollResult(config, taskId)
+      } else {
+        const { url, method, headers } = adapter.buildPollRequest(config, taskId)
+        logTaskProgress(label, 'poll-request', {
+          id: record.id,
+          taskId,
+          provider: config.provider,
+          method,
+          url: redactUrl(url),
+          attempt: i + 1,
+        })
+        const remainingMs = profile.maxDurationMs
+          ? Math.max(1_000, profile.maxDurationMs - (Date.now() - startedAt))
+          : 600_000
+        const resp = await fetch(url, {
+          method,
+          headers,
+          signal: AbortSignal.timeout(remainingMs),
+        })
+        if (!resp.ok) {
+          const text = await resp.text().catch(() => '')
+          if (TERMINAL_POLL_STATUS.has(resp.status) && ++clientErrors >= TERMINAL_POLL_THRESHOLD) {
+            await failTask(record.id, `轮询失败，${formatUpstreamError(resp.status, text)}`)
             return
           }
-          if (adapter.provider === 'gemini') {
-            // Gemini 可能返回 base64
-            const b64 = (adapter as ReturnType<typeof getImageAdapter>).extractImageBase64(result)
-            if (b64) {
-              logTaskSuccess(label, 'poll-base64-complete', { id: record.id, taskId, mimeType: b64.mimeType })
-              await handleImageCompleteBase64(record, b64.data, b64.mimeType)
-              return
-            }
-          }
-        } else if (pollResp.videoUrl) {
-          logTaskSuccess(label, 'poll-complete', { id: record.id, taskId, videoUrl: pollResp.videoUrl })
-          await handleVideoComplete(record, config, pollResp.videoUrl, pollResp.duration)
-          return
+          logTaskWarn(label, 'poll-http-error', { id: record.id, taskId, attempt: i + 1, status: resp.status })
+          continue
         }
-      }
-      if (pollResp.status === 'failed') {
-        // 上游明确失败（如内容审核拦截）属终态：立即落库，不重试不等待超时
-        await failTask(record.id, pollResp.error || 'Generation failed')
-        return
+        clientErrors = 0
+        result = await resp.json() as any
       }
     } catch (err: any) {
       const exhausted = i === profile.attempts - 1
         || (profile.maxDurationMs != null && Date.now() - startedAt >= profile.maxDurationMs)
       if (exhausted) {
-        await failTask(record.id, `Timeout: ${err.message}`)
+        await giveUp(`Timeout: ${err.message}`)
         return
       }
       logTaskWarn(label, 'poll-retry', { id: record.id, taskId, attempt: i + 1, error: err.message })
+      continue
     }
+
+    // 图片/视频 PollResponse 结构不同，这里统一按 any 取值后按 type 分支
+    const pollResp: any = adapter.parsePollResponse(result)
+
+    if (pollResp.status === 'failed') {
+      // 上游明确失败（如内容审核拦截）属终态：立即落库，不重试不等待超时
+      await failTask(record.id, pollResp.error || 'Generation failed')
+      return
+    }
+    if (pollResp.status !== 'completed') continue
+
+    // 已完成：下载落盘。失败只做短暂重试后终止，不能混进轮询重试里每 10 秒重下一遍直到超时
+    try {
+      if (type === 'image') {
+        if (pollResp.imageUrl) {
+          logTaskSuccess(label, 'poll-complete', { id: record.id, taskId, imageUrl: pollResp.imageUrl })
+          await withRetry(() => handleImageComplete(record, pollResp.imageUrl))
+          return
+        }
+        // 部分厂商（Gemini、OpenAI 兼容网关）完成结果只有 base64
+        const b64 = (adapter as ImageProviderAdapter).extractImageBase64(result)
+        if (!b64) {
+          await failTask(record.id, '上游返回完成但没有图片结果')
+          return
+        }
+        logTaskSuccess(label, 'poll-base64-complete', { id: record.id, taskId, mimeType: b64.mimeType })
+        await withRetry(() => handleImageCompleteBase64(record, b64.data, b64.mimeType))
+        return
+      }
+      if (!pollResp.videoUrl) {
+        await failTask(record.id, '上游返回完成但没有视频地址')
+        return
+      }
+      logTaskSuccess(label, 'poll-complete', { id: record.id, taskId, videoUrl: pollResp.videoUrl })
+      await withRetry(() => handleVideoComplete(record, config, pollResp.videoUrl, pollResp.duration))
+    } catch (err: any) {
+      await failTask(record.id, `结果下载失败：${err.message}`)
+    }
+    return
   }
-  await failTask(record.id, 'Timeout: polling attempts exhausted')
+  await giveUp('Timeout: polling attempts exhausted')
 }
 
 async function handleImageComplete(record: SysTaskRecord, imageUrl: string) {

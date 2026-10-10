@@ -52,7 +52,7 @@ data/       — Generated media and the SQLite database
 |---|---|
 | **Text** | **aiask.me**, OpenAI (compatible), Gemini, Volcengine |
 | **Image** | **aiask.me** (gpt-image / grok-imagine-image / gemini-image), OpenAI, Gemini, Volcengine |
-| **Video** | **aiask.me Grok video** (grok-imagine-video-1.5), **local ComfyUI**, Volcengine Seedance 2.0, MiniMax H3, Alibaba Cloud Wan 3.0 |
+| **Video** | **aiask.me Grok video** (grok-imagine-video-1.5), **Grok video (xAI native)**, **local ComfyUI**, Volcengine Seedance 2.0, MiniMax H3, Alibaba Cloud Wan 3.0 |
 
 ---
 
@@ -123,6 +123,15 @@ Text requests only carry parameters each model family accepts: OpenAI reasoning 
 - **Poll** `GET /v1/videos/{id}`: `in_progress` (with `queue.position` while queued) → `completed` / `failed` / `cancelled`
 - **Download** `content_url` (`/v1/videos/{id}/content`) with the same API key; the MP4 is saved under `data/static/videos/`
 
+### Grok video (xAI native API)
+
+**Settings → Video → Add** and pick the **Grok 视频（xAI 原生）** template: use `https://api.x.ai` with an xAI API key, or `https://aiask.me` with an aiask.me key from a **Grok group**.
+
+- **Create** `POST /v1/videos/generations` with `model`, `prompt`, `duration` (1–15 s), `aspect_ratio` (`1:1` `16:9` `9:16` `4:3` `3:4` `3:2` `2:3` `21:9` `5:2`) and `resolution` (`480p` / `720p` / `1080p`)
+- **Images**: a first frame becomes `image: {url}` (xAI has no last-frame field; a lone last frame is used as the image); shot reference images become `reference_images: [{url}]` (up to 14 on grok-imagine-video-1.5, 7 otherwise; max 720p; non-1.5 models max 10 s), and `@图片1name` in the prompt is rewritten to xAI's `<IMAGE_0>name`
+- **Poll** `GET /v1/videos/{request_id}`: `pending` → `done` / `failed` / `expired`
+- **Download** `video.url` (xAI's temporary URL is fetched without the key; a gateway-rewritten `/v1/videos/{id}/content` gets the key)
+
 ---
 
 ## 🖥️ Local ComfyUI Video
@@ -159,7 +168,7 @@ When an image placeholder has no media, the node using it (e.g. `LoadImage`), an
 
 **Download**: [GitHub Releases](https://github.com/uu889/uu889-drama/releases/latest) (Windows `.exe`, macOS Apple Silicon / Intel `.dmg`)
 
-**Publishing a release**: bump `version` in `desktop/package.json`, commit, then push an annotated tag — GitHub Actions builds Windows + both macOS architectures and uploads the installers and the `latest.json` update feed:
+**Publishing a release**: bump `version` in `desktop/package.json` and `backend/package.json`, commit, then push an annotated tag — GitHub Actions builds Windows + both macOS architectures and uploads the installers and the `latest.json` update feed:
 
 ```bash
 git tag -a v1.0.1 -m "Release notes"
@@ -189,7 +198,7 @@ cd backend && npm start
 
 Put Nginx in front and serve `/static/` straight from `data/static/` for best performance.
 
-### 🐳 Docker (with in-app updates)
+### 🐳 Docker
 
 ```bash
 cp .env.example .env                              # set WATCHTOWER_TOKEN
@@ -197,7 +206,8 @@ UU889_VERSION=1.0.0 docker compose up -d --build  # open http://localhost:5679
 ```
 
 - Data lives in the `uu889-data` volume mounted at `/app/data`
-- The bundled Watchtower sidecar powers "Settings → About → Update now"; remove the app's `UU889_WATCHTOWER_*` variables for manual updates
+- Updating a source build: `git pull && UU889_VERSION=<new version> docker compose up -d --build`
+- One-click updates (optional): the bundled Watchtower sidecar can only pull an image that exists in a registry. Publish the image (command below) and point `image` in `docker-compose.yml` at it to make "Settings → About → Update now" work; remove the app's `UU889_WATCHTOWER_*` variables to keep only the new-version notice
 - Multi-arch image: `docker buildx build --platform linux/amd64,linux/arm64 --build-arg UU889_VERSION=x.y.z -t <your-registry>/uu889-drama:x.y.z --push .`
 
 ---

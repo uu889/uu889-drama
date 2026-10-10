@@ -2038,6 +2038,8 @@ const RESOLUTION_TIERS = {
   aliyun: ['480p', '720p', '1080p'],
   // aiask Grok 视频：1080p 仅文生 / 图生，多参考图与首尾帧模式由后端收敛到 720p
   aiask: ['480p', '720p', '1080p'],
+  // xAI 原生：多参考图模式最高 720p，由后端收敛
+  xai: ['480p', '720p', '1080p'],
   // 本地 ComfyUI：档位决定短边像素（480 / 704 / 1056），长边按画面比例
   comfyui: ['480p', '720p', '1080p'],
 }
@@ -2046,6 +2048,7 @@ const RESOLUTION_DISPLAY = {
   minimax: { '480p': '768P', '720p': '768P', '1080p': '2K' },
   aliyun: { '480p': '480P', '720p': '720P', '1080p': '1080P' },
   aiask: { '480p': '480p', '720p': '720p', '1080p': '1080p' },
+  xai: { '480p': '480p', '720p': '720p', '1080p': '1080p' },
   comfyui: { '480p': '480p', '720p': '720p', '1080p': '1080p' },
 }
 const resolutionProvider = computed(() => RESOLUTION_TIERS[selectedVideoConfig.value?.provider] ? selectedVideoConfig.value.provider : 'volcengine')
@@ -2126,8 +2129,19 @@ const selectedVideoConfig = computed(() => {
 const isWan3Video = computed(() => selectedVideoConfig.value?.provider === 'aliyun'
   || bareModelName(videoModel.value).startsWith('wan3.0-video'))
 
-// 参考图上限（Wan 3.0 官方 10 张，其他模型 9 张），绑定素材收集与 @名字 映射统一读取
-const refImageLimit = computed(() => isWan3Video.value ? 10 : 9)
+// 参考图上限（按视频厂商），绑定素材收集与 @名字 映射统一读取
+// 必须与后端适配器的上限一致：超出的图会被后端丢弃，而提示词里的 @图片N 编号仍指向它们
+// aiask 通用视频任务 7 张；xAI 原生 grok-imagine-video-1.5 官方 14 张，但任务接口统一校验 ≤9，其它 Grok 7 张
+const refImageLimit = computed(() => {
+  if (isWan3Video.value) return 10
+  const provider = selectedVideoConfig.value?.provider
+  if (provider === 'aiask') return 7
+  if (provider === 'xai') {
+    const model = bareModelName(videoModel.value) || configModels(selectedVideoConfig.value)[0] || ''
+    return /^grok-imagine-video-1\.5/i.test(model) ? 9 : 7
+  }
+  return 9
+})
 
 // 本次生成的生效配置（模型/分辨率/时长），用于右侧小结与批量确认弹窗
 const effectiveVideoModelLabel = computed(() => {

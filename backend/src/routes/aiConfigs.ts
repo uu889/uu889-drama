@@ -103,8 +103,8 @@ function buildProbe(serviceType: string, provider: string, baseUrl: string, mode
     }
   }
 
-  if (p === 'openai' || p === 'aiask') {
-    // aiask.me 为 OpenAI 兼容网关，文本 / 图片 / 视频共用 /v1/models 验证 Key 与地址
+  if (p === 'openai' || p === 'aiask' || p === 'xai') {
+    // aiask.me 为 OpenAI 兼容网关、xAI 原生接口同样提供 /v1/models，用它验证 Key 与地址
     return {
       method: 'GET',
       url: joinProviderUrl(baseUrl, '/v1', '/models'),

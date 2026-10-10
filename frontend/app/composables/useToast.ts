@@ -24,8 +24,25 @@ const TIMEOUT_RE = /timeout|timed out|polling exceeded|超时/i
 /** 技术特征：出现即判定不可直接透传给用户 */
 const TECHY_RE = /[{}\[\]<>]|https?:\/\/|\b(error|errno|exception|code|stack|undefined|null)\b|[a-z]+_[a-z]+/i
 const CJK_RE = /[一-鿿]/
-/** 与 backend/src/routes/agent.ts describeModelError 的前缀一致 */
-const MODEL_ERROR_PREFIX = '文本模型调用失败'
+/** 与 backend/src/utils/model-error.ts describeModelError 的格式一致：文本模型调用失败（HTTP 400）：<上游原因> */
+const MODEL_ERROR_RE = /^文本模型调用失败(?:（HTTP (\d{3})）)?：([\s\S]*)$/
+/** 后端整理过的 ComfyUI 中文提示（工作流格式 / 校验失败 / 任务丢失等），长度不定但可直接给用户看 */
+const COMFY_MESSAGE_RE = /^ComfyUI[\s\S]*[一-鿿]/
+
+function clip(text: string, max = 200): string {
+  return text.length > max ? `${text.slice(0, max)}…` : text
+}
+
+/** 模型调用错误：按 HTTP 状态给本地化提示，其余带上游原因（参数不支持、模型不存在等） */
+function mapModelError(status: number, detail: string): string {
+  if (MODERATION_RE.test(detail)) return t('errors.moderation')
+  if (status === 401) return t('errors.auth')
+  if (status === 429) return t('errors.rateLimit')
+  // 5xx 或网关返回 HTML 错误页：原文对用户没有意义
+  if (status >= 500 || /^\s*</.test(detail)) return status >= 500 ? t('errors.unavailable') : t('errors.requestFailed', { status })
+  if (!detail) return status ? t('errors.requestFailed', { status }) : t('errors.unknown')
+  return status ? t('errors.modelFailed', { status, detail: clip(detail) }) : t('errors.modelFailedPlain', { detail: clip(detail) })
+}
 
 function messageOf(err: unknown): string {
   if (err == null) return ''
@@ -44,12 +61,11 @@ export function mapError(err: unknown, opts?: { fallback?: string }): string {
   if (!msg) return opts?.fallback ? t(opts.fallback) : t('errors.unknown')
 
   if (err instanceof TypeError && NETWORK_RE.test(msg)) return t('errors.network')
-  // 后端整理过的模型调用错误（带 HTTP 状态与上游原因，如参数不被支持、模型不存在）：
-  // 原样展示，否则会被下面的技术特征判定吞成"操作失败，请重试"，用户无从排查
-  if (msg.startsWith(MODEL_ERROR_PREFIX)) {
-    if (MODERATION_RE.test(msg)) return t('errors.moderation')
-    return msg.length > 200 ? `${msg.slice(0, 200)}…` : msg
-  }
+  // 后端整理过的模型调用错误 / ComfyUI 提示：展示具体原因，否则会被下面的技术特征判定
+  // 吞成"操作失败，请重试"，用户无从排查
+  const modelErr = MODEL_ERROR_RE.exec(msg)
+  if (modelErr) return mapModelError(Number(modelErr[1] || 0), modelErr[2].trim())
+  if (COMFY_MESSAGE_RE.test(msg)) return clip(msg)
   if (err instanceof SyntaxError || NONJSON_RE.test(msg)) return t('errors.server')
   if (MODERATION_RE.test(msg)) return t('errors.moderation')
   if (AUTH_RE.test(msg)) return t('errors.auth')

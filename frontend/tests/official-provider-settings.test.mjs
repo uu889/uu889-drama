@@ -28,7 +28,7 @@ test('settings page exposes official provider templates only', () => {
   assert.doesNotMatch(useApi, /huobaoPreset/i)
   assert.doesNotMatch(useApi, /\/huobao-preset/)
 
-  assert.match(settingsPage, /const providers = \['aiask', 'gemini', 'openai', 'volcengine', 'minimax', 'aliyun', 'comfyui'\]/)
+  assert.match(settingsPage, /const providers = \['aiask', 'xai', 'gemini', 'openai', 'volcengine', 'minimax', 'aliyun', 'comfyui'\]/)
   assert.match(settingsPage, /https:\/\/generativelanguage\.googleapis\.com/)
   assert.match(settingsPage, /https:\/\/api\.openai\.com/)
   assert.match(settingsPage, /https:\/\/ark\.cn-beijing\.volces\.com/)
@@ -77,7 +77,7 @@ test('settings page offers official default model IDs', () => {
 })
 
 test('text configs and aiask / ComfyUI configs expose the connection test button', () => {
-  assert.match(settingsPage, /v-if="st\.type === 'text' \|\| \['aiask', 'comfyui'\]\.includes\(c\.provider\)" class="btn btn-ghost btn-sm" @click="testExistingCfg\(c\)">\{\{ t\('settings\.ai\.test'\) \}\}/)
+  assert.match(settingsPage, /v-if="st\.type === 'text' \|\| \['aiask', 'xai', 'comfyui'\]\.includes\(c\.provider\)" class="btn btn-ghost btn-sm" @click="testExistingCfg\(c\)">\{\{ t\('settings\.ai\.test'\) \}\}/)
 })
 
 test('settings page offers the supported official provider presets', () => {
@@ -89,6 +89,7 @@ test('settings page offers the supported official provider presets', () => {
   assert.match(providerPresetBlock('video'), /aliyun/)
   assert.match(providerPresetBlock('video'), /aiask: \{ label: 'aiask\.me Grok 视频', baseUrl: AIASK_SITE_URL, models: \['grok-imagine-video-1\.5'\] \}/)
   assert.match(providerPresetBlock('video'), /comfyui: \{ label: '本地 ComfyUI', baseUrl: 'http:\/\/127\.0\.0\.1:8188'/)
+  assert.match(providerPresetBlock('video'), /xai: \{ label: 'Grok 视频（xAI 原生）', baseUrl: 'https:\/\/api\.x\.ai'/)
   assert.match(providerPresetBlock('text'), /aiask:/)
   assert.match(providerPresetBlock('image'), /aiask:.*grok-imagine-image/)
   assert.doesNotMatch(providerPresetBlock('video'), /'vidu'/i)

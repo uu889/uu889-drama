@@ -178,7 +178,8 @@
       "episodeN": "第 {n} 話",
       "res720": "720p · 高画質",
       "res480": "480p · スムーズ",
-      "resSwitched": "この話の動画解像度を {res} に変更しました"
+      "resSwitched": "この話の動画解像度を {res} に変更しました",
+      "res1080": "1080p · 超高画質"
     },
     "epCreate": {
       "title": "新しい話を作成",
@@ -879,7 +880,9 @@
     "timeout": "生成がタイムアウトしました。再試行してください",
     "moderation": "コンテンツが審査を通過しませんでした。プロンプトを調整するかモデルを切り替えて再試行してください",
     "requestFailed": "リクエストに失敗しました（{status}）",
-    "unknown": "操作に失敗しました。再試行してください"
+    "unknown": "操作に失敗しました。再試行してください",
+    "modelFailed": "モデルの呼び出しに失敗しました（HTTP {status}）：{detail}",
+    "modelFailedPlain": "モデルの呼び出しに失敗しました：{detail}"
   },
   "tour": {
     "next": "次へ",

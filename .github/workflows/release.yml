@@ -1,4 +1,4 @@
-# 桌面版发布：推送 v* 标签（版本号须与 desktop/package.json 一致）后自动
+# 桌面版发布：推送 v* 标签（版本号须与 desktop/、backend/ 的 package.json 一致）后自动
 #   1. 三台机器并行打包：Windows x64、macOS Apple Silicon、macOS Intel
 #      （mac 双架构分机构建：ffmpeg / sharp / better-sqlite3 都是本机架构的原生二进制）
 #   2. 生成应用内更新清单 latest.json，连同安装包上传到同名 GitHub Release
@@ -56,13 +56,16 @@ jobs:
             frontend/package-lock.json
             desktop/package-lock.json
 
-      - name: Check tag matches desktop version
+      # 桌面版与服务器 / Docker 版（读 backend/package.json）版本号必须一致
+      - name: Check tag matches app versions
         run: |
-          VERSION=$(node -p "require('./desktop/package.json').version")
-          if [ "$TAG" != "v$VERSION" ]; then
-            echo "::error::标签 $TAG 与 desktop/package.json 版本 $VERSION 不一致"
-            exit 1
-          fi
+          for PKG in desktop backend; do
+            VERSION=$(node -p "require('./$PKG/package.json').version")
+            if [ "$TAG" != "v$VERSION" ]; then
+              echo "::error::标签 $TAG 与 $PKG/package.json 版本 $VERSION 不一致"
+              exit 1
+            fi
+          done
 
       - name: Install backend dependencies
         working-directory: backend

@@ -583,11 +583,13 @@ const deletingEpisode = ref(false)
 const resolutionOptions = computed(() => ([
   { label: t('detail.ep.res720'), value: '720p' },
   { label: t('detail.ep.res480'), value: '480p' },
+  // aiask / xAI Grok、ComfyUI、Wan 3.0 支持 1080p；不支持的厂商由后端适配器收敛到最高档
+  { label: t('detail.ep.res1080'), value: '1080p' },
 ]))
 const newEpisodeResolution = ref('720p')
 const epResMenuId = ref(null)
 
-function epResolution(ep) { return ep.resolution === '480p' ? '480p' : '720p' }
+function epResolution(ep) { return ['480p', '720p', '1080p'].includes(ep.resolution) ? ep.resolution : '720p' }
 
 async function setEpisodeResolution(ep, resolution) {
   epResMenuId.value = null

@@ -178,7 +178,8 @@
       "episodeN": "第 {n} 集",
       "res720": "720p · 高清",
       "res480": "480p · 流畅",
-      "resSwitched": "本集视频分辨率已切换为 {res}"
+      "resSwitched": "本集视频分辨率已切换为 {res}",
+      "res1080": "1080p · 超清"
     },
     "epCreate": {
       "title": "创建新集",
@@ -879,7 +880,9 @@
     "timeout": "生成超时，请重试",
     "moderation": "内容未通过审核，请调整提示词或切换模型后重试",
     "requestFailed": "请求失败（{status}）",
-    "unknown": "操作失败，请重试"
+    "unknown": "操作失败，请重试",
+    "modelFailed": "模型调用失败（HTTP {status}）：{detail}",
+    "modelFailedPlain": "模型调用失败：{detail}"
   },
   "tour": {
     "next": "下一步",

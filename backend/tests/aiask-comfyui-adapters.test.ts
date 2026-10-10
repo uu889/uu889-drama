@@ -9,6 +9,7 @@ import {
   comfyFrameCount,
   parseComfyWorkflow,
   renderComfyWorkflow,
+  classesWithDroppedLinks,
 } from '../src/services/adapters/comfyui-video'
 import { getImageAdapter, getVideoAdapter } from '../src/services/adapters/registry'
 import { isOfficialProvider } from '../src/services/ai'
@@ -213,7 +214,16 @@ test('comfyui: submit / history / view lifecycle', async () => {
   assert.equal(req.body.prompt['3'].inputs.seed, 3)
 
   assert.deepEqual(adapter.parseGenerateResponse({ prompt_id: 'abc', number: 1, node_errors: {} }), { isAsync: true, taskId: 'abc' })
-  assert.throws(() => adapter.parseGenerateResponse({ prompt_id: 'abc', node_errors: { '3': { class_type: 'KSampler', errors: [{ details: 'bad seed' }] } } }), /bad seed/)
+  // 有 prompt_id 即已入队：部分输出节点校验失败时 ComfyUI 仍会执行其余输出
+  assert.deepEqual(adapter.parseGenerateResponse({ prompt_id: 'abc', node_errors: { '9': { class_type: 'PreviewImage', errors: [{ message: 'x' }] } } }), { isAsync: true, taskId: 'abc' })
+  assert.throws(() => adapter.parseGenerateResponse({ node_errors: { '3': { class_type: 'KSampler', errors: [{ message: 'Value out of range', details: 'bad seed' }] } } }), /bad seed/)
+  // /prompt 400：node_errors 整理成可读文案
+  const described = adapter.describeError(400, JSON.stringify({
+    error: { type: 'prompt_outputs_failed_validation', message: 'Prompt outputs failed validation' },
+    node_errors: { '58': { class_type: 'SaveVideo', errors: [{ message: 'Required input is missing', details: 'video' }] } },
+  }))
+  assert.match(described!, /^ComfyUI 工作流校验失败（HTTP 400）：Prompt outputs failed validation — #58 SaveVideo — Required input is missing: video/)
+  assert.equal(adapter.describeError(500, 'oops'), null)
 
   assert.equal(adapter.buildPollRequest(cfg, 'abc').url, 'http://127.0.0.1:8188/history/abc')
   assert.equal(adapter.parsePollResponse({}).status, 'processing')
@@ -239,4 +249,57 @@ test('comfyui: submit / history / view lifecycle', async () => {
 
   const noVideo = adapter.parsePollResponse({ abc: { status: { status_str: 'success', completed: true }, outputs: { '9': { images: [{ filename: 'a.png', type: 'output' }] } } } })
   assert.equal(noVideo.status, 'failed')
+})
+
+test('comfyui: empty prompt is substituted, not reported as an unknown placeholder', () => {
+  const w = renderComfyWorkflow({ '1': { class_type: 'CLIPTextEncode', inputs: { text: '{{prompt}}' } } }, { prompt: '' })
+  assert.equal(w['1'].inputs.text, '')
+  assert.throws(() => renderComfyWorkflow({ '1': { class_type: 'X', inputs: { v: '{{nope}}' } } }, { nope: '' }), /不支持的占位符/)
+})
+
+test('comfyui: pruning removes nodes that lose a required link (Wan 2.1 I2V CLIPVisionEncode)', () => {
+  const template = {
+    '49': { class_type: 'CLIPVisionLoader', inputs: { clip_name: 'clip_vision_h.safetensors' } },
+    '52': { class_type: 'LoadImage', inputs: { image: '{{image}}' } },
+    '51': { class_type: 'CLIPVisionEncode', inputs: { clip_vision: ['49', 0], image: ['52', 0], crop: 'none' } },
+    '50': { class_type: 'WanImageToVideo', inputs: { clip_vision_output: ['51', 0], start_image: ['52', 0], vae: ['39', 0], width: 832 } },
+    '39': { class_type: 'VAELoader', inputs: { vae_name: 'wan.safetensors' } },
+  }
+  // 没有必填信息时：CLIPVisionEncode 还有 clip_vision 连线，只丢掉 image（旧行为）
+  const loose = renderComfyWorkflow(template, {})
+  assert.ok(loose['51'])
+  assert.deepEqual(classesWithDroppedLinks(template, loose).sort(), ['CLIPVisionEncode', 'WanImageToVideo'])
+  // 有 /object_info 必填信息：image 是 CLIPVisionEncode 的必填输入 → 整个节点移除，WanImageToVideo 的可选输入一并断开
+  const strict = renderComfyWorkflow(template, {}, { CLIPVisionEncode: ['clip_vision', 'image', 'crop'], WanImageToVideo: ['vae', 'width'] })
+  assert.equal(strict['51'], undefined)
+  assert.deepEqual(Object.keys(strict['50'].inputs).sort(), ['vae', 'width'])
+})
+
+test('comfyui: lost tasks fail fast; animated-only output gets a clear error', async () => {
+  const adapter = new ComfyUIVideoAdapter()
+  assert.match(adapter.parsePollResponse({ __comfyMissing: true }).error!, /找不到该任务/)
+  const gifOnly = adapter.parsePollResponse({ p: { status: { status_str: 'success', completed: true }, outputs: { '9': { images: [{ filename: 'a.webp', type: 'output' }], animated: [true] } } } })
+  assert.equal(gifOnly.status, 'failed')
+  assert.match(gifOnly.error!, /GIF \/ WebP/)
+
+  // fetchPollResult：history 为空时查 queue，在队列里 → 继续等；都不在 → 丢失
+  const cfg = { provider: 'comfyui', baseUrl: 'http://127.0.0.1:8188', apiKey: '', model: 'm' }
+  const realFetch = globalThis.fetch
+  const respond = (routes: Record<string, unknown>) => {
+    globalThis.fetch = (async (url: string) => {
+      const path = new URL(url).pathname
+      return new Response(JSON.stringify(routes[path] ?? {}), { status: 200 })
+    }) as typeof fetch
+  }
+  try {
+    respond({ '/history/p1': {}, '/queue': { queue_running: [], queue_pending: [[3, 'p1', {}, {}, []]] } })
+    assert.deepEqual(await adapter.fetchPollResult(cfg, 'p1'), {})
+    respond({ '/history/p1': {}, '/queue': { queue_running: [], queue_pending: [] } })
+    assert.deepEqual(await adapter.fetchPollResult(cfg, 'p1'), { __comfyMissing: true })
+    respond({ '/history/p1': { p1: { status: { status_str: 'success' } } } })
+    assert.ok((await adapter.fetchPollResult(cfg, 'p1')).p1)
+  } finally {
+    globalThis.fetch = realFetch
+  }
+  assert.equal(adapter.pollProfile.attempts * adapter.pollProfile.intervalMs, 6 * 3600 * 1000)
 })

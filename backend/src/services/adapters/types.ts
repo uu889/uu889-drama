@@ -65,6 +65,21 @@ export interface VideoProviderAdapter {
    * 需带 API Key、ComfyUI /view 相对路径需拼本地服务地址）。未实现时直接 GET videoUrl。
    */
   resolveDownload?(config: AIConfig, videoUrl: string): DownloadRequest
+
+  /** 可选：覆盖默认轮询节奏（如本地 ComfyUI 串行出片，排队时间长） */
+  pollProfile?: { attempts: number; intervalMs: number }
+
+  /**
+   * 可选：自定义取状态（需要多次请求才能判断时，如 ComfyUI 先查 history 再查 queue）。
+   * 返回值交给 parsePollResponse；抛错按网络抖动重试。
+   */
+  fetchPollResult?(config: AIConfig, taskId: string): Promise<any>
+
+  /** 可选：轮询超时放弃时取消上游任务，避免继续占用资源 */
+  cancel?(config: AIConfig, taskId: string): Promise<void>
+
+  /** 可选：把上游错误响应整理成可读文案（返回 null 用通用格式） */
+  describeError?(status: number, bodyText: string): string | null
 }
 
 export interface DownloadRequest {

@@ -24,6 +24,7 @@ import type {
 } from './types'
 import { joinProviderUrl } from './url'
 import { loadReferenceFile, parseUrlArray } from './media'
+import { gatewayVideoDownload, toGrokImageRefs } from './video-common'
 
 export const AIASK_DEFAULT_VIDEO_MODEL = 'grok-imagine-video-1.5'
 
@@ -71,8 +72,15 @@ export function normalizeAiaskResolution(resolution: string | null | undefined, 
   return tier
 }
 
+/**
+ * 有的网关把任务包在 video 字段里（如创建响应 { video: { id, status } }），
+ * 有的顶层就是任务、video 只是成片信息（{ status: 'done', video: { url } }）：
+ * 只有顶层没有 status 时才取内层，否则顶层的状态会被忽略、任务一直轮询到超时
+ */
 function unwrapVideo(result: any): any {
-  return result?.video && typeof result.video === 'object' && !Array.isArray(result.video) ? result.video : result
+  const inner = result?.video
+  if (result?.status == null && inner && typeof inner === 'object' && !Array.isArray(inner)) return inner
+  return result
 }
 
 export class AiaskVideoAdapter implements VideoProviderAdapter {
@@ -105,9 +113,13 @@ export class AiaskVideoAdapter implements VideoProviderAdapter {
       }
     }
 
+    // Grok Imagine 的多参考图用 <IMAGE_0>… 指代参考图
+    const referenceCount = files.filter(([field]) => field === 'reference_images').length
+    const finalPrompt = referenceCount && /^grok/i.test(model) ? toGrokImageRefs(prompt, referenceCount) : prompt
+
     const fields: Record<string, string | number> = {
       model,
-      prompt,
+      prompt: finalPrompt,
       mode,
       duration_seconds: normalizeAiaskDuration(record.duration),
       ratio: normalizeAiaskRatio(record.aspectRatio),
@@ -164,10 +176,12 @@ export class AiaskVideoAdapter implements VideoProviderAdapter {
     const status = String(video?.status || '').toLowerCase()
     if (status === 'completed' || status === 'succeeded' || status === 'done') {
       const videoUrl = this.extractVideoUrl(result)
-      const duration = Number(video?.duration_seconds ?? video?.duration)
+      // 已完成却拿不到成片地址：直接失败，避免轮询到超时
+      if (!videoUrl) return { status: 'failed', error: '视频已完成但上游没有返回成片地址' }
+      const duration = Number(video?.duration_seconds ?? video?.duration ?? video?.video?.duration)
       return {
         status: 'completed',
-        videoUrl: videoUrl || undefined,
+        videoUrl,
         duration: Number.isFinite(duration) && duration > 0 ? duration : undefined,
       }
     }
@@ -188,17 +202,6 @@ export class AiaskVideoAdapter implements VideoProviderAdapter {
 
   /** content_url 是网关相对地址且需要鉴权；外部直链（CDN 签名地址）不带 Key */
   resolveDownload(config: AIConfig, videoUrl: string): DownloadRequest {
-    const auth = { 'Authorization': `Bearer ${config.apiKey}` }
-    if (/^https?:\/\//i.test(videoUrl)) {
-      const sameHost = (() => {
-        try { return new URL(videoUrl).host === new URL(config.baseUrl).host } catch { return false }
-      })()
-      return { url: videoUrl, headers: sameHost ? auth : undefined, fallbackExt: '.mp4' }
-    }
-    const path = videoUrl.startsWith('/') ? videoUrl : `/${videoUrl}`
-    const url = path.startsWith('/v1/')
-      ? joinProviderUrl(config.baseUrl, '/v1', path.slice(3))
-      : new URL(path, config.baseUrl).toString()
-    return { url, headers: auth, fallbackExt: '.mp4' }
+    return gatewayVideoDownload(config, videoUrl)
   }
 }

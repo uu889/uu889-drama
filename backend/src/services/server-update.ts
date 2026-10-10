@@ -35,7 +35,9 @@ export interface ServerUpdateState {
 let lastState: Omit<ServerUpdateState, 'updateMode'> | null = null
 
 function currentVersion(): string {
-  if (process.env.UU889_VERSION) return process.env.UU889_VERSION.replace(/^v/, '')
+  // compose 默认注入 dev（本地构建未指定版本）：不是版本号，改用 package.json，避免永远提示有新版本
+  const injected = (process.env.UU889_VERSION || '').replace(/^v/, '')
+  if (/^\d+\.\d+\.\d+/.test(injected)) return injected
   try {
     const pkg = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../package.json')
     return JSON.parse(readFileSync(pkg, 'utf-8')).version || '0.0.0'

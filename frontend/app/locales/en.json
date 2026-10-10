@@ -178,7 +178,8 @@
       "episodeN": "Episode {n}",
       "res720": "720p · HD",
       "res480": "480p · Smooth",
-      "resSwitched": "Video resolution switched to {res}"
+      "resSwitched": "Video resolution switched to {res}",
+      "res1080": "1080p · UHD"
     },
     "epCreate": {
       "title": "Create Episode",
@@ -879,7 +880,9 @@
     "timeout": "Generation timed out. Please try again.",
     "moderation": "Content was blocked by moderation. Adjust the prompt or switch models and retry.",
     "requestFailed": "Request failed ({status})",
-    "unknown": "Operation failed. Please try again."
+    "unknown": "Operation failed. Please try again.",
+    "modelFailed": "Model request failed (HTTP {status}): {detail}",
+    "modelFailedPlain": "Model request failed: {detail}"
   },
   "tour": {
     "next": "Next",

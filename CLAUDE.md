@@ -43,7 +43,7 @@ configs/   — 遗留死配置，代码零引用
 - **Database**: SQLite（better-sqlite3 + WAL），`SQLITE_PATH` 覆盖库文件位置；DDL 在 `src/db/sqlite-schema.ts`，启动时幂等重放；Drizzle 表定义 `src/db/schema.ts`（sqlite-core）
 - **路径锚点**: `src/utils/paths.ts` 统一解析 DATA_ROOT/STORAGE_ROOT；桌面版由 Electron 主进程注入 env（`UU889_DATA_DIR`/`SQLITE_PATH`/`WORKSPACE_PATH`/`FRONTEND_DIST`/`FFMPEG_BIN`/`FFPROBE_BIN`），dev 走仓库相对路径默认值
 - **AI Agents**: Mastra，4 个 agent（script_rewriter / extractor / storyboard_breaker / prompt_generator），instructions 从 `workspace/prompts/*.md` + skills 动态拼接，模型按请求解析；fetch 补丁链适配国内中转站（关思考/温度/max_tokens）
-- **媒体生成**: `services/generation.ts` 统一任务生命周期（sys_task 表），适配器模式：图片 aiask/openai/gemini/volcengine，视频 aiask/comfyui/volcengine/minimax/aliyun。适配器 `buildGenerateRequest` 可返回 Promise（先上传素材），`resolveDownload` 给出成片下载方式（鉴权头 / 相对地址补全）
+- **媒体生成**: `services/generation.ts` 统一任务生命周期（sys_task 表），适配器模式：图片 aiask/openai/gemini/volcengine，视频 aiask/xai/comfyui/volcengine/minimax/aliyun（xai = Grok 原生 `/v1/videos/generations`，参考图 `reference_images` + 提示词 `<IMAGE_n>`）。适配器 `buildGenerateRequest` 可返回 Promise（先上传素材），`resolveDownload` 给出成片下载方式（鉴权头 / 相对地址补全）
 - **aiask.me**: OpenAI 兼容网关，文本走 `/v1/chat/completions`；图片 `adapters/aiask-image.ts`（grok-imagine 用 aspect_ratio + JSON edits）；Grok 视频 `adapters/aiask-video.ts`：`POST /v1/videos` → `GET /v1/videos/{id}` → 带 Key 取 `/content`
 - **ComfyUI**: `adapters/comfyui-video.ts`，工作流存 `ai_service_configs.settings.comfyui_workflow`（API 格式 JSON，空则用内置 Wan 2.2 TI2V 5B），`{{占位符}}` 替换 + 缺图节点裁剪；`/upload/image` → `/prompt` → `/history/{id}` → `/view`
 - **视频拼接**: `services/ffmpeg-merge.ts`，FFmpeg 二进制内置（ffmpeg-static），可用 `FFMPEG_BIN`/`FFPROBE_BIN` 覆盖

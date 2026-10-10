@@ -52,7 +52,7 @@ data/       — 生成资源文件与 SQLite 数据库
 |---|---|
 | **文本** | **aiask.me**、OpenAI（兼容接口）、Gemini、火山引擎 |
 | **图片** | **aiask.me**（gpt-image / grok-imagine-image / gemini-image）、OpenAI、Gemini、火山引擎 |
-| **视频** | **aiask.me Grok 视频**（grok-imagine-video-1.5）、**本地 ComfyUI**、火山引擎 Seedance 2.0、MiniMax H3、阿里云百炼 Wan 3.0 |
+| **视频** | **aiask.me Grok 视频**（grok-imagine-video-1.5）、**Grok 视频（xAI 原生）**、**本地 ComfyUI**、火山引擎 Seedance 2.0、MiniMax H3、阿里云百炼 Wan 3.0 |
 
 ---
 
@@ -136,6 +136,15 @@ aiask.me 是 OpenAI 兼容的 AI API 网关，一个 Key 覆盖文本、图片�
 - **轮询**：`GET /v1/videos/{id}`，`in_progress`（排队时带 `queue.position`）→ `completed` / `failed` / `cancelled`
 - **取回**：完成后带同一个 API Key 请求 `content_url`（`/v1/videos/{id}/content`），成片下载到本地 `data/static/videos/`
 
+### Grok 视频（xAI 原生接口）
+
+「设置 → 视频服务 → 添加」选择「Grok 视频（xAI 原生）」模板：直连 xAI 官方填 `https://api.x.ai` + xAI API Key；用 aiask.me **Grok 分组**的 Key 时把 Base URL 改成 `https://aiask.me`。
+
+- **创建**：`POST /v1/videos/generations`，参数 `model`、`prompt`、`duration`（1–15 秒）、`aspect_ratio`（`1:1` `16:9` `9:16` `4:3` `3:4` `3:2` `2:3` `21:9` `5:2`）、`resolution`（`480p` / `720p` / `1080p`）
+- **图片**：有首帧时 `image: {url}` 图生视频（xAI 没有尾帧参数，只有尾帧时当作首帧）；分镜绑定的参考图走 `reference_images: [{url}]`（grok-imagine-video-1.5 最多 14 张、其它 7 张，最高 720p，非 1.5 模型最长 10 秒），提示词里的 `@图片1角色名` 自动换成 xAI 要求的 `<IMAGE_0>角色名`
+- **轮询**：`GET /v1/videos/{request_id}`，`pending` → `done` / `failed` / `expired`
+- **取回**：`video.url`（xAI 临时直链，不带 Key 下载；网关改写成的 `/v1/videos/{id}/content` 自动带 Key）
+
 ---
 
 ## 🖥️ 本地 ComfyUI 视频
@@ -192,7 +201,7 @@ aiask.me 是 OpenAI 兼容的 AI API 网关，一个 Key 覆盖文本、图片�
 **发布新版本**（GitHub Actions 自动构建 Windows + macOS 双架构，并上传安装包与更新清单 `latest.json`）：
 
 ```bash
-# 1. 改 desktop/package.json 的 version（如 1.0.1）并提交
+# 1. 改 desktop/package.json 与 backend/package.json 的 version（如 1.0.1）并提交
 # 2. 打附注标签并推送，说明文字即 Release 说明与应用内更新说明
 git tag -a v1.0.1 -m "更新说明"
 git push origin v1.0.1
@@ -249,7 +258,7 @@ server {
 }
 ```
 
-### 🐳 Docker 部署（含应用内更新）
+### 🐳 Docker 部署
 
 根目录提供一体化 `Dockerfile` 与 `docker-compose.yml`（应用 + Watchtower）：
 
@@ -259,7 +268,8 @@ UU889_VERSION=1.0.0 docker compose up -d --build  # 访问 http://localhost:5679
 ```
 
 - 数据持久化：命名卷 `uu889-data` 挂载 `/app/data`
-- 应用内更新：compose 自带 Watchtower，「设置 → 关于更新」可一键拉新镜像重建容器；删除 app 的 `UU889_WATCHTOWER_*` 环境变量即退化为手动 `docker compose pull && docker compose up -d`
+- 更新：源码构建时执行 `git pull && UU889_VERSION=<新版本> docker compose up -d --build`
+- 一键更新（可选）：compose 自带 Watchtower，但它需要能从镜像仓库拉取 `image` 指定的镜像。先按下面的命令把镜像发布到你的仓库，并把 `docker-compose.yml` 的 `image` 改成它，「设置 → 关于更新」的「立即更新」才会生效；删除 app 的 `UU889_WATCHTOWER_*` 环境变量即只做新版本提示
 - 发布多架构镜像：`docker buildx build --platform linux/amd64,linux/arm64 --build-arg UU889_VERSION=x.y.z -t <你的仓库>/uu889-drama:x.y.z --push .`，并把 `docker-compose.yml` 的 `image` 改成你的仓库
 
 ---

@@ -166,7 +166,7 @@
                   </div>
                   <div class="config-sub mono truncate">{{ c.base_url || t('settings.ai.noBaseUrl') }}</div>
                 </div>
-                <button v-if="st.type === 'text' || ['aiask', 'comfyui'].includes(c.provider)" class="btn btn-ghost btn-sm" @click="testExistingCfg(c)">{{ t('settings.ai.test') }}</button>
+                <button v-if="st.type === 'text' || ['aiask', 'xai', 'comfyui'].includes(c.provider)" class="btn btn-ghost btn-sm" @click="testExistingCfg(c)">{{ t('settings.ai.test') }}</button>
                 <label class="config-switch">
                   <input type="checkbox" class="sr-only" :checked="c.is_active" @change="toggleCfg(c)">
                   <span class="switch" :class="{ on: c.is_active }"></span>
@@ -762,7 +762,7 @@ const serviceTypes = computed(() => [
   { type: 'image', label: t('common.serviceType.image') },
   { type: 'video', label: t('common.serviceType.video') },
 ])
-const providers = ['aiask', 'gemini', 'openai', 'volcengine', 'minimax', 'aliyun', 'comfyui']
+const providers = ['aiask', 'xai', 'gemini', 'openai', 'volcengine', 'minimax', 'aliyun', 'comfyui']
 const providerSelectOptions = computed(() => providers.map(p => ({ label: p, value: p })))
 const serviceMeta = computed(() => ({
   text: { label: t('common.serviceType.text'), desc: t('settings.ai.meta.text') },
@@ -782,6 +782,8 @@ const providerPresets = {
   },
   video: {
     aiask: { label: 'aiask.me Grok 视频', baseUrl: AIASK_SITE_URL, models: ['grok-imagine-video-1.5'] },
+    // xAI 原生接口：直连官方填 https://api.x.ai；aiask.me 的 Grok 分组 Key 填 https://aiask.me
+    xai: { label: 'Grok 视频（xAI 原生）', baseUrl: 'https://api.x.ai', models: ['grok-imagine-video-1.5', 'grok-imagine-video'] },
     comfyui: { label: '本地 ComfyUI', baseUrl: 'http://127.0.0.1:8188', models: ['wan2.2-ti2v-5b'] },
     aliyun: { label: '阿里云百炼 Wan 3.0', baseUrl: 'https://{WorkspaceId}.cn-beijing.maas.aliyuncs.com', models: ['wan3.0-video', 'wan3.0-video-prime'] },
     volcengine: { label: 'Seedance 2.0 官方', baseUrl: 'https://ark.cn-beijing.volces.com', models: ['doubao-seedance-2-0-mini-260615', 'doubao-seedance-2-0-fast-260128', 'doubao-seedance-2-0-260128'] },
@@ -854,10 +856,18 @@ async function applyAiaskQuickConfig() {
   aiaskSaving.value = true
   try {
     for (const preset of aiaskQuickConfigs) {
-      const payload = { ...preset, api_key: apiKey }
       const existing = cfgs.value.find(c => c.name === preset.name || (c.service_type === preset.service_type && c.provider === preset.provider && c.base_url === preset.base_url))
-      if (existing) await aiConfigAPI.update(existing.id, payload)
-      else await aiConfigAPI.create(payload)
+      // 同类型里优先级最高的启用配置即默认：写入后要成为默认，优先级需高于其它配置
+      const others = cfgs.value.filter(c => c.service_type === preset.service_type && c.id !== existing?.id)
+      const topPriority = Math.max(preset.priority, ...others.map(c => (c.priority || 0) + 1))
+      if (existing) {
+        // 已有配置只换 Key、启用并置顶：保留用户挑过的默认模型与模型列表
+        const payload = { api_key: apiKey, is_active: true }
+        if ((existing.priority || 0) < topPriority) payload.priority = topPriority
+        await aiConfigAPI.update(existing.id, payload)
+      } else {
+        await aiConfigAPI.create({ ...preset, api_key: apiKey, priority: topPriority })
+      }
     }
     toast.success(t('settings.ai.quickApplied'))
     aiaskApiKey.value = ''

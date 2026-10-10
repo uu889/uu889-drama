@@ -178,7 +178,8 @@
       "episodeN": "제 {n}화",
       "res720": "720p · 고화질",
       "res480": "480p · 원활",
-      "resSwitched": "이 화의 영상 해상도가 {res}(으)로 변경되었습니다"
+      "resSwitched": "이 화의 영상 해상도가 {res}(으)로 변경되었습니다",
+      "res1080": "1080p · 초고화질"
     },
     "epCreate": {
       "title": "새 화 만들기",
@@ -879,7 +880,9 @@
     "timeout": "생성 시간이 초과되었습니다. 다시 시도하세요",
     "moderation": "콘텐츠가 심사를 통과하지 못했습니다. 프롬프트를 조정하거나 모델을 변경해 다시 시도하세요",
     "requestFailed": "요청 실패（{status}）",
-    "unknown": "작업에 실패했습니다. 다시 시도하세요"
+    "unknown": "작업에 실패했습니다. 다시 시도하세요",
+    "modelFailed": "모델 호출 실패 (HTTP {status}): {detail}",
+    "modelFailedPlain": "모델 호출 실패: {detail}"
   },
   "tour": {
     "next": "다음",
