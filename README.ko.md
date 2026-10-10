@@ -51,7 +51,7 @@ Base URL은 `https://aiask.me`(`/v1` 포함도 가능).
 
 | 유형 | 엔드포인트 | 기본 모델 |
 |---|---|---|
-| 텍스트 | `POST /v1/chat/completions` | `gpt-5.5` 등 |
+| 텍스트 | `POST /v1/chat/completions` | `gpt-6-astra`, `gpt-5.5` 등 |
 | 이미지 | `POST /v1/images/generations`(참조 이미지가 있으면 `/v1/images/edits`) | `gpt-image-2`, `grok-imagine-image`, `gemini-3-pro-image` |
 | 영상 | `POST /v1/videos` → `GET /v1/videos/{id}` → `GET /v1/videos/{id}/content` | `grok-imagine-video-1.5` |
 

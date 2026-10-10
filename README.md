@@ -105,9 +105,11 @@ aiask.me is an OpenAI-compatible AI API gateway. Use `https://aiask.me` as the b
 
 | Type | Endpoint | Default models |
 |---|---|---|
-| Text | `POST /v1/chat/completions` | `gpt-5.5`, `gemini-3.1-pro-preview`, `deepseek-v4-pro` |
+| Text | `POST /v1/chat/completions` | `gpt-6-astra`, `gpt-5.5`, `deepseek-v4-pro` |
 | Image | `POST /v1/images/generations` (`/v1/images/edits` with references) | `gpt-image-2`, `grok-imagine-image`, `gemini-3-pro-image` |
 | Video | `POST /v1/videos` → `GET /v1/videos/{id}` → `GET /v1/videos/{id}/content` | `grok-imagine-video-1.5` |
+
+Text requests only carry parameters each model family accepts: OpenAI reasoning models (`o*` / `gpt-5*` / `gpt-6*` / `codex*`) get no `temperature` and use `max_completion_tokens`; DeepSeek / GLM etc. get thinking disabled. Configure Gemini with the native **Gemini** provider.
 
 ### Grok video (video task API)
 

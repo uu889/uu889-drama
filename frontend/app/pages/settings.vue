@@ -771,7 +771,7 @@ const serviceMeta = computed(() => ({
 }))
 const providerPresets = {
   text: {
-    aiask: { label: 'aiask.me', baseUrl: AIASK_SITE_URL, models: ['gpt-5.5', 'gemini-3.1-pro-preview', 'deepseek-v4-pro'] },
+    aiask: { label: 'aiask.me', baseUrl: AIASK_SITE_URL, models: ['gpt-6-astra', 'gpt-5.5', 'deepseek-v4-pro'] },
     gemini: { label: 'Gemini 官方', baseUrl: 'https://generativelanguage.googleapis.com', models: ['gemini-3.8-flash', 'gemini-3.1-pro-preview', 'gemini-3-flash-preview'] },
     openai: { label: 'OpenAI 官方', baseUrl: 'https://api.openai.com', models: ['deepseek-v4-pro', 'gpt-5.6-terra'] },
   },
@@ -790,7 +790,7 @@ const providerPresets = {
 }
 // 名称持久化进 DB，用固定英文名，不随界面语言漂移；写入后同类型下优先级最高即成默认
 const aiaskQuickConfigs = [
-  { service_type: 'text', provider: 'aiask', name: 'aiask.me Text', base_url: AIASK_SITE_URL, model: ['gpt-5.5', 'gemini-3.1-pro-preview', 'deepseek-v4-pro'], priority: 100 },
+  { service_type: 'text', provider: 'aiask', name: 'aiask.me Text', base_url: AIASK_SITE_URL, model: ['gpt-6-astra', 'gpt-5.5', 'deepseek-v4-pro'], priority: 100 },
   { service_type: 'image', provider: 'aiask', name: 'aiask.me Image', base_url: AIASK_SITE_URL, model: ['gpt-image-2', 'grok-imagine-image', 'gemini-3-pro-image'], priority: 100 },
   { service_type: 'video', provider: 'aiask', name: 'aiask.me Grok Video', base_url: AIASK_SITE_URL, model: ['grok-imagine-video-1.5'], priority: 100 },
 ]

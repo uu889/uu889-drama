@@ -118,11 +118,11 @@ aiask.me 是 OpenAI 兼容的 AI API 网关，一个 Key 覆盖文本、图片�
 
 | 类型 | 端点 | 默认模型 |
 |---|---|---|
-| 文本 | `POST /v1/chat/completions` | `gpt-5.5`、`gemini-3.1-pro-preview`、`deepseek-v4-pro` |
+| 文本 | `POST /v1/chat/completions` | `gpt-6-astra`、`gpt-5.5`、`deepseek-v4-pro` |
 | 图片 | `POST /v1/images/generations`（有参考图时 `/v1/images/edits`） | `gpt-image-2`、`grok-imagine-image`、`gemini-3-pro-image` |
 | 视频 | `POST /v1/videos` → `GET /v1/videos/{id}` → `GET /v1/videos/{id}/content` | `grok-imagine-video-1.5` |
 
-模型列表只是预设，可在配置里增删任意 aiask.me 支持的模型名。
+模型列表只是预设，可在配置里增删任意 aiask.me 支持的模型名。文本请求按模型家族只发官方认可的参数：OpenAI 推理模型（`o*` / `gpt-5*` / `gpt-6*` / `codex*`）不发 `temperature`、用 `max_completion_tokens`；DeepSeek / GLM 等关闭思考模式。Gemini 建议用「Gemini」服务商（原生接口）配置。
 
 ### Grok 视频（通用视频任务接口）
 

@@ -51,7 +51,7 @@ Base URL は `https://aiask.me`（`/v1` 付きでも可）。
 
 | 種類 | エンドポイント | 既定モデル |
 |---|---|---|
-| テキスト | `POST /v1/chat/completions` | `gpt-5.5` ほか |
+| テキスト | `POST /v1/chat/completions` | `gpt-6-astra`、`gpt-5.5` ほか |
 | 画像 | `POST /v1/images/generations`（参照画像ありは `/v1/images/edits`） | `gpt-image-2`、`grok-imagine-image`、`gemini-3-pro-image` |
 | 動画 | `POST /v1/videos` → `GET /v1/videos/{id}` → `GET /v1/videos/{id}/content` | `grok-imagine-video-1.5` |
 

@@ -24,6 +24,8 @@ const TIMEOUT_RE = /timeout|timed out|polling exceeded|超时/i
 /** 技术特征：出现即判定不可直接透传给用户 */
 const TECHY_RE = /[{}\[\]<>]|https?:\/\/|\b(error|errno|exception|code|stack|undefined|null)\b|[a-z]+_[a-z]+/i
 const CJK_RE = /[一-鿿]/
+/** 与 backend/src/routes/agent.ts describeModelError 的前缀一致 */
+const MODEL_ERROR_PREFIX = '文本模型调用失败'
 
 function messageOf(err: unknown): string {
   if (err == null) return ''
@@ -42,6 +44,12 @@ export function mapError(err: unknown, opts?: { fallback?: string }): string {
   if (!msg) return opts?.fallback ? t(opts.fallback) : t('errors.unknown')
 
   if (err instanceof TypeError && NETWORK_RE.test(msg)) return t('errors.network')
+  // 后端整理过的模型调用错误（带 HTTP 状态与上游原因，如参数不被支持、模型不存在）：
+  // 原样展示，否则会被下面的技术特征判定吞成"操作失败，请重试"，用户无从排查
+  if (msg.startsWith(MODEL_ERROR_PREFIX)) {
+    if (MODERATION_RE.test(msg)) return t('errors.moderation')
+    return msg.length > 200 ? `${msg.slice(0, 200)}…` : msg
+  }
   if (err instanceof SyntaxError || NONJSON_RE.test(msg)) return t('errors.server')
   if (MODERATION_RE.test(msg)) return t('errors.moderation')
   if (AUTH_RE.test(msg)) return t('errors.auth')
@@ -59,5 +67,7 @@ export function mapError(err: unknown, opts?: { fallback?: string }): string {
 
 /** 统一错误 toast（默认 5s，比成功提示长） */
 export function toastError(err: unknown, opts?: { fallback?: string; duration?: number }): void {
-  toast.error(mapError(err, opts), { duration: opts?.duration ?? 5000 })
+  const message = mapError(err, opts)
+  // 带上游原因的长提示多留几秒，便于看清或截图
+  toast.error(message, { duration: opts?.duration ?? (message.length > 40 ? 10000 : 5000) })
 }

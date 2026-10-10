@@ -7,6 +7,7 @@ import { buildAgentRequestContext } from '../agents/context.js'
 import { mastra } from '../mastra/index.js'
 import { success, badRequest } from '../utils/response.js'
 import { logTaskError, logTaskPayload, logTaskProgress, logTaskStart, logTaskSuccess } from '../utils/task-logger.js'
+import { describeModelError } from '../utils/model-error.js'
 
 const app = new Hono()
 
@@ -101,9 +102,10 @@ app.post('/:type/chat', async (c) => {
     })
   } catch (err: any) {
     const elapsed = ((performance.now() - startTime) / 1000).toFixed(1)
-    logTaskError('Agent', agentType, { elapsedSeconds: elapsed, error: err.message })
+    const message = describeModelError(err)
+    logTaskError('Agent', agentType, { elapsedSeconds: elapsed, error: message })
     console.error(err.stack || err)
-    return badRequest(c, err.message || 'Agent 执行失败')
+    return badRequest(c, message)
   }
 })
 
