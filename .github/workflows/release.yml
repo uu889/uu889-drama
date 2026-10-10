@@ -1,0 +1,162 @@
+# 桌面版发布：推送 v* 标签（版本号须与 desktop/package.json 一致）后自动
+#   1. 三台机器并行打包：Windows x64、macOS Apple Silicon、macOS Intel
+#      （mac 双架构分机构建：ffmpeg / sharp / better-sqlite3 都是本机架构的原生二进制）
+#   2. 生成应用内更新清单 latest.json，连同安装包上传到同名 GitHub Release
+# 发布说明取自附注标签的说明文字：git tag -a v1.0.0 -m "更新说明"
+# 构建失败可在 Actions 里重跑；或手动触发 workflow_dispatch 并填写已有标签。
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '要发布的已有标签（如 v1.0.0）'
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  TAG: ${{ github.event.inputs.tag || github.ref_name }}
+  NODE_VERSION: '22'
+  # 未签名分发：不自动寻找签名证书
+  CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+jobs:
+  build:
+    name: build (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: windows-x64, os: windows-latest, platform: win, arch: x64 }
+          - { name: macos-arm64, os: macos-latest, platform: mac, arch: arm64 }
+          - { name: macos-x64, os: macos-15-intel, platform: mac, arch: x64 }
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ env.TAG }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+            desktop/package-lock.json
+
+      - name: Check tag matches desktop version
+        run: |
+          VERSION=$(node -p "require('./desktop/package.json').version")
+          if [ "$TAG" != "v$VERSION" ]; then
+            echo "::error::标签 $TAG 与 desktop/package.json 版本 $VERSION 不一致"
+            exit 1
+          fi
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci --no-audit --no-fund
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+
+      # postinstall 会执行 electron-builder install-app-deps，把原生模块按 Electron ABI 重编
+      - name: Install desktop dependencies
+        working-directory: desktop
+        run: npm ci --no-audit --no-fund
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run generate
+
+      # 打包脚本原为 mac 交叉打包 Windows 设计：afterPack 需要 build/win-bin/ 里的 Windows 原生文件。
+      # 在 Windows 机器上直接取本机安装（已按 Electron ABI 重编）的产物即可
+      - name: Prepare Windows native binaries
+        if: matrix.platform == 'win'
+        working-directory: desktop
+        run: |
+          mkdir -p build/win-bin
+          node -e "require('fs').copyFileSync(require('ffmpeg-static'), 'build/win-bin/ffmpeg.exe')"
+          cp node_modules/better-sqlite3/build/Release/better_sqlite3.node build/win-bin/better_sqlite3.node
+          ls -la build/win-bin
+
+      - name: Limit macOS targets to this runner's arch
+        if: matrix.platform == 'mac'
+        working-directory: desktop
+        run: |
+          node -e "const fs=require('fs');const f='electron-builder.yml';fs.writeFileSync(f,fs.readFileSync(f,'utf8').replace(/arch: \[arm64, x64\]/g,'arch: [${{ matrix.arch }}]'))"
+          grep -n "arch:" electron-builder.yml
+
+      - name: Package
+        working-directory: desktop
+        run: |
+          npm run build:backend
+          npm run build:main
+          node scripts/prepare-resources.mjs
+          npx electron-builder --${{ matrix.platform }} --publish never
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.name }}
+          path: |
+            desktop/release/*.exe
+            desktop/release/*.dmg
+            desktop/release/*-mac.zip
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ env.TAG }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: desktop/release
+          pattern: release-*
+          merge-multiple: true
+
+      - name: Release notes from the tag message
+        run: |
+          git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG"
+          NOTES=$(git tag -l --format='%(contents)' "$TAG")
+          [ -n "$NOTES" ] || NOTES="UU889-Drama $TAG"
+          printf '%s\n' "$NOTES" > "$RUNNER_TEMP/notes.md"
+          cat "$RUNNER_TEMP/notes.md"
+
+      - name: Generate update feed (latest.json)
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+        run: node desktop/scripts/make-update-feed.mjs --notes "$(cat "$RUNNER_TEMP/notes.md")"
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        working-directory: desktop/release
+        run: |
+          ls -la
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" * --clobber
+          else
+            gh release create "$TAG" --title "UU889-Drama $TAG" --notes-file "$RUNNER_TEMP/notes.md" *
+          fi

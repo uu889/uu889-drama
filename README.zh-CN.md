@@ -187,6 +187,19 @@ aiask.me 是 OpenAI 兼容的 AI API 网关，一个 Key 覆盖文本、图片�
 
 ### 🖥️ 桌面应用
 
+**下载安装包**：[GitHub Releases](https://github.com/uu889/uu889-drama/releases/latest)（Windows `.exe`、macOS Apple Silicon / Intel `.dmg`）
+
+**发布新版本**（GitHub Actions 自动构建 Windows + macOS 双架构，并上传安装包与更新清单 `latest.json`）：
+
+```bash
+# 1. 改 desktop/package.json 的 version（如 1.0.1）并提交
+# 2. 打附注标签并推送，说明文字即 Release 说明与应用内更新说明
+git tag -a v1.0.1 -m "更新说明"
+git push origin v1.0.1
+```
+
+本地打包：
+
 ```bash
 npm run build:frontend   # 根目录：前端静态产物
 cd desktop && npm install
@@ -202,7 +215,7 @@ npm run dist:win    # Windows NSIS 安装器（win-x64）
 - 用户数据目录：macOS `~/Library/Application Support/UU889Drama/`，Windows `%APPDATA%\UU889Drama\`（数据库、生成媒体、技能副本），卸载应用不影响数据
 - macOS 未签名包首次打开若提示「已损坏」：双击 dmg 内「如提示已损坏请双击我.command」，或执行 `sudo xattr -cr /Applications/UU889Drama.app`
 - Windows 未签名包 SmartScreen 会提示「更多信息 → 仍要运行」
-- 应用内更新：`cd desktop && npm run feed` 生成 `release/latest.json`，与安装包一起上传到 GitHub Release（tag 形如 `v1.0.1`）；`npm run publish` 可一键发布（配置 `COS_BASE_URL` 等后可同时发布国内镜像）
+- 应用内更新：已安装的客户端读取最新 Release 的 `latest.json` 自动提示升级；需要国内镜像时可用 `cd desktop && npm run publish`（配置 `COS_BASE_URL` 等）
 - 修改 logo 后执行 `node desktop/scripts/make-brand-icons.mjs`，由 `docs/images/logo.svg` 重新生成全部图标
 
 ### 🏭 服务器部署

@@ -155,6 +155,17 @@ When an image placeholder has no media, the node using it (e.g. `LoadImage`), an
 
 ### 🖥️ Desktop app
 
+**Download**: [GitHub Releases](https://github.com/uu889/uu889-drama/releases/latest) (Windows `.exe`, macOS Apple Silicon / Intel `.dmg`)
+
+**Publishing a release**: bump `version` in `desktop/package.json`, commit, then push an annotated tag — GitHub Actions builds Windows + both macOS architectures and uploads the installers and the `latest.json` update feed:
+
+```bash
+git tag -a v1.0.1 -m "Release notes"
+git push origin v1.0.1
+```
+
+Build locally:
+
 ```bash
 npm run build:frontend   # repo root
 cd desktop && npm install
@@ -164,7 +175,7 @@ npm run dist:win    # Windows NSIS installer (win-x64)
 
 - User data: macOS `~/Library/Application Support/UU889Drama/`, Windows `%APPDATA%\UU889Drama\`
 - Unsigned macOS builds reported as "damaged": run the bundled `如提示已损坏请双击我.command` or `sudo xattr -cr /Applications/UU889Drama.app`
-- In-app updates: `cd desktop && npm run feed` writes `release/latest.json`; upload it with the installers to a GitHub Release (`npm run publish` automates it)
+- In-app updates: installed apps read `latest.json` from the latest GitHub Release and offer the upgrade
 - After changing the logo, run `node desktop/scripts/make-brand-icons.mjs` to regenerate every icon from `docs/images/logo.svg`
 
 ### 🏭 Server
