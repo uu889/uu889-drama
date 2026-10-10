@@ -9,8 +9,9 @@ export interface ImageProviderAdapter {
    * 构建图片生成请求
    * @param config AI 配置 { baseUrl, apiKey, model }
    * @param record 图片生成记录
+   * 允许异步：需要先上传素材等前置步骤的厂商可返回 Promise
    */
-  buildGenerateRequest(config: AIConfig, record: ImageGenerationRecord): ProviderRequest
+  buildGenerateRequest(config: AIConfig, record: ImageGenerationRecord): ProviderRequest | Promise<ProviderRequest>
 
   /**
    * 解析生成响应，判断是同步还是异步
@@ -48,7 +49,8 @@ export interface ImageProviderAdapter {
 export interface VideoProviderAdapter {
   provider: string
 
-  buildGenerateRequest(config: AIConfig, record: VideoGenerationRecord): ProviderRequest
+  /** 允许异步：ComfyUI 需先上传参考图，aiask 需把参考图读成文件后走 multipart */
+  buildGenerateRequest(config: AIConfig, record: VideoGenerationRecord): ProviderRequest | Promise<ProviderRequest>
 
   parseGenerateResponse(result: any): VideoGenResponse
 
@@ -57,6 +59,19 @@ export interface VideoProviderAdapter {
   parsePollResponse(result: any): VideoPollResponse
 
   extractVideoUrl(result: any): string | null
+
+  /**
+   * 可选：成片下载需要鉴权或相对地址需要补全时提供（如 aiask /v1/videos/{id}/content
+   * 需带 API Key、ComfyUI /view 相对路径需拼本地服务地址）。未实现时直接 GET videoUrl。
+   */
+  resolveDownload?(config: AIConfig, videoUrl: string): DownloadRequest
+}
+
+export interface DownloadRequest {
+  url: string
+  headers?: Record<string, string>
+  /** URL 与响应头都推断不出扩展名时使用（如 .mp4） */
+  fallbackExt?: string
 }
 
 // ============ 通用类型 ============
@@ -78,6 +93,8 @@ export interface AIConfig {
   baseUrl: string
   apiKey: string
   model: string
+  /** ai_service_configs.settings 解析后的对象（如 ComfyUI 工作流），未设置为 null */
+  settings?: Record<string, any> | null
 }
 
 export interface ImageGenerationRecord {

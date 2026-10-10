@@ -15,6 +15,8 @@ export interface AIConfig {
   model: string
   /** 采样温度，null 表示不设置（跟随服务商默认）。存于 ai_service_configs.settings JSON */
   temperature?: number | null
+  /** settings JSON 解析结果（ComfyUI 工作流等厂商专属配置） */
+  settings?: Record<string, any> | null
 }
 
 /** 从 settings JSON 解析 temperature；非法值一律视为未设置 */
@@ -28,10 +30,21 @@ export function parseConfigTemperature(settingsRaw: string | null | undefined): 
   }
 }
 
+/** settings JSON → 对象；非法/空值视为 null */
+export function parseConfigSettings(settingsRaw: string | null | undefined): Record<string, any> | null {
+  if (!settingsRaw) return null
+  try {
+    const parsed = JSON.parse(settingsRaw)
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null
+  } catch {
+    return null
+  }
+}
+
 export const officialProviders: Record<ServiceType, readonly string[]> = {
-  text: ['openai', 'gemini', 'volcengine'],
-  image: ['openai', 'gemini', 'volcengine'],
-  video: ['volcengine', 'minimax', 'aliyun'],
+  text: ['aiask', 'openai', 'gemini', 'volcengine'],
+  image: ['aiask', 'openai', 'gemini', 'volcengine'],
+  video: ['aiask', 'comfyui', 'volcengine', 'minimax', 'aliyun'],
 }
 
 export function isOfficialProvider(serviceType?: string | null, provider?: string | null): boolean {
@@ -42,7 +55,8 @@ export function isOfficialProvider(serviceType?: string | null, provider?: strin
 export function getTextProviderBaseUrl(config: AIConfig) {
   const provider = config.provider.toLowerCase()
 
-  if (provider === 'openai') {
+  // aiask.me 是 OpenAI 兼容网关（/v1/chat/completions），与 openai 同样补 /v1 前缀
+  if (provider === 'openai' || provider === 'aiask') {
     return joinProviderUrl(config.baseUrl, '/v1', '')
   }
 
@@ -92,6 +106,7 @@ export async function getActiveConfig(serviceType: ServiceType): Promise<AIConfi
     apiKey: active.apiKey,
     model: models[0] || '',
     temperature: parseConfigTemperature(active.settings),
+    settings: parseConfigSettings(active.settings),
   }
 }
 
@@ -145,5 +160,6 @@ export async function getConfigById(id: number): Promise<AIConfig | null> {
     apiKey: row.apiKey,
     model: models[0] || '',
     temperature: parseConfigTemperature(row.settings),
+    settings: parseConfigSettings(row.settings),
   }
 }

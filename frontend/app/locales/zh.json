@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "火宝短剧",
+    "title": "UU889-Drama",
     "updateAvailable": "发现新版本 v{version}，可在「设置 → 关于更新」中升级"
   },
   "common": {
@@ -268,13 +268,11 @@
     "ai": {
       "title": "AI 服务配置",
       "desc": "先用推荐模板快速落配置，再按服务类型微调。工作台创建集时会锁定所选图片和视频能力。",
-      "quickTitle": "火宝快捷配置",
+      "quickTitle": "aiask.me 快捷配置",
       "recommended": "推荐",
-      "quickDesc": "输入 Huobao API Key，一次写入文本、图片、视频三条推荐配置。",
-      "getKey": "前往火宝获取 Key",
-      "regionCn": "国内",
-      "regionCom": "国外",
-      "applyQuick": "写入火宝配置",
+      "quickDesc": "输入 aiask.me API Key，一次写入文本、图片、视频（Grok）三条推荐配置。",
+      "getKey": "前往 aiask.me 获取 Key",
+      "applyQuick": "写入 aiask.me 配置",
       "manualTitle": "手动模板",
       "manualDesc": "选择服务类型后，直接用模板填充推荐的 `provider / base URL / model`。",
       "activeCount": "{n} 已启用",
@@ -284,13 +282,13 @@
       "setDefault": "设为该类型默认模型",
       "noBaseUrl": "未设置 Base URL",
       "test": "测试",
-      "apiKeyRequired": "请填写 Huobao API Key",
-      "quickApplied": "火宝快捷配置已写入",
+      "apiKeyRequired": "请填写 aiask.me API Key",
+      "quickApplied": "aiask.me 快捷配置已写入",
       "defaultModelSwitched": "默认{type}模型已切换为 {model}",
       "meta": {
         "text": "剧本改写、角色场景提取、分镜拆解等 Agent 文本能力",
         "image": "角色图、场景图与镜头图等静态图像生成",
-        "video": "镜头视频直出生成，默认 Seedance 2.0"
+        "video": "镜头视频直出生成：aiask.me Grok 视频、本地 ComfyUI、Seedance 等"
       }
     },
     "styles": {
@@ -389,7 +387,7 @@
       "addTitle": "添加{type}服务",
       "sub": "推荐先选择模板，系统会自动填入更合理的 `Base URL` 与默认模型。",
       "name": "配置名称",
-      "namePlaceholder": "如 火宝默认图像服务",
+      "namePlaceholder": "如 aiask.me 默认图像服务",
       "provider": "服务商",
       "providerPlaceholder": "选择服务商",
       "priority": "优先级",
@@ -405,7 +403,18 @@
       "reachable": "端点已响应",
       "unreachable": "端点未通过测试",
       "providerRequired": "选择服务商",
-      "tempInvalid": "Temperature 需为 0~2 的数字"
+      "tempInvalid": "Temperature 需为 0~2 的数字",
+      "comfy": {
+        "apiKeyOptional": "本地 ComfyUI 可留空",
+        "apiKeyPlaceholder": "反向代理鉴权时填写，否则留空",
+        "workflow": "ComfyUI 工作流（API 格式 JSON）",
+        "workflowHint": "留空使用内置 Wan 2.2 TI2V 5B 模板",
+        "workflowPlaceholder": "在 ComfyUI 中「导出 (API)」后粘贴 JSON，提交前会替换下列占位符",
+        "placeholders": "可用占位符（字段值恰好为占位符时按数字/文本类型替换；图片占位符缺素材时自动移除对应 LoadImage 节点）：",
+        "negativePrompt": "负向提示词",
+        "negativePlaceholder": "留空使用 Wan 官方默认负向提示词",
+        "workflowInvalid": "ComfyUI 工作流不是合法 JSON"
+      }
     },
     "styleDialog": {
       "editTitle": "编辑风格预设",
@@ -879,7 +888,7 @@
     "helpTitle": "使用引导",
     "index": {
       "welcome": {
-        "title": "👋 欢迎使用火宝短剧",
+        "title": "👋 欢迎使用 UU889-Drama",
         "desc": "小说 → 剧本 → 资产 → 分镜 → 视频 → 成片，一站式 AI 短剧制作。先配置 AI 服务，再创建第一个项目。"
       },
       "create": {
@@ -888,13 +897,13 @@
       },
       "settings": {
         "title": "第 1 步 · 配置 AI 服务",
-        "desc": "所有 AI 功能都要先配置。点这里进「设置」页，粘贴 Huobao API Key 一键完成文本/图片/视频三条配置。"
+        "desc": "所有 AI 功能都要先配置。点这里进「设置」页，粘贴 aiask.me API Key 一键完成文本/图片/视频三条配置。"
       }
     },
     "settings": {
       "quick": {
         "title": "最快上手：快捷配置",
-        "desc": "粘贴 Huobao API Key，一键写入文本、图片、视频三条推荐配置，支持连通性测试。"
+        "desc": "粘贴 aiask.me API Key，一键写入文本、图片、视频三条推荐配置，支持连通性测试。"
       },
       "nav": {
         "title": "全部配置都在这",

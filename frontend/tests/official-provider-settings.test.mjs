@@ -28,7 +28,7 @@ test('settings page exposes official provider templates only', () => {
   assert.doesNotMatch(useApi, /huobaoPreset/i)
   assert.doesNotMatch(useApi, /\/huobao-preset/)
 
-  assert.match(settingsPage, /const providers = \['gemini', 'openai', 'volcengine', 'minimax', 'aliyun'\]/)
+  assert.match(settingsPage, /const providers = \['aiask', 'gemini', 'openai', 'volcengine', 'minimax', 'aliyun', 'comfyui'\]/)
   assert.match(settingsPage, /https:\/\/generativelanguage\.googleapis\.com/)
   assert.match(settingsPage, /https:\/\/api\.openai\.com/)
   assert.match(settingsPage, /https:\/\/ark\.cn-beijing\.volces\.com/)
@@ -37,18 +37,21 @@ test('settings page exposes official provider templates only', () => {
   assert.doesNotMatch(settingsPage, /https:\/\/dashscope\.aliyuncs\.com/)
   assert.doesNotMatch(settingsPage, /https:\/\/api\.vidu\.com/)
   assert.doesNotMatch(settingsPage, /\['ali'|'ali',|, 'ali'\]/)
-  assert.match(settingsPage, /火宝快捷配置/)
-  assert.match(settingsPage, /https:\/\/api\.firemux\.com/)
-  assert.match(settingsPage, /applyHuobaoQuickConfig/)
+  assert.doesNotMatch(settingsPage, /firemux/)
+  assert.match(settingsPage, /const AIASK_SITE_URL = 'https:\/\/aiask\.me'/)
+  assert.match(settingsPage, /applyAiaskQuickConfig/)
   assert.doesNotMatch(settingsPage, /https:\/\/api\.minimax\.io/)
 })
 
 test('settings page offers official default model IDs', () => {
   assert.match(settingsPage, /gemini-3\.1-pro-preview/)
-  assert.match(settingsPage, /gemini-3\.5-flash/)
+  assert.match(settingsPage, /gemini-3\.8-flash/)
   assert.match(settingsPage, /gemini-3-flash-preview/)
   assert.match(settingsPage, /gpt-5\.6-terra/)
-  assert.match(settingsPage, /deepseek-v4-flash/)
+  assert.match(settingsPage, /gpt-5\.5/)
+  assert.match(settingsPage, /grok-imagine-image/)
+  assert.match(settingsPage, /grok-imagine-video-1\.5/)
+  assert.match(settingsPage, /wan2\.2-ti2v-5b/)
   assert.match(settingsPage, /gemini-3-pro-image/)
   assert.match(settingsPage, /gemini-3\.1-flash-image/)
   assert.match(settingsPage, /gpt-image-2/)
@@ -73,8 +76,8 @@ test('settings page offers official default model IDs', () => {
   assert.doesNotMatch(settingsPage, /speech-2\.8-hd/)
 })
 
-test('only text service configs expose the connection test button', () => {
-  assert.match(settingsPage, /v-if="st\.type === 'text'" class="btn btn-ghost btn-sm" @click="testExistingCfg\(c\)">\{\{ t\('settings\.ai\.test'\) \}\}/)
+test('text configs and aiask / ComfyUI configs expose the connection test button', () => {
+  assert.match(settingsPage, /v-if="st\.type === 'text' \|\| \['aiask', 'comfyui'\]\.includes\(c\.provider\)" class="btn btn-ghost btn-sm" @click="testExistingCfg\(c\)">\{\{ t\('settings\.ai\.test'\) \}\}/)
 })
 
 test('settings page offers the supported official provider presets', () => {
@@ -84,15 +87,27 @@ test('settings page offers the supported official provider presets', () => {
   assert.match(providerPresetBlock('video'), /volcengine/)
   assert.match(providerPresetBlock('video'), /minimax/)
   assert.match(providerPresetBlock('video'), /aliyun/)
+  assert.match(providerPresetBlock('video'), /aiask: \{ label: 'aiask\.me Grok 视频', baseUrl: AIASK_SITE_URL, models: \['grok-imagine-video-1\.5'\] \}/)
+  assert.match(providerPresetBlock('video'), /comfyui: \{ label: '本地 ComfyUI', baseUrl: 'http:\/\/127\.0\.0\.1:8188'/)
+  assert.match(providerPresetBlock('text'), /aiask:/)
+  assert.match(providerPresetBlock('image'), /aiask:.*grok-imagine-image/)
   assert.doesNotMatch(providerPresetBlock('video'), /'vidu'/i)
   assert.doesNotMatch(settingsPage, /audio:\s*\{/)
 })
 
-test('Huobao quick config includes Wan 3.0 through the Qwen gateway route', () => {
-  const quickStart = settingsPage.indexOf('const huobaoQuickConfigs = [')
+test('aiask.me quick config writes text, image and Grok video configs', () => {
+  const quickStart = settingsPage.indexOf('const aiaskQuickConfigs = [')
   assert.notEqual(quickStart, -1)
   const quickConfigs = settingsPage.slice(quickStart, settingsPage.indexOf('\n]', quickStart) + 2)
-  assert.match(quickConfigs, /provider:\s*'aliyun'/)
-  assert.match(quickConfigs, /base_url:\s*'https:\/\/api\.firemux\.com\/qwen'/)
-  assert.match(quickConfigs, /model:\s*\['wan3\.0-video-prime', 'wan3\.0-video'\]/)
+  for (const type of ['text', 'image', 'video']) {
+    assert.match(quickConfigs, new RegExp(`service_type: '${type}', provider: 'aiask'.*base_url: AIASK_SITE_URL`))
+  }
+  assert.match(quickConfigs, /model: \['grok-imagine-video-1\.5'\]/)
+})
+
+test('ComfyUI video configs expose workflow / fps / negative prompt fields', () => {
+  assert.match(settingsPage, /const isComfyForm = computed\(\(\) => cfgForm\.service_type === 'video' && cfgForm\.provider === 'comfyui'\)/)
+  assert.match(settingsPage, /v-model="cfgForm\.comfyui_workflow"/)
+  assert.match(settingsPage, /v-model="cfgForm\.comfyui_fps"/)
+  assert.match(settingsPage, /v-model="cfgForm\.comfyui_negative_prompt"/)
 })

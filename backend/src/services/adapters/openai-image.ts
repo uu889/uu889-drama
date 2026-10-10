@@ -56,7 +56,7 @@ export class OpenAIImageAdapter implements ImageProviderAdapter {
     }
   }
 
-  private parseReferenceImages(raw?: string | null): string[] {
+  protected parseReferenceImages(raw?: string | null): string[] {
     if (!raw) return []
     try {
       const parsed = JSON.parse(raw)
@@ -71,7 +71,7 @@ export class OpenAIImageAdapter implements ImageProviderAdapter {
    * 参考图在 generation.ts 已归一化为 data URL（本地压缩 / 远程下载），
    * 这里只做 base64 → Blob 的转换；multipart 边界由 fetch 自动设置，不要手填 Content-Type。
    */
-  private buildEditsRequest(
+  protected buildEditsRequest(
     config: AIConfig,
     model: string,
     prompt: string | null | undefined,
@@ -106,7 +106,7 @@ export class OpenAIImageAdapter implements ImageProviderAdapter {
     }
   }
 
-  private normalizeGptImageSize(size?: string | null): string {
+  protected normalizeGptImageSize(size?: string | null): string {
     const allowed = ['1024x1024', '1536x1024', '1024x1536', 'auto']
     if (!size) return '1024x1024'
 
@@ -119,7 +119,7 @@ export class OpenAIImageAdapter implements ImageProviderAdapter {
     return width > height ? '1536x1024' : '1024x1536'
   }
 
-  private normalizeGptImage2Size(size?: string | null): string {
+  protected normalizeGptImage2Size(size?: string | null): string {
     if (!size) return '1024x1024'
     const normalized = size.toLowerCase()
     if (normalized === 'auto') return 'auto'

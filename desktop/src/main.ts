@@ -40,7 +40,7 @@ let currentDataDir = ''
 // 不依赖 package.json 命名（打包后与 dev 同名会导致单实例锁误杀）
 app.setPath('userData', path.join(
   app.getPath('appData'),
-  app.isPackaged ? 'HuobaoDrama' : 'HuobaoDrama-Dev',
+  app.isPackaged ? 'UU889Drama' : 'UU889Drama-Dev',
 ))
 
 // 从终端启动时若父进程管道关闭（如 `| head` 退出/终端关闭），转发后端日志会写出
@@ -171,10 +171,10 @@ function startBackend(): void {
   const env: NodeJS.ProcessEnv = {
     ...process.env,
     PORT: String(backendPort),
-    HUOBAO_DESKTOP: '1',
+    UU889_DESKTOP: '1',
     // 数据目录单一来源：重启/迁移后只需改 currentDataDir
-    HUOBAO_DATA_DIR: currentDataDir,
-    SQLITE_PATH: path.join(currentDataDir, 'huobao.sqlite3'),
+    UU889_DATA_DIR: currentDataDir,
+    SQLITE_PATH: path.join(currentDataDir, 'uu889.sqlite3'),
     WORKSPACE_PATH: currentWorkspaceDir,
     FRONTEND_DIST: currentFrontendDist,
   }
@@ -186,7 +186,7 @@ function startBackend(): void {
 
   backend = utilityProcess.fork(BACKEND_BUNDLE, [], {
     env,
-    serviceName: 'huobao-backend',
+    serviceName: 'uu889-backend',
     stdio: 'pipe',
   })
   console.log(`[main] backend forked from ${BACKEND_BUNDLE}`)
@@ -196,7 +196,7 @@ function startBackend(): void {
     backend = null
     // 迁移/重启期间的退出是预期行为，由调用方接管
     if (!quitting && !backendRestarting) {
-      dialog.showErrorBox('火宝短剧', `后台服务异常退出（code ${code}），应用即将关闭。请重新启动。`)
+      dialog.showErrorBox('UU889-Drama', `后台服务异常退出（code ${code}），应用即将关闭。请重新启动。`)
       app.quit()
     }
   })
@@ -208,7 +208,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1440,
     height: 900,
-    title: '火宝短剧',
+    title: 'UU889-Drama',
     show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -267,7 +267,7 @@ async function bootstrap() {
     await createWindow()
   } catch (err) {
     console.error('[main] 启动失败:', err)
-    dialog.showErrorBox('火宝短剧', `启动失败：\n${(err as Error)?.message || err}`)
+    dialog.showErrorBox('UU889-Drama', `启动失败：\n${(err as Error)?.message || err}`)
     app.quit()
   }
 }
@@ -276,12 +276,12 @@ async function bootstrap() {
 
 /** 可写探针 */
 async function assertWritable(dir: string): Promise<void> {
-  const probe = path.join(dir, `.huobao-probe-${Date.now()}`)
+  const probe = path.join(dir, `.uu889-probe-${Date.now()}`)
   await fsp.writeFile(probe, 'probe')
   await fsp.rm(probe)
 }
 
-ipcMain.handle('huobao:pick-directory', async () => {
+ipcMain.handle('uu889:pick-directory', async () => {
   if (!mainWindow) return { ok: false, error: '窗口未就绪' }
   const res = await dialog.showOpenDialog(mainWindow, {
     title: '选择数据存储目录',

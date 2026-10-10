@@ -24,14 +24,14 @@ RUN npm prune --omit=dev && npm i tsx@^4.21.0 --no-save --no-audit --no-fund --r
 
 # ===== 运行时 =====
 FROM node:22-bookworm-slim
-ARG HUOBAO_VERSION=dev
+ARG UU889_VERSION=dev
 ENV NODE_ENV=production \
-    HUOBAO_VERSION=${HUOBAO_VERSION} \
+    UU889_VERSION=${UU889_VERSION} \
     PORT=5679 \
     FFMPEG_BIN=/usr/bin/ffmpeg \
     FFPROBE_BIN=/usr/bin/ffprobe \
-    HUOBAO_DATA_DIR=/app/data \
-    SQLITE_PATH=/app/data/huobao.sqlite3 \
+    UU889_DATA_DIR=/app/data \
+    SQLITE_PATH=/app/data/uu889.sqlite3 \
     WORKSPACE_PATH=/app/data/workspace \
     FRONTEND_DIST=/app/frontend-dist
 

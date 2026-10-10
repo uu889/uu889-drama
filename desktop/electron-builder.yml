@@ -1,5 +1,5 @@
-appId: com.huobao.drama
-productName: HuobaoDrama
+appId: com.uu889.drama
+productName: UU889Drama
 directories:
   output: release
   buildResources: build
@@ -57,4 +57,4 @@ nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: always
-  shortcutName: HuobaoDrama
+  shortcutName: UU889Drama

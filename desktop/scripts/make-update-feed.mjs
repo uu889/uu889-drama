@@ -29,7 +29,7 @@ function argOf(flag) {
 
 const pkg = JSON.parse(fs.readFileSync(path.join(DESKTOP, 'package.json'), 'utf8'))
 const version = pkg.version
-const repo = process.env.GITHUB_REPO || 'chatfire-AI/huobao-drama'
+const repo = process.env.GITHUB_REPO || 'uu889/uu889-drama'
 const baseUrl = argOf('--base-url')
   || process.env.UPDATE_BASE_URL
   || `https://github.com/${repo}/releases/download/v${version}`
@@ -48,9 +48,9 @@ function sha256(file) {
 // 平台键（与更新器 process.platform-process.arch 一致）→ 产物文件名
 // （electron-builder 的 mac zip 命名带 -mac 后缀）
 const targets = [
-  { key: 'darwin-arm64', file: `HuobaoDrama-${version}-arm64-mac.zip` },
-  { key: 'darwin-x64', file: `HuobaoDrama-${version}-mac.zip` },
-  { key: 'win32-x64', file: `HuobaoDrama Setup ${version}.exe` },
+  { key: 'darwin-arm64', file: `UU889Drama-${version}-arm64-mac.zip` },
+  { key: 'darwin-x64', file: `UU889Drama-${version}-mac.zip` },
+  { key: 'win32-x64', file: `UU889Drama Setup ${version}.exe` },
 ]
 
 const platforms = {}

@@ -85,33 +85,21 @@
             </div>
             <p class="setup-desc">
               {{ t('settings.ai.quickDesc') }}
-              <a class="huobao-site-link" :href="huobaoSiteUrl" target="_blank" rel="noopener noreferrer">
+              <a class="quick-site-link" :href="AIASK_SITE_URL" target="_blank" rel="noopener noreferrer">
                 {{ t('settings.ai.getKey') }}
                 <ExternalLink :size="12" :stroke-width="1.8" />
               </a>
             </p>
-            <div class="huobao-quick-row">
-              <input v-model="huobaoApiKey" class="input" type="password" placeholder="Huobao API Key" />
-              <div class="lang-picker">
-                <button
-                  type="button"
-                  :class="['lang-option', { on: huobaoRegion === 'cn' }]"
-                  @click="huobaoRegion = 'cn'"
-                >{{ t('settings.ai.regionCn') }}</button>
-                <button
-                  type="button"
-                  :class="['lang-option', { on: huobaoRegion === 'com' }]"
-                  @click="huobaoRegion = 'com'"
-                >{{ t('settings.ai.regionCom') }}</button>
-              </div>
-              <button class="btn btn-primary" :disabled="huobaoSaving" @click="applyHuobaoQuickConfig">
-                <Loader2 v-if="huobaoSaving" :size="13" class="animate-spin" />
+            <div class="quick-row">
+              <input v-model="aiaskApiKey" class="input" type="password" placeholder="aiask.me API Key" />
+              <button class="btn btn-primary" :disabled="aiaskSaving" @click="applyAiaskQuickConfig">
+                <Loader2 v-if="aiaskSaving" :size="13" class="animate-spin" />
                 <Sparkles v-else :size="13" />
                 {{ t('settings.ai.applyQuick') }}
               </button>
             </div>
-            <div class="huobao-quick-models">
-              <div v-for="q in huobaoQuickConfigs" :key="q.name" class="hqm-row">
+            <div class="quick-models">
+              <div v-for="q in aiaskQuickConfigs" :key="q.name" class="hqm-row">
                 <span class="hqm-label">{{ serviceMeta[q.service_type].label }}</span>
                 <span class="hqm-provider">
                   <img v-if="providerIconUrl(q.provider)" :src="providerIconUrl(q.provider)" class="hqm-provider-icon" alt="" />
@@ -161,7 +149,8 @@
                 <div class="config-main">
                   <div class="config-line">
                     <span class="config-name">{{ c.name || `${c.provider}-${c.service_type}` }}</span>
-                    <span :class="['tag', c.api_key ? 'tag-success' : 'tag-error']">{{ c.api_key ? t('settings.ai.hasKey') : t('settings.ai.noKey') }}</span>
+                    <!-- 本地 ComfyUI 默认无鉴权，不提示缺密钥 -->
+                    <span v-if="c.provider !== 'comfyui' || c.api_key" :class="['tag', c.api_key ? 'tag-success' : 'tag-error']">{{ c.api_key ? t('settings.ai.hasKey') : t('settings.ai.noKey') }}</span>
                     <span v-if="!c.is_active" class="tag">{{ t('settings.common.disabled') }}</span>
                   </div>
                   <div class="config-models">
@@ -177,7 +166,7 @@
                   </div>
                   <div class="config-sub mono truncate">{{ c.base_url || t('settings.ai.noBaseUrl') }}</div>
                 </div>
-                <button v-if="st.type === 'text'" class="btn btn-ghost btn-sm" @click="testExistingCfg(c)">{{ t('settings.ai.test') }}</button>
+                <button v-if="st.type === 'text' || ['aiask', 'comfyui'].includes(c.provider)" class="btn btn-ghost btn-sm" @click="testExistingCfg(c)">{{ t('settings.ai.test') }}</button>
                 <label class="config-switch">
                   <input type="checkbox" class="sr-only" :checked="c.is_active" @change="toggleCfg(c)">
                   <span class="switch" :class="{ on: c.is_active }"></span>
@@ -517,8 +506,11 @@
             <input v-model.number="cfgForm.priority" class="input" type="number" min="0" max="999" />
             <span class="field-hint">{{ t('settings.cfg.priorityHint') }}</span>
           </label>
-          <label class="field"><span class="field-label">API Key</span><input v-model="cfgForm.api_key" class="input" type="password" placeholder="sk-..." /></label>
-          <label class="field"><span class="field-label">Base URL</span><input v-model="cfgForm.base_url" class="input" placeholder="https://..." /></label>
+          <label class="field">
+            <span class="field-label">API Key <span v-if="isComfyForm" class="dim">({{ t('settings.cfg.comfy.apiKeyOptional') }})</span></span>
+            <input v-model="cfgForm.api_key" class="input" type="password" :placeholder="isComfyForm ? t('settings.cfg.comfy.apiKeyPlaceholder') : 'sk-...'" />
+          </label>
+          <label class="field"><span class="field-label">Base URL</span><input v-model="cfgForm.base_url" class="input" :placeholder="isComfyForm ? 'http://127.0.0.1:8188' : 'https://...'" /></label>
           <div class="field">
             <span class="field-label">{{ t('settings.cfg.models') }}</span>
             <div v-if="cfgForm.models.length" class="model-chips">
@@ -542,6 +534,24 @@
             </div>
             <span class="field-hint">{{ t('settings.cfg.modelsHint') }}</span>
           </div>
+          <template v-if="isComfyForm">
+            <label class="field">
+              <span class="field-label">{{ t('settings.cfg.comfy.workflow') }} <span class="dim">({{ t('settings.cfg.comfy.workflowHint') }})</span></span>
+              <textarea v-model="cfgForm.comfyui_workflow" class="textarea mono comfy-workflow-input" rows="8" spellcheck="false" :placeholder="t('settings.cfg.comfy.workflowPlaceholder')"></textarea>
+              <span class="field-hint">{{ t('settings.cfg.comfy.placeholders') }}</span>
+              <span class="field-hint mono comfy-placeholder-list">{{ COMFY_PLACEHOLDERS }}</span>
+            </label>
+            <div class="comfy-row">
+              <label class="field">
+                <span class="field-label">FPS</span>
+                <input v-model="cfgForm.comfyui_fps" class="input" type="number" min="1" max="120" placeholder="24" />
+              </label>
+              <label class="field comfy-negative">
+                <span class="field-label">{{ t('settings.cfg.comfy.negativePrompt') }}</span>
+                <input v-model="cfgForm.comfyui_negative_prompt" class="input" :placeholder="t('settings.cfg.comfy.negativePlaceholder')" />
+              </label>
+            </div>
+          </template>
           <label v-if="cfgForm.service_type === 'text'" class="field">
             <span class="field-label">Temperature <span class="dim">({{ t('settings.cfg.tempHint') }})</span></span>
             <input v-model="cfgForm.temperature" class="input" type="number" step="0.1" min="0" max="2" :placeholder="t('settings.cfg.tempPlaceholder')" />
@@ -697,7 +707,7 @@ import { providerIconUrl } from '~/composables/useProviderIcon'
 import { startTour, autoTour } from '~/composables/useTour'
 import { confirmUnifiedLanguage } from '~/composables/useUnifiedLanguage'
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 
 const showBrandImage = ref(true)
 const tab = ref('ai')
@@ -716,12 +726,15 @@ const cfgDialog = ref(false)
 const cfgEditId = ref(null)
 const cfgTesting = ref(false)
 const cfgTestResult = ref(null)
-const huobaoApiKey = ref('')
-const huobaoSaving = ref(false)
-// 火宝节点选择：默认跟随界面语言（中文→国内 .cn，其他→国外 .com），一键配置与取 Key 链接共用
-const huobaoRegion = ref(locale.value?.startsWith('zh') ? 'cn' : 'com')
-const huobaoSiteUrl = computed(() => `https://api.firemux.${huobaoRegion.value}`)
-const cfgForm = reactive({ name: '', provider: '', api_key: '', base_url: '', models: [], service_type: 'text', priority: 0, temperature: '' })
+// aiask.me 一键配置：同一个 Key 写入文本、图片、视频（Grok）三类推荐配置
+const AIASK_SITE_URL = 'https://aiask.me'
+const aiaskApiKey = ref('')
+const aiaskSaving = ref(false)
+const EMPTY_CFG_FORM = { name: '', provider: '', api_key: '', base_url: '', models: [], service_type: 'text', priority: 0, temperature: '', comfyui_workflow: '', comfyui_fps: '', comfyui_negative_prompt: '' }
+const cfgForm = reactive({ ...EMPTY_CFG_FORM })
+const isComfyForm = computed(() => cfgForm.service_type === 'video' && cfgForm.provider === 'comfyui')
+// ComfyUI 工作流支持的占位符（与后端 comfyui-video.ts 保持一致）
+const COMFY_PLACEHOLDERS = '{{prompt}} {{negative_prompt}} {{seed}} {{width}} {{height}} {{duration}} {{fps}} {{frames}} {{aspect_ratio}} {{resolution}} {{model}} {{image}} {{first_frame}} {{last_frame}} {{reference_image_1}} ... {{reference_image_9}}'
 // 模型标签编辑器：首位即默认模型；输入框支持回车添加、逗号/换行批量粘贴
 const modelInput = ref('')
 function addModel() {
@@ -749,7 +762,7 @@ const serviceTypes = computed(() => [
   { type: 'image', label: t('common.serviceType.image') },
   { type: 'video', label: t('common.serviceType.video') },
 ])
-const providers = ['gemini', 'openai', 'volcengine', 'minimax', 'aliyun']
+const providers = ['aiask', 'gemini', 'openai', 'volcengine', 'minimax', 'aliyun', 'comfyui']
 const providerSelectOptions = computed(() => providers.map(p => ({ label: p, value: p })))
 const serviceMeta = computed(() => ({
   text: { label: t('common.serviceType.text'), desc: t('settings.ai.meta.text') },
@@ -758,31 +771,29 @@ const serviceMeta = computed(() => ({
 }))
 const providerPresets = {
   text: {
+    aiask: { label: 'aiask.me', baseUrl: AIASK_SITE_URL, models: ['gpt-5.5', 'gemini-3.1-pro-preview', 'deepseek-v4-pro'] },
     gemini: { label: 'Gemini 官方', baseUrl: 'https://generativelanguage.googleapis.com', models: ['gemini-3.8-flash', 'gemini-3.1-pro-preview', 'gemini-3-flash-preview'] },
     openai: { label: 'OpenAI 官方', baseUrl: 'https://api.openai.com', models: ['deepseek-v4-pro', 'gpt-5.6-terra'] },
   },
   image: {
+    aiask: { label: 'aiask.me', baseUrl: AIASK_SITE_URL, models: ['gpt-image-2', 'grok-imagine-image', 'gemini-3-pro-image'] },
     gemini: { label: 'Gemini 官方', baseUrl: 'https://generativelanguage.googleapis.com', models: ['gemini-3-pro-image', 'gemini-3.1-flash-image'] },
     openai: { label: 'OpenAI 官方', baseUrl: 'https://api.openai.com', models: ['gpt-image-2'] },
   },
   video: {
+    aiask: { label: 'aiask.me Grok 视频', baseUrl: AIASK_SITE_URL, models: ['grok-imagine-video-1.5'] },
+    comfyui: { label: '本地 ComfyUI', baseUrl: 'http://127.0.0.1:8188', models: ['wan2.2-ti2v-5b'] },
     aliyun: { label: '阿里云百炼 Wan 3.0', baseUrl: 'https://{WorkspaceId}.cn-beijing.maas.aliyuncs.com', models: ['wan3.0-video', 'wan3.0-video-prime'] },
     volcengine: { label: 'Seedance 2.0 官方', baseUrl: 'https://ark.cn-beijing.volces.com', models: ['doubao-seedance-2-0-mini-260615', 'doubao-seedance-2-0-fast-260128', 'doubao-seedance-2-0-260128'] },
     minimax: { label: 'MiniMax H3 官方', baseUrl: 'https://api.minimaxi.com', models: ['MiniMax-H3'] },
   },
 }
-const huobaoQuickConfigs = computed(() => {
-  const base = huobaoSiteUrl.value
-  return [
-    { service_type: 'text', provider: 'gemini', name: '火宝文本服务 · Gemini', base_url: base, model: ['gemini-3.8-flash', 'gemini-3.1-pro-preview', 'gemini-3-flash-preview'], priority: 101 },
-    { service_type: 'text', provider: 'openai', name: '火宝文本服务 · OpenAI', base_url: base, model: ['deepseek-v4-pro', 'deepseek-v4-flash', 'gpt-5.6-terra'], priority: 100 },
-    { service_type: 'image', provider: 'openai', name: '火宝图片服务 · OpenAI', base_url: base, model: ['gpt-image-2'], priority: 99 },
-    { service_type: 'image', provider: 'gemini', name: '火宝图片服务 · Gemini', base_url: base, model: ['gemini-3-pro-image', 'gemini-3.1-flash-image'], priority: 97 },
-    { service_type: 'video', provider: 'aliyun', name: '火宝视频服务 · Wan 3.0', base_url: `${base}/qwen`, model: ['wan3.0-video', 'wan3.0-video-prime'], priority: 97 },
-    { service_type: 'video', provider: 'volcengine', name: '火宝视频服务 · Seedance', base_url: `${base}/volcengine`, model: ['doubao-seedance-2-0-mini-260615', 'doubao-seedance-2-0-fast-260128', 'doubao-seedance-2-0-260128'], priority: 96 },
-    { service_type: 'video', provider: 'minimax', name: '火宝视频服务 · MiniMax', base_url: `${base}/minimax`, model: ['MiniMax-H3'], priority: 98 },
-  ]
-})
+// 名称持久化进 DB，用固定英文名，不随界面语言漂移；写入后同类型下优先级最高即成默认
+const aiaskQuickConfigs = [
+  { service_type: 'text', provider: 'aiask', name: 'aiask.me Text', base_url: AIASK_SITE_URL, model: ['gpt-5.5', 'gemini-3.1-pro-preview', 'deepseek-v4-pro'], priority: 100 },
+  { service_type: 'image', provider: 'aiask', name: 'aiask.me Image', base_url: AIASK_SITE_URL, model: ['gpt-image-2', 'grok-imagine-image', 'gemini-3-pro-image'], priority: 100 },
+  { service_type: 'video', provider: 'aiask', name: 'aiask.me Grok Video', base_url: AIASK_SITE_URL, model: ['grok-imagine-video-1.5'], priority: 100 },
+]
 
 function byType(t) { return cfgs.value.filter(c => c.service_type === t) }
 function countActive(t) { return byType(t).filter(c => c.is_active).length }
@@ -837,30 +848,30 @@ async function setDefaultModel(type, c, m) {
 }
 async function toggleCfg(c) { await aiConfigAPI.update(c.id, { is_active: !c.is_active }); loadCfgs() }
 async function delCfg(id) { await aiConfigAPI.del(id); toast.success(t('index.deleted')); loadCfgs() }
-async function applyHuobaoQuickConfig() {
-  const apiKey = huobaoApiKey.value.trim()
+async function applyAiaskQuickConfig() {
+  const apiKey = aiaskApiKey.value.trim()
   if (!apiKey) { toast.warning(t('settings.ai.apiKeyRequired')); return }
-  huobaoSaving.value = true
+  aiaskSaving.value = true
   try {
-    for (const preset of huobaoQuickConfigs.value) {
+    for (const preset of aiaskQuickConfigs) {
       const payload = { ...preset, api_key: apiKey }
       const existing = cfgs.value.find(c => c.name === preset.name || (c.service_type === preset.service_type && c.provider === preset.provider && c.base_url === preset.base_url))
       if (existing) await aiConfigAPI.update(existing.id, payload)
       else await aiConfigAPI.create(payload)
     }
     toast.success(t('settings.ai.quickApplied'))
-    huobaoApiKey.value = ''
+    aiaskApiKey.value = ''
     await loadCfgs()
   } catch (e) {
     toastError(e)
   } finally {
-    huobaoSaving.value = false
+    aiaskSaving.value = false
   }
 }
 function startAddCfg(t) {
   cfgEditId.value = null
   cfgTestResult.value = null
-  Object.assign(cfgForm, { name: '', provider: '', api_key: '', base_url: '', models: [], service_type: t, priority: 0, temperature: '' })
+  Object.assign(cfgForm, { ...EMPTY_CFG_FORM, models: [], service_type: t })
   const firstPreset = presetsByType(t)[0]
   if (firstPreset) applyProviderPreset(t, firstPreset.provider)
   cfgDialog.value = true
@@ -877,6 +888,9 @@ function startEditCfg(c) {
     service_type: c.service_type,
     priority: c.priority ?? 0,
     temperature: c.temperature ?? '',
+    comfyui_workflow: formatWorkflow(c.comfyui_workflow),
+    comfyui_fps: c.comfyui_fps ?? '',
+    comfyui_negative_prompt: c.comfyui_negative_prompt || '',
   })
   cfgDialog.value = true
 }
@@ -911,6 +925,11 @@ async function testExistingCfg(c) {
     model: Array.isArray(c.model) ? c.model : [],
   })
 }
+// 工作流以紧凑 JSON 存库，编辑时格式化展示
+function formatWorkflow(raw) {
+  if (!raw) return ''
+  try { return JSON.stringify(typeof raw === 'string' ? JSON.parse(raw) : raw, null, 2) } catch { return String(raw) }
+}
 async function saveCfg() {
   if (!cfgForm.provider) { toast.warning(t('settings.cfg.providerRequired')); return }
   const models = [...cfgForm.models]
@@ -918,9 +937,16 @@ async function saveCfg() {
   if (temperature !== null && (!Number.isFinite(temperature) || temperature < 0 || temperature > 2)) {
     toast.warning(t('settings.cfg.tempInvalid')); return
   }
+  // ComfyUI 专属字段：工作流 JSON 先在前端校验一次，后端还会校验是否为 API 格式
+  const comfy = isComfyForm.value
+    ? { comfyui_workflow: cfgForm.comfyui_workflow.trim(), comfyui_fps: cfgForm.comfyui_fps === '' ? null : Number(cfgForm.comfyui_fps), comfyui_negative_prompt: cfgForm.comfyui_negative_prompt }
+    : {}
+  if (comfy.comfyui_workflow) {
+    try { JSON.parse(comfy.comfyui_workflow) } catch { toast.warning(t('settings.cfg.comfy.workflowInvalid')); return }
+  }
   try {
-    if (cfgEditId.value) await aiConfigAPI.update(cfgEditId.value, { name: cfgForm.name, provider: cfgForm.provider, api_key: cfgForm.api_key, base_url: cfgForm.base_url, model: models, priority: cfgForm.priority, temperature })
-    else await aiConfigAPI.create({ service_type: cfgForm.service_type, provider: cfgForm.provider, name: cfgForm.name || `${cfgForm.provider}-${cfgForm.service_type}`, api_key: cfgForm.api_key, base_url: cfgForm.base_url, model: models, priority: cfgForm.priority, temperature })
+    if (cfgEditId.value) await aiConfigAPI.update(cfgEditId.value, { name: cfgForm.name, provider: cfgForm.provider, api_key: cfgForm.api_key, base_url: cfgForm.base_url, model: models, priority: cfgForm.priority, temperature, ...comfy })
+    else await aiConfigAPI.create({ service_type: cfgForm.service_type, provider: cfgForm.provider, name: cfgForm.name || `${cfgForm.provider}-${cfgForm.service_type}`, api_key: cfgForm.api_key, base_url: cfgForm.base_url, model: models, priority: cfgForm.priority, temperature, ...comfy })
     cfgDialog.value = false; toast.success(t('common.saved')); loadCfgs()
   } catch (e) { toastError(e) }
 }
@@ -1428,7 +1454,7 @@ onBeforeUnmount(stopUsagePoll)
 .settings-title { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
 .settings-desc { font-size: 13px; color: var(--text-2); margin-top: 6px; }
 
-/* 火宝快捷配置 */
+/* aiask.me 快捷配置 */
 .quick-card {
   padding: 20px;
   margin-bottom: 16px;
@@ -1438,20 +1464,20 @@ onBeforeUnmount(stopUsagePoll)
 .quick-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
 .setup-title { font-size: 15px; font-weight: 700; color: var(--text-0); }
 .setup-desc { font-size: 12.5px; color: var(--text-2); margin-bottom: 14px; }
-.huobao-site-link {
+.quick-site-link {
   display: inline-flex; align-items: center; gap: 3px;
   margin-left: 6px;
   color: var(--accent); text-decoration: none;
   font-weight: 600; white-space: nowrap;
 }
-.huobao-site-link:hover { text-decoration: underline; }
-.huobao-quick-row {
+.quick-site-link:hover { text-decoration: underline; }
+.quick-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
   align-items: center;
 }
-.huobao-quick-models {
+.quick-models {
   margin-top: 14px;
   display: flex;
   flex-direction: column;
@@ -1619,6 +1645,7 @@ onBeforeUnmount(stopUsagePoll)
 .provider-badge[data-provider="openai"] { background: #10a37f; }
 .provider-badge[data-provider="gemini"] { background: #4285f4; }
 .provider-badge[data-provider="volcengine"] { background: #ff5c39; }
+.provider-badge[data-provider="comfyui"] { background: #5b5bd6; }
 /* 有厂商图标时用中性底，彩色图标直接展示 */
 .provider-badge.has-icon { background: var(--bg-2); }
 .provider-badge-icon { width: 20px; height: 20px; object-fit: contain; }
@@ -1787,6 +1814,10 @@ onBeforeUnmount(stopUsagePoll)
 }
 .preset-pill:hover { background: var(--button-bg-hover); color: var(--text-0); }
 .preset-pill:focus-visible { outline: none; box-shadow: 0 0 0 3.5px var(--button-focus); }
+/* ComfyUI 工作流配置 */
+.comfy-workflow-input { min-height: 160px; font-size: 11.5px; line-height: 1.5; resize: vertical; }
+.comfy-placeholder-list { overflow-wrap: anywhere; }
+.comfy-row { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 12px; }
 .test-result {
   display: flex;
   flex-direction: column;

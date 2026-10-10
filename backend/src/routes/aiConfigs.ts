@@ -4,7 +4,8 @@ import { db, getInsertId, schema } from '../db/index.js'
 import { success, notFound, created, badRequest, now } from '../utils/response.js'
 import { toSnakeCase } from '../utils/transform.js'
 import { joinProviderUrl } from '../services/adapters/url.js'
-import { isOfficialProvider, parseConfigTemperature } from '../services/ai.js'
+import { isOfficialProvider, parseConfigSettings, parseConfigTemperature } from '../services/ai.js'
+import { parseComfyWorkflow } from '../services/adapters/comfyui-video.js'
 import { redactUrl, logTaskError, logTaskProgress, logTaskSuccess } from '../utils/task-logger.js'
 
 const app = new Hono()
@@ -17,12 +18,53 @@ function normalizeTemperature(v: any): number | null {
   return n
 }
 
-/** 把 settings JSON 中的 temperature 透出为顶层字段，便于前端直接读写 */
+/** ComfyUI 专属配置项（存 settings JSON，接口上以顶层字段读写） */
+const COMFYUI_SETTING_KEYS = ['comfyui_workflow', 'comfyui_fps', 'comfyui_negative_prompt'] as const
+
+/**
+ * 从请求体提取 ComfyUI 配置：返回需要写入（值）或删除（null）的键；工作流 JSON 非法时抛错。
+ * 只处理请求体中出现的键，未出现的保持原值。
+ */
+function pickComfySettings(body: any): Record<string, any> {
+  const out: Record<string, any> = {}
+  if ('comfyui_workflow' in body) {
+    const raw = typeof body.comfyui_workflow === 'string' ? body.comfyui_workflow.trim() : body.comfyui_workflow
+    const workflow = parseComfyWorkflow(raw)
+    out.comfyui_workflow = workflow ? JSON.stringify(workflow) : null
+  }
+  if ('comfyui_fps' in body) {
+    const fps = body.comfyui_fps === '' || body.comfyui_fps == null ? null : Number(body.comfyui_fps)
+    if (fps !== null && (!Number.isFinite(fps) || fps < 1 || fps > 120)) throw new Error('comfyui_fps 须为 1 到 120 之间的数字')
+    out.comfyui_fps = fps === null ? null : Math.round(fps)
+  }
+  if ('comfyui_negative_prompt' in body) {
+    const text = String(body.comfyui_negative_prompt ?? '').trim()
+    out.comfyui_negative_prompt = text || null
+  }
+  return out
+}
+
+function mergeSettings(existing: string | null | undefined, patch: Record<string, any>): string | null {
+  const settings: Record<string, any> = parseConfigSettings(existing) || {}
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === null || value === undefined) delete settings[key]
+    else settings[key] = value
+  }
+  return Object.keys(settings).length ? JSON.stringify(settings) : null
+}
+
+/** 把 settings JSON 中的 temperature / ComfyUI 配置透出为顶层字段，便于前端直接读写 */
 function withParsedFields(r: any) {
+  const settings = parseConfigSettings(r.settings) || {}
+  const comfy: Record<string, any> = {}
+  for (const key of COMFYUI_SETTING_KEYS) {
+    if (settings[key] != null) comfy[key] = settings[key]
+  }
   return {
     ...toSnakeCase(r),
     model: r.model ? JSON.parse(r.model) : [],
     temperature: parseConfigTemperature(r.settings),
+    ...comfy,
   }
 }
 
@@ -61,10 +103,21 @@ function buildProbe(serviceType: string, provider: string, baseUrl: string, mode
     }
   }
 
-  if (p === 'openai') {
+  if (p === 'openai' || p === 'aiask') {
+    // aiask.me 为 OpenAI 兼容网关，文本 / 图片 / 视频共用 /v1/models 验证 Key 与地址
     return {
       method: 'GET',
       url: joinProviderUrl(baseUrl, '/v1', '/models'),
+      headers: bearerHeaders(apiKey),
+      body: undefined,
+    }
+  }
+
+  if (p === 'comfyui') {
+    // 本地 ComfyUI：/system_stats 返回版本与显卡信息，不占用队列
+    return {
+      method: 'GET',
+      url: joinProviderUrl(baseUrl || 'http://127.0.0.1:8188', '', '/system_stats'),
       headers: bearerHeaders(apiKey),
       body: undefined,
     }
@@ -146,6 +199,12 @@ app.post('/', async (c) => {
       return badRequest(c, 'temperature 须为 0 到 2 之间的数字')
     }
   }
+  let comfySettings: Record<string, any> = {}
+  try {
+    comfySettings = body.provider === 'comfyui' ? pickComfySettings(body) : {}
+  } catch (err: any) {
+    return badRequest(c, err.message)
+  }
 
   const res = await db.insert(schema.aiServiceConfigs).values({
     serviceType: body.service_type,
@@ -156,7 +215,7 @@ app.post('/', async (c) => {
     model: JSON.stringify(body.model || []),
     priority: body.priority || 0,
     isActive: true,
-    settings: temperature !== null ? JSON.stringify({ temperature }) : null,
+    settings: mergeSettings(null, { temperature, ...comfySettings }),
     createdAt: ts,
     updatedAt: ts,
   })
@@ -270,20 +329,23 @@ app.put('/:id', async (c) => {
   if ('model' in body) updates.model = JSON.stringify(body.model)
   if ('priority' in body) updates.priority = body.priority
   if ('is_active' in body) updates.isActive = body.is_active
+  // 与已有 settings 合并：清空的 temperature / ComfyUI 配置从 JSON 中移除
+  const settingsPatch: Record<string, any> = {}
   if ('temperature' in body) {
-    let temperature: number | null
     try {
-      temperature = normalizeTemperature(body.temperature)
+      settingsPatch.temperature = normalizeTemperature(body.temperature)
     } catch {
       return badRequest(c, 'temperature 须为 0 到 2 之间的数字')
     }
-    // 与已有 settings 合并，清空的 temperature 从 JSON 中移除
-    let settings: Record<string, any> = {}
-    try { settings = existing.settings ? JSON.parse(existing.settings) : {} } catch { settings = {} }
-    if (temperature === null) delete settings.temperature
-    else settings.temperature = temperature
-    updates.settings = Object.keys(settings).length ? JSON.stringify(settings) : null
   }
+  if (provider === 'comfyui') {
+    try {
+      Object.assign(settingsPatch, pickComfySettings(body))
+    } catch (err: any) {
+      return badRequest(c, err.message)
+    }
+  }
+  if (Object.keys(settingsPatch).length) updates.settings = mergeSettings(existing.settings, settingsPatch)
 
   await db.update(schema.aiServiceConfigs).set(updates).where(eq(schema.aiServiceConfigs.id, id))
   return success(c)

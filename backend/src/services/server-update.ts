@@ -1,9 +1,9 @@
 /**
  * 服务器 / Docker 部署的版本检查与更新触发
  *
- * - 版本检查：复用桌面版同一份发布清单（HUOBAO_UPDATE_FEED 的 latest.json）
- * - 当前版本：构建时注入 HUOBAO_VERSION（Docker ARG / 环境变量），缺省回退 package.json
- * - 一键更新：仅在配置 Watchtower（HUOBAO_WATCHTOWER_URL）时可用——容器不可变，
+ * - 版本检查：复用桌面版同一份发布清单（UU889_UPDATE_FEED 的 latest.json）
+ * - 当前版本：构建时注入 UU889_VERSION（Docker ARG / 环境变量），缺省回退 package.json
+ * - 一键更新：仅在配置 Watchtower（UU889_WATCHTOWER_URL）时可用——容器不可变，
  *   容器内自更新是反模式，正确路径是由 Watchtower 拉新镜像并重建本容器；
  *   未配置时前端展示手动更新指引（docker compose pull && up -d）
  */
@@ -11,16 +11,15 @@ import { readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
-// 双源：COS（国内直连）优先，GitHub（海外）兜底；HUOBAO_UPDATE_FEED 可整体覆盖
-const FEED_URLS = process.env.HUOBAO_UPDATE_FEED
-  ? [process.env.HUOBAO_UPDATE_FEED]
+// 默认读取 GitHub Releases 的 latest.json；UU889_UPDATE_FEED 可整体覆盖（如自建国内镜像）
+const FEED_URLS = process.env.UU889_UPDATE_FEED
+  ? [process.env.UU889_UPDATE_FEED]
   : [
-    'https://installer.chatfire.site/huobao-drama/latest.json',
-    'https://github.com/chatfire-AI/huobao-drama/releases/latest/download/latest.json',
+    'https://github.com/uu889/uu889-drama/releases/latest/download/latest.json',
   ]
 
-const WATCHTOWER_URL = process.env.HUOBAO_WATCHTOWER_URL?.replace(/\/+$/, '')
-const WATCHTOWER_TOKEN = process.env.HUOBAO_WATCHTOWER_TOKEN || ''
+const WATCHTOWER_URL = process.env.UU889_WATCHTOWER_URL?.replace(/\/+$/, '')
+const WATCHTOWER_TOKEN = process.env.UU889_WATCHTOWER_TOKEN || ''
 
 export type ServerUpdateMode = 'watchtower' | 'manual'
 
@@ -36,7 +35,7 @@ export interface ServerUpdateState {
 let lastState: Omit<ServerUpdateState, 'updateMode'> | null = null
 
 function currentVersion(): string {
-  if (process.env.HUOBAO_VERSION) return process.env.HUOBAO_VERSION.replace(/^v/, '')
+  if (process.env.UU889_VERSION) return process.env.UU889_VERSION.replace(/^v/, '')
   try {
     const pkg = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../package.json')
     return JSON.parse(readFileSync(pkg, 'utf-8')).version || '0.0.0'
@@ -110,7 +109,7 @@ export async function checkServerUpdate(): Promise<ServerUpdateState> {
  * Watchtower 异步执行：拉取新镜像 → 重建容器，本进程随后被替换，调用方只能拿到"已触发"
  */
 export async function triggerWatchtowerUpdate(): Promise<void> {
-  if (!WATCHTOWER_URL) throw new Error('未配置 Watchtower（HUOBAO_WATCHTOWER_URL），无法应用内更新')
+  if (!WATCHTOWER_URL) throw new Error('未配置 Watchtower（UU889_WATCHTOWER_URL），无法应用内更新')
   const res = await fetch(`${WATCHTOWER_URL}/v1/update`, {
     method: 'POST',
     headers: WATCHTOWER_TOKEN ? { Authorization: `Bearer ${WATCHTOWER_TOKEN}` } : {},

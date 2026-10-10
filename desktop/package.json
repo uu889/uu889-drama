@@ -1,10 +1,10 @@
 {
-  "name": "huobao-drama-desktop",
-  "productName": "HuobaoDrama",
+  "name": "uu889-drama-desktop",
+  "productName": "UU889Drama",
   "version": "4.0.8",
   "private": true,
-  "description": "火宝短剧桌面版（Electron 壳）",
-  "author": "Huobao",
+  "description": "UU889-Drama 桌面版（Electron 壳）",
+  "author": "UU889",
   "main": "dist/main.js",
   "scripts": {
     "build:backend": "node scripts/build-backend.mjs",

@@ -8,7 +8,7 @@
  */
 import { computed, readonly, ref, watch, type ComputedRef } from 'vue'
 
-export const THEME_STORAGE_KEY = 'huobao:theme'
+export const THEME_STORAGE_KEY = 'uu889:theme'
 
 export type ThemeMode = 'light' | 'dark' | 'system'
 export type ResolvedTheme = 'light' | 'dark'

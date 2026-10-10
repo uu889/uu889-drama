@@ -52,7 +52,7 @@ app.get('/', async (c) => {
     }
   }
 
-  const mode = process.env.HUOBAO_DESKTOP === '1' ? 'desktop' : 'server'
+  const mode = process.env.UU889_DESKTOP === '1' ? 'desktop' : 'server'
   return success(c, {
     mode,
     dataDir: DATA_ROOT,

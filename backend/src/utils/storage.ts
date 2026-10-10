@@ -9,17 +9,26 @@ import { STORAGE_ROOT } from './paths.js'
 
 /**
  * 下载远程文件到本地存储
+ * headers：需要鉴权的下载（如 aiask /v1/videos/{id}/content 要带 API Key）
+ * fallbackExt：URL 与 Content-Type 都推断不出扩展名时使用（默认 .bin）
  */
-export async function downloadFile(url: string, subDir: string): Promise<string> {
+export async function downloadFile(
+  url: string,
+  subDir: string,
+  opts: { headers?: Record<string, string>; fallbackExt?: string } = {},
+): Promise<string> {
   const dir = path.join(STORAGE_ROOT, subDir)
   fs.mkdirSync(dir, { recursive: true })
 
-  const ext = getExtFromUrl(url)
+  const resp = await fetch(url, opts.headers ? { headers: opts.headers } : undefined)
+  if (!resp.ok) throw new Error(`Download failed: ${resp.status}`)
+
+  const urlExt = getExtFromUrl(url)
+  const ext = urlExt !== '.bin'
+    ? urlExt
+    : contentTypeToExt(resp.headers.get('content-type')) || opts.fallbackExt || '.bin'
   const filename = `${uuid()}${ext}`
   const filePath = path.join(dir, filename)
-
-  const resp = await fetch(url)
-  if (!resp.ok) throw new Error(`Download failed: ${resp.status}`)
 
   const buffer = Buffer.from(await resp.arrayBuffer())
   fs.writeFileSync(filePath, buffer)
@@ -45,11 +54,30 @@ export async function saveUploadedFile(data: ArrayBuffer, subDir: string, origin
 
 function getExtFromUrl(url: string): string {
   try {
-    const pathname = new URL(url).pathname
-    const ext = path.extname(pathname)
+    const parsed = new URL(url)
+    const ext = path.extname(parsed.pathname)
     if (ext && ext.length <= 5) return ext
+    // ComfyUI /view?filename=xxx.mp4 之类：扩展名在查询参数里
+    const fileParam = parsed.searchParams.get('filename')
+    const paramExt = fileParam ? path.extname(fileParam) : ''
+    if (paramExt && paramExt.length <= 5) return paramExt
   } catch {}
   return '.bin'
+}
+
+function contentTypeToExt(contentType: string | null): string | null {
+  const type = String(contentType || '').split(';')[0].trim().toLowerCase()
+  const map: Record<string, string> = {
+    'video/mp4': '.mp4',
+    'video/webm': '.webm',
+    'video/quicktime': '.mov',
+    'video/x-matroska': '.mkv',
+    'image/png': '.png',
+    'image/jpeg': '.jpg',
+    'image/webp': '.webp',
+    'image/gif': '.gif',
+  }
+  return map[type] || null
 }
 
 /**

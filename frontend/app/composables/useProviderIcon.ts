@@ -1,10 +1,11 @@
 /**
- * 厂商图标 — 双主题本地托管（app/public/icons/{light,dark}/，源自 chatfire-gateway）
+ * 厂商图标 — 双主题本地托管（app/public/icons/{light,dark}/；aiask.png 取自 aiask.me 站点图标）
  * resolvedTheme 是模块级 computed，模板中调用本函数会随主题切换响应式更新
  */
 import { resolvedTheme } from '~/composables/useTheme'
 
 const FILENAMES: Record<string, string> = {
+  aiask: 'aiask.png',
   openai: 'openai.png',
   gemini: 'gemini-color.png',
   volcengine: 'volcengine-color.png',

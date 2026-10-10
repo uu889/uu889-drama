@@ -17,7 +17,8 @@ test('video presets default to direct Seedance 2.0 generation', () => {
 
 test('video presets use official provider endpoints', () => {
   const presetsStart = settingsPage.indexOf('const providerPresets = {')
-  const quickStart = settingsPage.indexOf('const huobaoQuickConfigs = [')
+  const quickStart = settingsPage.indexOf('const aiaskQuickConfigs = [')
+  assert.ok(quickStart > presetsStart)
   const providerPresets = settingsPage.slice(presetsStart, quickStart)
   assert.doesNotMatch(providerPresets, /api\.firemux\.com/)
   assert.match(settingsPage, /https:\/\/ark\.cn-beijing\.volces\.com/)
@@ -26,8 +27,12 @@ test('video presets use official provider endpoints', () => {
   assert.doesNotMatch(settingsPage, /https:\/\/api\.vidu\.com/)
 })
 
-test('Wan 3.0 quick preset targets the Qwen gateway namespace', () => {
-  const quickStart = settingsPage.indexOf('const huobaoQuickConfigs = [')
-  const quickConfigs = settingsPage.slice(quickStart)
-  assert.match(quickConfigs, /provider:\s*'aliyun'.*base_url:\s*'https:\/\/api\.firemux\.com\/qwen'.*wan3\.0-video-prime.*wan3\.0-video/s)
+test('aiask quick preset uses Grok video through the /v1/videos task API', () => {
+  const quickStart = settingsPage.indexOf('const aiaskQuickConfigs = [')
+  const quickConfigs = settingsPage.slice(quickStart, settingsPage.indexOf('\n]', quickStart))
+  assert.match(quickConfigs, /service_type: 'video', provider: 'aiask'.*grok-imagine-video-1\.5/)
+  const adapter = readFileSync(new URL('../../backend/src/services/adapters/aiask-video.ts', import.meta.url), 'utf8')
+  assert.match(adapter, /joinProviderUrl\(config\.baseUrl, '\/v1', '\/videos'\)/)
+  assert.match(adapter, /`\/videos\/\$\{encodeURIComponent\(taskId\)\}`/)
+  assert.match(adapter, /\/content/)
 })

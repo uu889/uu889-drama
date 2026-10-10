@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "Huobao Shorts",
+    "title": "UU889-Drama",
     "updateAvailable": "New version v{version} is available. Upgrade in Settings → About."
   },
   "common": {
@@ -268,13 +268,11 @@
     "ai": {
       "title": "AI Service Configs",
       "desc": "Start with a recommended template, then fine-tune per service type. The workbench locks the chosen image and video capabilities when creating an episode.",
-      "quickTitle": "Huobao Quick Config",
+      "quickTitle": "aiask.me Quick Config",
       "recommended": "Recommended",
-      "quickDesc": "Enter a Huobao API Key to write three recommended configs (text, image, video) at once.",
-      "getKey": "Get a Huobao API key",
-      "regionCn": "China",
-      "regionCom": "Global",
-      "applyQuick": "Apply Huobao Config",
+      "quickDesc": "Enter an aiask.me API Key to write three recommended configs (text, image, Grok video) at once.",
+      "getKey": "Get an aiask.me API key",
+      "applyQuick": "Apply aiask.me Config",
       "manualTitle": "Manual Templates",
       "manualDesc": "Pick a service type, then fill the recommended `provider / base URL / model` from a template.",
       "activeCount": "{n} active",
@@ -284,13 +282,13 @@
       "setDefault": "Set as default model for this type",
       "noBaseUrl": "Base URL not set",
       "test": "Test",
-      "apiKeyRequired": "Please enter a Huobao API Key",
-      "quickApplied": "Huobao quick config written",
+      "apiKeyRequired": "Please enter an aiask.me API Key",
+      "quickApplied": "aiask.me quick config written",
       "defaultModelSwitched": "Default {type} model switched to {model}",
       "meta": {
         "text": "Text capabilities: script rewriting, asset extraction, storyboard breaking",
         "image": "Static image generation: characters, scenes and shots",
-        "video": "Direct video generation, Seedance 2.0 by default"
+        "video": "Direct shot video generation: aiask.me Grok video, local ComfyUI, Seedance and more"
       }
     },
     "styles": {
@@ -389,7 +387,7 @@
       "addTitle": "Add {type} Service",
       "sub": "Pick a template first — a sensible `Base URL` and default models will be filled in automatically.",
       "name": "Config name",
-      "namePlaceholder": "e.g. Huobao default image service",
+      "namePlaceholder": "e.g. aiask.me default image service",
       "provider": "Provider",
       "providerPlaceholder": "Select a provider",
       "priority": "Priority",
@@ -405,7 +403,18 @@
       "reachable": "Endpoint responded",
       "unreachable": "Endpoint failed the test",
       "providerRequired": "Select a provider",
-      "tempInvalid": "Temperature must be a number between 0 and 2"
+      "tempInvalid": "Temperature must be a number between 0 and 2",
+      "comfy": {
+        "apiKeyOptional": "optional for local ComfyUI",
+        "apiKeyPlaceholder": "Only needed behind an authenticating reverse proxy",
+        "workflow": "ComfyUI workflow (API-format JSON)",
+        "workflowHint": "leave empty to use the built-in Wan 2.2 TI2V 5B template",
+        "workflowPlaceholder": "Use \"Export (API)\" in ComfyUI and paste the JSON; the placeholders below are filled in before submitting",
+        "placeholders": "Placeholders (a field that is exactly one placeholder gets a typed number/text value; image placeholders without media remove their LoadImage node):",
+        "negativePrompt": "Negative prompt",
+        "negativePlaceholder": "Leave empty for the official Wan default negative prompt",
+        "workflowInvalid": "The ComfyUI workflow is not valid JSON"
+      }
     },
     "styleDialog": {
       "editTitle": "Edit Style Preset",
@@ -879,7 +888,7 @@
     "helpTitle": "Guide",
     "index": {
       "welcome": {
-        "title": "👋 Welcome to Huobao Drama",
+        "title": "👋 Welcome to UU889-Drama",
         "desc": "Novel → script → assets → storyboard → video → final cut, all in one place. Configure AI services first, then create your first project."
       },
       "create": {
@@ -888,13 +897,13 @@
       },
       "settings": {
         "title": "Step 1 · Configure AI services",
-        "desc": "Every AI feature needs this first. Open Settings and paste a Huobao API Key to set up text/image/video in one click."
+        "desc": "Every AI feature needs this first. Open Settings and paste an aiask.me API Key to set up text/image/video in one click."
       }
     },
     "settings": {
       "quick": {
         "title": "Fastest setup: Quick Setup",
-        "desc": "Paste a Huobao API Key to write the three recommended configs (text/image/video) at once, with connectivity testing."
+        "desc": "Paste an aiask.me API Key to write the three recommended configs (text/image/video) at once, with connectivity testing."
       },
       "nav": {
         "title": "Everything lives here",

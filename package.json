@@ -1,8 +1,8 @@
 {
-  "name": "huobao-drama",
+  "name": "uu889-drama",
   "version": "1.0.0",
   "private": true,
-  "description": "火宝短剧 — AI 短剧制作工具（桌面版编排入口）",
+  "description": "UU889-Drama — AI 短剧制作工具（桌面版编排入口）",
   "scripts": {
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",

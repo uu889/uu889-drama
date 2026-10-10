@@ -2,7 +2,7 @@
  * 数据目录占用统计 + 磁盘剩余空间
  *
  * - dirUsage：单次异步递归 walk（fs.promises，不阻塞事件循环），按相对路径归桶
- * - 数据库文件（huobao.sqlite3/-wal/-shm）不在 walk 中重复计数，单独 stat
+ * - 数据库文件（uu889.sqlite3/-wal/-shm）不在 walk 中重复计数，单独 stat
  *   （server 模式 STORAGE_PATH 覆盖时 SQLITE_PATH 可能位于数据根之外）
  */
 import type { Dirent } from 'fs'
@@ -20,7 +20,7 @@ export interface UsageBuckets {
   total: number
 }
 
-const DB_FILE_BASE = 'huobao.sqlite3'
+const DB_FILE_BASE = 'uu889.sqlite3'
 
 /** 递归 walk，对每个普通文件回调（完整路径 + 大小）；目录不可读/文件竞态静默跳过 */
 async function walkFiles(dir: string, onFile: (filePath: string, size: number) => void): Promise<void> {

@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "화바오 숏드라마",
+    "title": "UU889-Drama",
     "updateAvailable": "새 버전 v{version}을 사용할 수 있습니다. 「설정 → 업데이트 정보」에서 업그레이드하세요"
   },
   "common": {
@@ -268,13 +268,11 @@
     "ai": {
       "title": "AI 서비스 설정",
       "desc": "먼저 추천 템플릿으로 설정을 만들고, 서비스 유형별로 미세 조정합니다. 워크벤치에서 화를 생성할 때 선택한 이미지·영상 기능이 고정됩니다.",
-      "quickTitle": "화바오 빠른 설정",
+      "quickTitle": "aiask.me 빠른 설정",
       "recommended": "추천",
-      "quickDesc": "Huobao API Key를 입력하면 텍스트·이미지·영상 세 개의 추천 설정을 한 번에 작성합니다.",
-      "getKey": "Huobao API Key 받기",
-      "regionCn": "중국",
-      "regionCom": "해외",
-      "applyQuick": "화바오 설정 작성",
+      "quickDesc": "aiask.me API Key를 입력하면 텍스트·이미지·영상(Grok) 세 개의 추천 설정을 한 번에 작성합니다.",
+      "getKey": "aiask.me API Key 받기",
+      "applyQuick": "aiask.me 설정 적용",
       "manualTitle": "수동 템플릿",
       "manualDesc": "서비스 유형을 선택하면 추천 `provider / base URL / model`이 템플릿에서 입력됩니다.",
       "activeCount": "{n}개 활성화됨",
@@ -284,13 +282,13 @@
       "setDefault": "이 유형의 기본 모델로 설정",
       "noBaseUrl": "Base URL 미설정",
       "test": "테스트",
-      "apiKeyRequired": "Huobao API Key를 입력하세요",
-      "quickApplied": "화바오 빠른 설정이 작성되었습니다",
+      "apiKeyRequired": "aiask.me API Key를 입력하세요",
+      "quickApplied": "aiask.me 빠른 설정이 적용되었습니다",
       "defaultModelSwitched": "기본 {type} 모델이 {model}(으)로 변경되었습니다",
       "meta": {
         "text": "대본 재작성, 캐릭터·장면 추출, 스토리보드 분해 등 Agent 텍스트 기능",
         "image": "캐릭터 이미지, 장면 이미지, 샷 이미지 등 정지 이미지 생성",
-        "video": "샷 영상 직접 생성(기본 Seedance 2.0)"
+        "video": "샷 영상 직접 생성: aiask.me Grok 영상, 로컬 ComfyUI, Seedance 등"
       }
     },
     "styles": {
@@ -389,7 +387,7 @@
       "addTitle": "{type} 서비스 추가",
       "sub": "먼저 템플릿을 선택하면 적절한 `Base URL`과 기본 모델이 자동으로 입력됩니다.",
       "name": "설정 이름",
-      "namePlaceholder": "예: 화바오 기본 이미지 서비스",
+      "namePlaceholder": "예: aiask.me 기본 이미지 서비스",
       "provider": "제공업체",
       "providerPlaceholder": "제공업체 선택",
       "priority": "우선순위",
@@ -405,7 +403,18 @@
       "reachable": "엔드포인트가 응답했습니다",
       "unreachable": "엔드포인트 테스트에 실패했습니다",
       "providerRequired": "제공업체를 선택하세요",
-      "tempInvalid": "Temperature는 0~2 사이의 숫자여야 합니다"
+      "tempInvalid": "Temperature는 0~2 사이의 숫자여야 합니다",
+      "comfy": {
+        "apiKeyOptional": "로컬 ComfyUI는 비워 두어도 됩니다",
+        "apiKeyPlaceholder": "인증 리버스 프록시를 쓸 때만 입력",
+        "workflow": "ComfyUI 워크플로(API 형식 JSON)",
+        "workflowHint": "비워 두면 내장 Wan 2.2 TI2V 5B 템플릿 사용",
+        "workflowPlaceholder": "ComfyUI에서 \"내보내기 (API)\"로 저장한 JSON을 붙여넣으세요. 제출 전에 아래 플레이스홀더를 치환합니다",
+        "placeholders": "사용 가능한 플레이스홀더(값이 플레이스홀더 하나뿐이면 숫자/텍스트 타입으로 치환, 소재가 없는 이미지 플레이스홀더는 LoadImage 노드째 제거):",
+        "negativePrompt": "네거티브 프롬프트",
+        "negativePlaceholder": "비워 두면 Wan 공식 기본값 사용",
+        "workflowInvalid": "ComfyUI 워크플로가 올바른 JSON이 아닙니다"
+      }
     },
     "styleDialog": {
       "editTitle": "스타일 프리셋 편집",
@@ -879,7 +888,7 @@
     "helpTitle": "가이드",
     "index": {
       "welcome": {
-        "title": "👋 휘바오 숏드라마에 오신 것을 환영합니다",
+        "title": "👋 UU889-Drama에 오신 것을 환영합니다",
         "desc": "소설 → 대본 → 에셋 → 스토리보드 → 영상 → 완성, 모두 한곳에서. 먼저 AI 서비스를 설정하고 첫 프로젝트를 만들어 보세요."
       },
       "create": {
@@ -888,13 +897,13 @@
       },
       "settings": {
         "title": "1단계 · AI 서비스 설정",
-        "desc": "모든 AI 기능에 사전 설정이 필요합니다. 설정 페이지에서 Huobao API 키를 붙여넣어 텍스트/이미지/영상을 한 번에 설정하세요."
+        "desc": "모든 AI 기능에 사전 설정이 필요합니다. 설정 페이지에서 aiask.me API 키를 붙여넣어 텍스트/이미지/영상을 한 번에 설정하세요."
       }
     },
     "settings": {
       "quick": {
         "title": "가장 빠른 설정: 빠른 설정",
-        "desc": "Huobao API 키를 붙여넣으면 추천 설정 3종(텍스트/이미지/영상)을 한 번에 등록합니다. 연결 테스트 지원."
+        "desc": "aiask.me API 키를 붙여넣으면 추천 설정 3종(텍스트/이미지/영상)을 한 번에 등록합니다. 연결 테스트 지원."
       },
       "nav": {
         "title": "모든 설정이 여기에",

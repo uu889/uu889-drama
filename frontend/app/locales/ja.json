@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "火宝ショートドラマ",
+    "title": "UU889-Drama",
     "updateAvailable": "新バージョン v{version} があります。「設定 → 更新について」でアップグレードできます"
   },
   "common": {
@@ -268,13 +268,11 @@
     "ai": {
       "title": "AI サービス設定",
       "desc": "まず推奨テンプレートで設定を作成し、サービスタイプごとに微調整します。ワークベンチで話を作成する際に選択した画像・動画能力がロックされます。",
-      "quickTitle": "火宝クイック設定",
+      "quickTitle": "aiask.me クイック設定",
       "recommended": "おすすめ",
-      "quickDesc": "Huobao API Key を入力すると、テキスト・画像・動画の 3 つの推奨設定を一括で書き込みます。",
-      "getKey": "Huobao API Key を取得",
-      "regionCn": "国内",
-      "regionCom": "海外",
-      "applyQuick": "火宝設定を書き込む",
+      "quickDesc": "aiask.me API Key を入力すると、テキスト・画像・動画（Grok）の 3 つの推奨設定を一括で書き込みます。",
+      "getKey": "aiask.me API Key を取得",
+      "applyQuick": "aiask.me 設定を書き込む",
       "manualTitle": "手動テンプレート",
       "manualDesc": "サービスタイプを選ぶと、推奨の `provider / base URL / model` がテンプレートから入力されます。",
       "activeCount": "{n} 件有効",
@@ -284,13 +282,13 @@
       "setDefault": "このタイプのデフォルトモデルに設定",
       "noBaseUrl": "Base URL 未設定",
       "test": "テスト",
-      "apiKeyRequired": "Huobao API Key を入力してください",
-      "quickApplied": "火宝クイック設定を書き込みました",
+      "apiKeyRequired": "aiask.me API Key を入力してください",
+      "quickApplied": "aiask.me クイック設定を書き込みました",
       "defaultModelSwitched": "デフォルト{type}モデルを {model} に切り替えました",
       "meta": {
         "text": "脚本リライト、キャラクター・シーン抽出、分镜分解などの Agent テキスト能力",
         "image": "キャラクター図、シーン図、ショット図などの静止画生成",
-        "video": "ショット動画の直接生成（デフォルト Seedance 2.0）"
+        "video": "ショット動画の直接生成：aiask.me Grok 動画、ローカル ComfyUI、Seedance など"
       }
     },
     "styles": {
@@ -389,7 +387,7 @@
       "addTitle": "{type}サービスを追加",
       "sub": "まずテンプレートを選ぶと、適切な `Base URL` とデフォルトモデルが自動入力されます。",
       "name": "設定名",
-      "namePlaceholder": "例：火宝デフォルト画像サービス",
+      "namePlaceholder": "例：aiask.me デフォルト画像サービス",
       "provider": "プロバイダー",
       "providerPlaceholder": "プロバイダーを選択",
       "priority": "優先度",
@@ -405,7 +403,18 @@
       "reachable": "エンドポイントが応答しました",
       "unreachable": "エンドポイントのテストに失敗しました",
       "providerRequired": "プロバイダーを選択してください",
-      "tempInvalid": "Temperature は 0〜2 の数値で入力してください"
+      "tempInvalid": "Temperature は 0〜2 の数値で入力してください",
+      "comfy": {
+        "apiKeyOptional": "ローカル ComfyUI は空欄可",
+        "apiKeyPlaceholder": "認証付きリバースプロキシの場合のみ入力",
+        "workflow": "ComfyUI ワークフロー（API 形式 JSON）",
+        "workflowHint": "空欄なら内蔵の Wan 2.2 TI2V 5B テンプレートを使用",
+        "workflowPlaceholder": "ComfyUI の「エクスポート (API)」で出力した JSON を貼り付け。送信前に下記のプレースホルダーを置換します",
+        "placeholders": "使用できるプレースホルダー（値がプレースホルダーのみの場合は数値/テキストとして置換。素材のない画像プレースホルダーは LoadImage ノードごと除去）：",
+        "negativePrompt": "ネガティブプロンプト",
+        "negativePlaceholder": "空欄なら Wan 公式のデフォルトを使用",
+        "workflowInvalid": "ComfyUI ワークフローが正しい JSON ではありません"
+      }
     },
     "styleDialog": {
       "editTitle": "スタイルプリセットを編集",
@@ -879,7 +888,7 @@
     "helpTitle": "ガイド",
     "index": {
       "welcome": {
-        "title": "👋 火宝短劇へようこそ",
+        "title": "👋 UU889-Drama へようこそ",
         "desc": "小説 → 脚本 → アセット → 絵コンテ → 動画 → 完成、すべてワンストップ。まず AI サービスを設定し、最初のプロジェクトを作成しましょう。"
       },
       "create": {
@@ -888,13 +897,13 @@
       },
       "settings": {
         "title": "ステップ 1 · AI サービスを設定",
-        "desc": "すべての AI 機能に事前設定が必要です。「設定」ページで Huobao API キーを貼り、テキスト/画像/動画をワンクリック設定しましょう。"
+        "desc": "すべての AI 機能に事前設定が必要です。「設定」ページで aiask.me API キーを貼り、テキスト/画像/動画をワンクリック設定しましょう。"
       }
     },
     "settings": {
       "quick": {
         "title": "最速セットアップ：クイック設定",
-        "desc": "Huobao API キーを貼り付けると推奨 3 設定（テキスト/画像/動画）を一括書き込み。接続テスト対応。"
+        "desc": "aiask.me API キーを貼り付けると推奨 3 設定（テキスト/画像/動画）を一括書き込み。接続テスト対応。"
       },
       "nav": {
         "title": "すべてここに",

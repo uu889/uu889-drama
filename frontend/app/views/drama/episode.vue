@@ -1451,7 +1451,7 @@ const episodeNumber = Number(route.params.episodeNumber)
 const drama = ref(null), episode = ref(null), chars = ref([]), scenes = ref([]), propItems = ref([]), sbs = ref([]), mergeData = ref(null)
 // 工作台面板位置记忆（按剧集隔离）：仅页面刷新(reload)时恢复到上次所在步骤；
 // 从列表/详情页点击进入时始终默认「剧本」面板
-const PANEL_STORE_KEY = `huobao:workbench:panel:${dramaId}:${episodeNumber}`
+const PANEL_STORE_KEY = `uu889:workbench:panel:${dramaId}:${episodeNumber}`
 const isPageReload = (() => {
   try { return performance.getEntriesByType('navigation')[0]?.type === 'reload' } catch { return false }
 })()
@@ -1514,7 +1514,7 @@ watch([panel, scriptStep, prodTab], ([p, s, pt]) => {
   try { localStorage.setItem(PANEL_STORE_KEY, JSON.stringify({ panel: p, scriptStep: s, prodTab: pt })) } catch { /* 静默 */ }
 })
 // ===== 视频制作三栏宽度：拖拽调节 + 全局持久化（双击分隔条恢复默认） =====
-const VIDEO_COL_STORE_KEY = 'huobao:workbench:video-cols'
+const VIDEO_COL_STORE_KEY = 'uu889:workbench:video-cols'
 const VIDEO_COL_DEFAULTS = { left: 236, right: 340 }
 const VIDEO_COL_LIMITS = { left: [180, 420], right: [260, 560] }
 const storedVideoCols = (() => {
@@ -1562,12 +1562,12 @@ const imageConfigs = ref([])
 const videoConfigs = ref([])
 const textConfigs = ref([])
 // 生成时可选模型：空串 = 跟随配置默认（models[0]）；选择持久化到 localStorage，刷新页面后保留
-const MODEL_STORE_KEYS = { chat: 'huobao:model:chat', image: 'huobao:model:image', video: 'huobao:model:video' }
+const MODEL_STORE_KEYS = { chat: 'uu889:model:chat', image: 'uu889:model:image', video: 'uu889:model:video' }
 function readStoredModel(key, legacyKey = '') {
   try { return localStorage.getItem(key) || (legacyKey && localStorage.getItem(legacyKey)) || '' } catch { return '' }
 }
 // 顶栏文本模型：适用于所有 Chat Agent 调用（改写/提取/拆镜/视频提示词/最终提示词），空串 = 跟随配置默认
-const chatModel = ref(readStoredModel(MODEL_STORE_KEYS.chat, 'huobao:model:rewrite'))
+const chatModel = ref(readStoredModel(MODEL_STORE_KEYS.chat, 'uu889:model:rewrite'))
 const imageModel = ref(readStoredModel(MODEL_STORE_KEYS.image))
 const videoModel = ref(readStoredModel(MODEL_STORE_KEYS.video))
 function persistModel(modelRef, key) {
@@ -1579,7 +1579,7 @@ persistModel(chatModel, MODEL_STORE_KEYS.chat)
 persistModel(imageModel, MODEL_STORE_KEYS.image)
 persistModel(videoModel, MODEL_STORE_KEYS.video)
 // 左侧菜单栏收起/展开：收起为窄图标栏给内容区让位，持久化到 localStorage
-const SIDEBAR_COLLAPSED_KEY = 'huobao:sidebar-collapsed'
+const SIDEBAR_COLLAPSED_KEY = 'uu889:sidebar-collapsed'
 const sidebarCollapsed = ref((() => {
   try { return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1' } catch { return false }
 })())
@@ -2031,16 +2031,22 @@ const visualChars = computed(() => chars.value.filter(c => !isNarratorCharacter(
 const lockedVideoConfigId = computed(() => episode.value?.video_config_id || episode.value?.videoConfigId || null)
 // 集视频分辨率：顶栏直接修改（持久化 episodes.resolution，生成任务按此值锁定）。
 // 内部统一存 480p/720p/1080p 三档，界面按当前选中的视频模型显示厂商原生档位
-// （Seedance 480p/720p、MiniMax 768P/2K、Wan 3.0 480P/720P/1080P），适配器再映射为官方枚举
+// （Seedance 480p/720p、MiniMax 768P/2K、Wan 3.0 480P/720P/1080P、aiask Grok / ComfyUI 480p~1080p），适配器再映射为官方枚举
 const RESOLUTION_TIERS = {
   volcengine: ['480p', '720p'],
   minimax: ['720p', '1080p'],
   aliyun: ['480p', '720p', '1080p'],
+  // aiask Grok 视频：1080p 仅文生 / 图生，多参考图与首尾帧模式由后端收敛到 720p
+  aiask: ['480p', '720p', '1080p'],
+  // 本地 ComfyUI：档位决定短边像素（480 / 704 / 1056），长边按画面比例
+  comfyui: ['480p', '720p', '1080p'],
 }
 const RESOLUTION_DISPLAY = {
   volcengine: { '480p': '480p', '720p': '720p', '1080p': '720p' },
   minimax: { '480p': '768P', '720p': '768P', '1080p': '2K' },
   aliyun: { '480p': '480P', '720p': '720P', '1080p': '1080P' },
+  aiask: { '480p': '480p', '720p': '720p', '1080p': '1080p' },
+  comfyui: { '480p': '480p', '720p': '720p', '1080p': '1080p' },
 }
 const resolutionProvider = computed(() => RESOLUTION_TIERS[selectedVideoConfig.value?.provider] ? selectedVideoConfig.value.provider : 'volcengine')
 const resolutionOptions = computed(() => RESOLUTION_TIERS[resolutionProvider.value].map(key => ({
@@ -3646,7 +3652,7 @@ onMounted(() => setTimeout(() => autoTour('episode', EPISODE_TOUR, t), 900))
   border-color: transparent;
   box-shadow: none;
 }
-/* ChatFire 签名：激活步骤左侧 3px 品牌色圆角指示条 */
+/* 激活步骤左侧 3px 品牌色圆角指示条 */
 .pipe-item.active::before {
   content: '';
   position: absolute;

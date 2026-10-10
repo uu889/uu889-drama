@@ -2,7 +2,7 @@
  * i18n 实例（模块级单例）
  * - 实例放独立模块而非插件内：useAgent/useMigrateState 等 setup 外代码
  *   需要 `import { i18n }` 直接用 i18n.global.t
- * - ssr:false，模块顶层读 localStorage 安全；UI 语言偏好持久化 huobao:locale
+ * - ssr:false，模块顶层读 localStorage 安全；UI 语言偏好持久化 uu889:locale
  * - legacy:false 必须显式，否则 global.locale 不是 ref 无法运行时切换
  */
 import { createI18n } from 'vue-i18n'
@@ -11,7 +11,7 @@ import en from '../locales/en.json'
 import ja from '../locales/ja.json'
 import ko from '../locales/ko.json'
 
-export const LOCALE_STORAGE_KEY = 'huobao:locale'
+export const LOCALE_STORAGE_KEY = 'uu889:locale'
 
 export type UiLocale = 'zh' | 'en' | 'ja' | 'ko'
 

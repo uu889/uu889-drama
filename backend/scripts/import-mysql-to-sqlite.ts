@@ -4,7 +4,7 @@
  * 用法：cd backend && npx tsx scripts/import-mysql-to-sqlite.ts [--force]
  *
  * - 源：MySQL（读取 DATABASE_URL 或 MYSQL_* 环境变量，兼容 backend/.env）
- * - 目标：SQLITE_PATH 环境变量，默认仓库根 data/huobao.sqlite3
+ * - 目标：SQLITE_PATH 环境变量，默认仓库根 data/uu889.sqlite3
  * - 表结构由 initSqliteSchema 幂等创建；数据显式带 id 写入（AUTOINCREMENT 表
  *   插入后 sqlite_sequence 自动对齐 max(id)）
  * - 目标库已有业务数据时须 --force 才允许写入；写入前自动备份 .bak
@@ -26,7 +26,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const force = process.argv.includes('--force')
 
 const repoRoot = path.resolve(__dirname, '../..')
-const sqlitePath = process.env.SQLITE_PATH || path.join(repoRoot, 'data', 'huobao.sqlite3')
+const sqlitePath = process.env.SQLITE_PATH || path.join(repoRoot, 'data', 'uu889.sqlite3')
 
 async function main() {
   const url = mysqlUrlFromEnv()
