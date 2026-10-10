@@ -8,10 +8,12 @@ import { VolcEngineImageAdapter } from './volcengine-image'
 import { VolcEngineVideoAdapter } from './volcengine-video'
 import { MiniMaxVideoAdapter } from './minimax-video'
 import { AliyunWanVideoAdapter } from './aliyun-wan-video'
-import { AiaskImageAdapter } from './aiask-image'
+import { AiaskImageAdapter, XaiImageAdapter } from './aiask-image'
 import { AiaskVideoAdapter } from './aiask-video'
 import { ComfyUIVideoAdapter } from './comfyui-video'
 import { XaiVideoAdapter } from './xai-video'
+import { VeoVideoAdapter } from './veo-video'
+import { RunwayVideoAdapter } from './runway-video'
 import { ComfyUIImageAdapter } from './comfyui-image'
 import { SdWebuiImageAdapter } from './sdwebui-image'
 import { FooocusImageAdapter } from './fooocus-image'
@@ -23,6 +25,7 @@ export const imageAdapters: Record<string, ImageProviderAdapter> = {
   openai: new OpenAIImageAdapter(),
   gemini: new GeminiImageAdapter(),
   volcengine: new VolcEngineImageAdapter(),
+  xai: new XaiImageAdapter(),
   // 本地生图服务
   comfyui: new ComfyUIImageAdapter(),
   sdwebui: new SdWebuiImageAdapter(),
@@ -33,6 +36,8 @@ export const imageAdapters: Record<string, ImageProviderAdapter> = {
 export const videoAdapters: Record<string, VideoProviderAdapter> = {
   aiask: new AiaskVideoAdapter(),
   xai: new XaiVideoAdapter(),
+  veo: new VeoVideoAdapter(),
+  runway: new RunwayVideoAdapter(),
   comfyui: new ComfyUIVideoAdapter(),
   volcengine: new VolcEngineVideoAdapter(),
   minimax: new MiniMaxVideoAdapter(),

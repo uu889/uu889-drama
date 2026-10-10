@@ -16,7 +16,10 @@ let pending: { resolve: (ok: boolean) => void } | null = null
 /** 弹确认框；resolve(true) = 用户确认切换 */
 function confirmDialog(lang: UiLocale): Promise<boolean> {
   return new Promise((resolve) => {
-    const langNameKeys = { zh: 'langNameZh', en: 'langNameEn', ja: 'langNameJa', ko: 'langNameKo' }
+    const langNameKeys = {
+      zh: 'langNameZh', en: 'langNameEn', ja: 'langNameJa', ko: 'langNameKo',
+      vi: 'langNameVi', de: 'langNameDe', fr: 'langNameFr', es: 'langNameEs', pt: 'langNamePt',
+    }
     const nameKey = `settings.general.${langNameKeys[lang] || 'langNameZh'}`
     const title = i18n.global.t('components.langSwitch.title', { lang: i18n.global.t(nameKey) })
     const message = i18n.global.t('components.langSwitch.message')

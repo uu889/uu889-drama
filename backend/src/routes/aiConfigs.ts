@@ -143,12 +143,42 @@ function buildProbe(serviceType: string, provider: string, baseUrl: string, mode
     }
   }
 
-  if (p === 'openai' || p === 'aiask' || p === 'xai') {
-    // aiask.me 为 OpenAI 兼容网关、xAI 原生接口同样提供 /v1/models，用它验证 Key 与地址
+  if (['openai', 'aiask', 'xai', 'deepseek', 'qwen'].includes(p)) {
+    // OpenAI 兼容接口（aiask.me / xAI / DeepSeek / 通义千问兼容模式）都提供 /v1/models，用它验证 Key 与地址
     return {
       method: 'GET',
       url: joinProviderUrl(baseUrl, '/v1', '/models'),
       headers: bearerHeaders(apiKey),
+      body: undefined,
+    }
+  }
+
+  if (p === 'claude') {
+    // Anthropic：/v1/models 需要 x-api-key 与 anthropic-version 头
+    return {
+      method: 'GET',
+      url: joinProviderUrl(baseUrl || 'https://api.anthropic.com', '/v1', '/models'),
+      headers: { 'x-api-key': apiKey || '', 'anthropic-version': '2023-06-01' },
+      body: undefined,
+    }
+  }
+
+  if (p === 'veo') {
+    // Gemini API：列出可用模型（含 veo-*），不会创建计费任务
+    return {
+      method: 'GET',
+      url: joinProviderUrl(baseUrl || 'https://generativelanguage.googleapis.com', '/v1beta', '/models'),
+      headers: geminiHeaders(apiKey),
+      body: undefined,
+    }
+  }
+
+  if (p === 'runway') {
+    // Runway：/v1/organization 返回额度信息，不会创建计费任务
+    return {
+      method: 'GET',
+      url: `${(baseUrl || 'https://api.dev.runwayml.com').replace(/\/+$/, '').replace(/\/v1$/, '')}/v1/organization`,
+      headers: { ...bearerHeaders(apiKey), 'X-Runway-Version': '2024-11-06' },
       body: undefined,
     }
   }

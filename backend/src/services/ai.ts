@@ -42,9 +42,9 @@ export function parseConfigSettings(settingsRaw: string | null | undefined): Rec
 }
 
 export const officialProviders: Record<ServiceType, readonly string[]> = {
-  text: ['aiask', 'openai', 'gemini', 'volcengine'],
-  image: ['aiask', 'openai', 'gemini', 'volcengine', 'comfyui', 'sdwebui', 'fooocus'],
-  video: ['aiask', 'xai', 'comfyui', 'volcengine', 'minimax', 'aliyun'],
+  text: ['aiask', 'openai', 'gemini', 'volcengine', 'deepseek', 'qwen', 'claude', 'xai'],
+  image: ['aiask', 'openai', 'gemini', 'volcengine', 'xai', 'comfyui', 'sdwebui', 'fooocus'],
+  video: ['aiask', 'xai', 'veo', 'runway', 'comfyui', 'volcengine', 'minimax', 'aliyun'],
 }
 
 export function isOfficialProvider(serviceType?: string | null, provider?: string | null): boolean {
@@ -55,8 +55,8 @@ export function isOfficialProvider(serviceType?: string | null, provider?: strin
 export function getTextProviderBaseUrl(config: AIConfig) {
   const provider = config.provider.toLowerCase()
 
-  // aiask.me 是 OpenAI 兼容网关（/v1/chat/completions），与 openai 同样补 /v1 前缀
-  if (provider === 'openai' || provider === 'aiask') {
+  // OpenAI 兼容（aiask.me / DeepSeek / 通义千问兼容模式 / xAI）与 Anthropic（Claude）的接口都在 /v1 下
+  if (['openai', 'aiask', 'deepseek', 'qwen', 'xai', 'claude'].includes(provider)) {
     return joinProviderUrl(config.baseUrl, '/v1', '')
   }
 

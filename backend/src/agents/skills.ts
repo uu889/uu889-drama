@@ -13,6 +13,7 @@ import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { Workspace, LocalFilesystem } from '@mastra/core/workspace'
+import { promptFallbackLanguages } from './language.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -127,11 +128,15 @@ export async function loadAgentSkills(agentType: string, lang?: string | null): 
   const relPaths = allPaths.filter(p =>
     prefixes.some(prefix => p === prefix || p.startsWith(prefix + '/')))
 
-  const useLocalized = Boolean(lang && lang !== 'zh')
+  // 语言变体优先；新增语言没有专属技能文件时先回退英文版，再回退基础版（中文）
+  const variants = promptFallbackLanguages(lang)
   const contents: string[] = []
   for (const relPath of relPaths) {
     let body: string | null | undefined
-    if (useLocalized) body = await readLocalizedSkill(relPath, lang!)
+    for (const variant of variants) {
+      body = await readLocalizedSkill(relPath, variant)
+      if (body) break
+    }
     if (!body) {
       const skill = await workspace.skills?.get(`skills/${relPath}`)
       body = skill?.instructions?.trim()

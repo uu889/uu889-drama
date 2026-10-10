@@ -158,13 +158,59 @@ export function classesWithDroppedLinks(template: Record<string, any>, rendered:
   return [...out]
 }
 
-/** /prompt 校验错误（node_errors）→ 一行可读文案 */
+/** 各加载节点读取模型的目录（相对 ComfyUI 根目录），用于报错时告诉用户文件该放哪 */
+const LOADER_FOLDERS: Record<string, string> = {
+  CheckpointLoaderSimple: 'models/checkpoints',
+  UNETLoader: 'models/diffusion_models',
+  CLIPLoader: 'models/text_encoders',
+  DualCLIPLoader: 'models/text_encoders',
+  TripleCLIPLoader: 'models/text_encoders',
+  VAELoader: 'models/vae',
+  CLIPVisionLoader: 'models/clip_vision',
+  LoraLoader: 'models/loras',
+  LoraLoaderModelOnly: 'models/loras',
+  ControlNetLoader: 'models/controlnet',
+  UpscaleModelLoader: 'models/upscale_models',
+}
+
+const MODEL_FILE_RE = /\.(safetensors|sft|ckpt|pt|pth|bin|gguf)$/i
+// safetensors / torch 读到截断或损坏文件时的典型报错
+const CORRUPT_FILE_RE = /incomplete metadata|not fully covered|deserializ|header ?too ?large|invalid header|unexpected end of file|PytorchStreamReader|central directory|MetadataIncompleteBuffer|safetensors_rust/i
+const OUT_OF_MEMORY_RE = /out of memory|OutOfMemory|CUDA error: out of memory|allocation on device/i
+
+/**
+ * ComfyUI execution_error → 带排查建议的文案。
+ * current_inputs 里带着该节点的输入值，可据此指出是哪个模型文件、应该放在哪个目录。
+ */
+export function describeComfyExecutionError(failure: any): string {
+  const nodeType = String(failure?.node_type || '')
+  const message = String(failure?.exception_message || '').replace(/\s+/g, ' ').trim()
+  const base = `ComfyUI 执行失败：${nodeType} ${message}`.trim()
+  const values = Object.values(failure?.current_inputs || {}).flat()
+  const file = values.find((v): v is string => typeof v === 'string' && MODEL_FILE_RE.test(v))
+  const folder = LOADER_FOLDERS[nodeType]
+  const where = `${folder ? `ComfyUI/${folder}/` : ''}${file || '该节点使用的模型文件'}`
+  if (CORRUPT_FILE_RE.test(message)) {
+    return `${base}；模型文件不完整或已损坏（多为下载中断）：请删除 ${where} 后重新下载，并核对文件大小 / SHA256 与下载页一致`
+  }
+  if (OUT_OF_MEMORY_RE.test(message)) {
+    return `${base}；显存不足：降低分辨率或时长，改用 fp8 / GGUF 量化模型，或用 --lowvram 启动 ComfyUI`
+  }
+  if (file && /no such file|not found|does not exist/i.test(message)) {
+    return `${base}；找不到模型文件：请把 ${file} 放到 ComfyUI/${folder || 'models'}/ 下`
+  }
+  return base
+}
+
+/** /prompt 校验错误（node_errors）→ 一行可读文案；模型文件不在列表里时提示应放的目录 */
 export function summarizeComfyNodeErrors(nodeErrors: unknown): string {
   if (!nodeErrors || typeof nodeErrors !== 'object') return ''
   return Object.entries(nodeErrors as Record<string, any>)
     .map(([id, e]) => {
       const details = (e?.errors || []).map((x: any) => [x?.message, x?.details].filter(Boolean).join(': ')).filter(Boolean).join('; ')
-      return `#${id} ${e?.class_type || ''}${details ? ` — ${details}` : ''}`.trim()
+      const folder = LOADER_FOLDERS[e?.class_type]
+      const missingModel = folder && (e?.errors || []).some((x: any) => x?.type === 'value_not_in_list')
+      return `#${id} ${e?.class_type || ''}${details ? ` — ${details}` : ''}${missingModel ? `（模型文件不存在：请放到 ComfyUI/${folder}/ 或在工作流里改成已有的文件）` : ''}`.trim()
     })
     .join(' | ')
 }
@@ -224,7 +270,7 @@ export function readComfyHistory(result: any): ComfyHistoryState {
     return {
       state: 'error',
       error: failure
-        ? `ComfyUI 执行失败：${failure.node_type || ''} ${failure.exception_message || ''}`.trim()
+        ? describeComfyExecutionError(failure)
         : interrupted ? 'ComfyUI 任务被中断' : 'ComfyUI 执行失败',
     }
   }

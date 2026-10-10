@@ -32,7 +32,7 @@
                 <div class="config-line"><span class="config-name">{{ t('settings.general.languageLabel') }}</span></div>
                 <div class="config-sub">{{ t('settings.general.languageNote') }}</div>
               </div>
-              <div class="lang-picker">
+              <div class="lang-picker lang-picker-wrap">
                 <button
                   v-for="l in contentLangOptions"
                   :key="l.value"
@@ -166,7 +166,7 @@
                   </div>
                   <div class="config-sub mono truncate">{{ c.base_url || t('settings.ai.noBaseUrl') }}</div>
                 </div>
-                <button v-if="st.type === 'text' || ['aiask', 'xai', 'comfyui', 'sdwebui', 'fooocus'].includes(c.provider)" class="btn btn-ghost btn-sm" @click="testExistingCfg(c)">{{ t('settings.ai.test') }}</button>
+                <button v-if="st.type === 'text' || ['aiask', 'xai', 'veo', 'runway', 'comfyui', 'sdwebui', 'fooocus'].includes(c.provider)" class="btn btn-ghost btn-sm" @click="testExistingCfg(c)">{{ t('settings.ai.test') }}</button>
                 <label class="config-switch">
                   <input type="checkbox" class="sr-only" :checked="c.is_active" @change="toggleCfg(c)">
                   <span class="switch" :class="{ on: c.is_active }"></span>
@@ -815,7 +815,7 @@ const serviceTypes = computed(() => [
   { type: 'image', label: t('common.serviceType.image') },
   { type: 'video', label: t('common.serviceType.video') },
 ])
-const providers = ['aiask', 'xai', 'gemini', 'openai', 'volcengine', 'minimax', 'aliyun', 'comfyui', 'sdwebui', 'fooocus']
+const providers = ['aiask', 'xai', 'gemini', 'openai', 'claude', 'deepseek', 'qwen', 'volcengine', 'minimax', 'aliyun', 'veo', 'runway', 'comfyui', 'sdwebui', 'fooocus']
 const providerSelectOptions = computed(() => providers.map(p => ({ label: p, value: p })))
 const serviceMeta = computed(() => ({
   text: { label: t('common.serviceType.text'), desc: t('settings.ai.meta.text') },
@@ -827,9 +827,15 @@ const providerPresets = {
     aiask: { label: 'aiask.me', baseUrl: AIASK_SITE_URL, models: ['gpt-6-astra', 'gpt-5.5', 'deepseek-v4-pro'] },
     gemini: { label: 'Gemini 官方', baseUrl: 'https://generativelanguage.googleapis.com', models: ['gemini-3.8-flash', 'gemini-3.1-pro-preview', 'gemini-3-flash-preview'] },
     openai: { label: 'OpenAI 官方', baseUrl: 'https://api.openai.com', models: ['deepseek-v4-pro', 'gpt-5.6-terra'] },
+    deepseek: { label: 'DeepSeek 官方', baseUrl: 'https://api.deepseek.com', models: ['deepseek-v4-pro', 'deepseek-v4-flash'] },
+    // 通义千问 OpenAI 兼容模式；国际站用 https://dashscope-intl.aliyuncs.com/compatible-mode/v1
+    qwen: { label: '通义千问（阿里云百炼）', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', models: ['qwen3-max', 'qwen-plus', 'qwen-flash'] },
+    claude: { label: 'Claude（Anthropic）', baseUrl: 'https://api.anthropic.com', models: ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-4-5'] },
+    xai: { label: 'Grok（xAI）', baseUrl: 'https://api.x.ai', models: ['grok-4.7', 'grok-4.6', 'grok-4.5'] },
   },
   image: {
     aiask: { label: 'aiask.me', baseUrl: AIASK_SITE_URL, models: ['gpt-image-2', 'grok-imagine-image', 'gemini-3-pro-image'] },
+    xai: { label: 'Grok 图片（xAI）', baseUrl: 'https://api.x.ai', models: ['grok-imagine-image-2.0', 'grok-imagine-image-quality', 'grok-imagine-image'] },
     // 本地生图：模型名填 checkpoint 文件名（ComfyUI 内置模板的 ckpt_name）；SD WebUI / Fooocus 填 default 沿用当前模型
     comfyui: { label: '本地 ComfyUI', baseUrl: 'http://127.0.0.1:8188', models: ['sd_xl_base_1.0.safetensors'] },
     sdwebui: { label: 'Stable Diffusion WebUI', baseUrl: 'http://127.0.0.1:7860', models: ['default'] },
@@ -841,6 +847,8 @@ const providerPresets = {
     aiask: { label: 'aiask.me Grok 视频', baseUrl: AIASK_SITE_URL, models: ['grok-imagine-video-1.5'] },
     // xAI 原生接口：直连官方填 https://api.x.ai；aiask.me 的 Grok 分组 Key 填 https://aiask.me
     xai: { label: 'Grok 视频（xAI 原生）', baseUrl: 'https://api.x.ai', models: ['grok-imagine-video-1.5', 'grok-imagine-video'] },
+    veo: { label: 'Google Veo（Gemini API）', baseUrl: 'https://generativelanguage.googleapis.com', models: ['veo-3.1-generate-preview', 'veo-3.1-fast-generate-preview', 'veo-3.1-lite-generate-preview'] },
+    runway: { label: 'Runway', baseUrl: 'https://api.dev.runwayml.com', models: ['gen4.5', 'gen4_turbo', 'veo3.1', 'veo3.1_fast'] },
     comfyui: { label: '本地 ComfyUI', baseUrl: 'http://127.0.0.1:8188', models: ['wan2.2-ti2v-5b'] },
     aliyun: { label: '阿里云百炼 Wan 3.0', baseUrl: 'https://{WorkspaceId}.cn-beijing.maas.aliyuncs.com', models: ['wan3.0-video', 'wan3.0-video-prime'] },
     volcengine: { label: 'Seedance 2.0 官方', baseUrl: 'https://ark.cn-beijing.volces.com', models: ['doubao-seedance-2-0-mini-260615', 'doubao-seedance-2-0-fast-260128', 'doubao-seedance-2-0-260128'] },
@@ -1118,6 +1126,11 @@ const contentLangOptions = [
   { value: 'en', label: 'English', shortLabel: 'EN' },
   { value: 'ja', label: '日本語', shortLabel: '日本語' },
   { value: 'ko', label: '한국어', shortLabel: '한국어' },
+  { value: 'vi', label: 'Tiếng Việt', shortLabel: 'VI' },
+  { value: 'de', label: 'Deutsch', shortLabel: 'DE' },
+  { value: 'fr', label: 'Français', shortLabel: 'FR' },
+  { value: 'es', label: 'Español', shortLabel: 'ES' },
+  { value: 'pt', label: 'Português', shortLabel: 'PT' },
 ]
 // ===== Agent 配置：prompt/skill 编辑的语言版本（只读跟随内容语言） =====
 const agentPromptFallback = ref(false)   // 当前语言无独立 prompt 文件，展示的是回退内容
@@ -1684,6 +1697,8 @@ onBeforeUnmount(stopUsagePoll)
 
 /* ===== 内容语言选择器（通用 tab） ===== */
 .lang-picker { display: flex; gap: 2px; padding: 3px; border-radius: var(--radius-pill); background: var(--overlay-track); }
+/* 九种语言放不下一行：允许换行，圆角改小以免换行后成椭圆 */
+.lang-picker.lang-picker-wrap { flex-wrap: wrap; justify-content: flex-end; max-width: 440px; border-radius: 14px; }
 .lang-option {
   min-height: 30px;
   padding: 0 14px;
@@ -1728,6 +1743,7 @@ onBeforeUnmount(stopUsagePoll)
 .provider-badge[data-provider="comfyui"] { background: #5b5bd6; }
 .provider-badge[data-provider="sdwebui"] { background: #e8622a; }
 .provider-badge[data-provider="fooocus"] { background: #2b8a6e; }
+.provider-badge[data-provider="runway"] { background: #1f1f1f; }
 /* 有厂商图标时用中性底，彩色图标直接展示 */
 .provider-badge.has-icon { background: var(--bg-2); }
 .provider-badge-icon { width: 20px; height: 20px; object-fit: contain; }

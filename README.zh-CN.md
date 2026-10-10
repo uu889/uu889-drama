@@ -44,15 +44,15 @@ data/       — 生成资源文件与 SQLite 数据库
 - 🎬 **分镜**：剧本 → 分镜序列拆解，自动生成视频提示词（`@角色名` 映射参考图）
 - 🎥 **视频**：按分镜批量生成，失败一键重试；FFmpeg 整集拼接导出
 - 🤖 **4 个 Mastra Agent**：`script_rewriter` / `extractor` / `storyboard_breaker` / `prompt_generator`，提示词与 Skill 可在设置页在线编辑
-- 🌐 **多语言**：界面与 AI 生成内容支持 中文 / English / 日本語 / 한국어
+- 🌐 **多语言**：界面与 AI 生成内容支持 中文 / English / 日本語 / 한국어 / Tiếng Việt / Deutsch / Français / Español / Português（没有专门译本的提示词与技能回退到英文）
 
 ### 🔌 多厂商适配
 
 | 类型 | 支持厂商 |
 |---|---|
-| **文本** | **aiask.me**、OpenAI（兼容接口）、Gemini、火山引擎 |
-| **图片** | **aiask.me**（gpt-image / grok-imagine-image / gemini-image）、OpenAI、Gemini、火山引擎、**本地 ComfyUI / Stable Diffusion WebUI / Fooocus** |
-| **视频** | **aiask.me Grok 视频**（grok-imagine-video-1.5）、**Grok 视频（xAI 原生）**、**本地 ComfyUI**、火山引擎 Seedance 2.0、MiniMax H3、阿里云百炼 Wan 3.0 |
+| **文本** | **aiask.me**、OpenAI（兼容接口）、Gemini、火山引擎、**DeepSeek**、**通义千问**、**Claude**、**Grok（xAI）** |
+| **图片** | **aiask.me**（gpt-image / grok-imagine-image / gemini-image）、**Grok 图片（xAI）**、OpenAI、Gemini、火山引擎、**本地 ComfyUI / Stable Diffusion WebUI / Fooocus** |
+| **视频** | **aiask.me Grok 视频**（grok-imagine-video-1.5）、**Grok 视频（xAI 原生）**、**Google Veo**、**Runway**、**本地 ComfyUI**、火山引擎 Seedance 2.0、MiniMax H3、阿里云百炼 Wan 3.0 |
 
 ---
 
@@ -144,6 +144,22 @@ aiask.me 是 OpenAI 兼容的 AI API 网关，一个 Key 覆盖文本、图片�
 - **图片**：有首帧时 `image: {url}` 图生视频（xAI 没有尾帧参数，只有尾帧时当作首帧）；分镜绑定的参考图走 `reference_images: [{url}]`（grok-imagine-video-1.5 最多 14 张、其它 7 张，最高 720p，非 1.5 模型最长 10 秒），提示词里的 `@图片1角色名` 自动换成 xAI 要求的 `<IMAGE_0>角色名`
 - **轮询**：`GET /v1/videos/{request_id}`，`pending` → `done` / `failed` / `expired`
 - **取回**：`video.url`（xAI 临时直链，不带 Key 下载；网关改写成的 `/v1/videos/{id}/content` 自动带 Key）
+
+---
+
+## 🧩 更多官方服务商
+
+「设置 → 文本 / 图片 / 视频服务 → 添加」选择对应模板，填入该服务商自己的 API Key，可用「测试」检查连通性。
+
+| 服务商 | 模板 Base URL | 说明 |
+|---|---|---|
+| **DeepSeek**（文本） | `https://api.deepseek.com` | `deepseek-v4-pro` / `deepseek-v4-flash`；自动关闭思考模式（`thinking: {type: "disabled"}`），保证智能体多轮工具调用可用 |
+| **通义千问 Qwen**（文本） | `https://dashscope.aliyuncs.com/compatible-mode/v1` | 阿里云百炼 OpenAI 兼容模式；`enable_thinking: false` |
+| **Claude**（文本） | `https://api.anthropic.com` | 原生 Messages API（`x-api-key`）；Opus 5.5 / Sonnet 5.5 等不接受采样参数的模型自动去掉 `temperature` / `top_p` |
+| **Grok**（文本） | `https://api.x.ai` | `grok-4.7` / `grok-4.6` / `grok-4.5` |
+| **Grok 图片** | `https://api.x.ai` | `grok-imagine-image-2.0`；文生图 `/v1/images/generations`（`aspect_ratio`），有参考图时走 `/v1/images/edits` |
+| **Google Veo**（视频） | `https://generativelanguage.googleapis.com` | Gemini API Key；`:predictLongRunning` → 轮询 operation → 带 Key 下载。时长 4 / 6 / 8 秒，16:9 或 9:16，720p / 1080p；1080p 或带参考图（最多 3 张，Lite 模型取第一张作首帧）固定 8 秒 |
+| **Runway**（视频） | `https://api.dev.runwayml.com` | `X-Runway-Version: 2024-11-06`；`gen4.5`（2–10 秒，文生 / 图生）、`gen4_turbo`（仅图生视频，5 / 10 秒）、`veo3.1` / `veo3.1_fast`（4 / 6 / 8 秒，支持首尾帧）。画幅自动对齐到最接近的支持比例，超过 5 MB 的图片自动压缩 |
 
 ---
 
@@ -299,6 +315,8 @@ UU889_VERSION=1.0.0 docker compose up -d --build  # 访问 http://localhost:5679
 **Q: ComfyUI 提示「界面格式的工作流」？** 粘贴的是 `Save` 得到的界面 JSON（含 `nodes` / `links`），请改用「导出 (API)」。
 
 **Q: ComfyUI 报 `UNETLoader … not found`？** 内置模板需要的模型文件未下载，或请粘贴你自己的工作流。
+
+**Q: ComfyUI 报 `CLIPLoader … incomplete metadata, file not fully covered`？** 模型文件不完整或已损坏（多为下载中断），报错里会写明是哪个文件、在哪个目录。内置模板对应的是文本编码器：删除 `ComfyUI/models/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors`，从 Hugging Face `Comfy-Org/Wan_2.2_ComfyUI_Repackaged`（`split_files/text_encoders`，6,735,906,897 字节）重新下载后重启 ComfyUI。
 
 **Q: 桌面版数据存在哪里？** `~/Library/Application Support/UU889Drama/data/`（Windows 为 `%APPDATA%\UU889Drama\data\`），开发模式使用仓库 `data/`。
 

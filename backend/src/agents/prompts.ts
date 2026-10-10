@@ -9,6 +9,7 @@
  * 文件即唯一事实来源；文件缺失时由调用方回退到代码默认值。
  */
 import { skillsManagerWorkspace } from './skills.js'
+import { promptFallbackLanguages } from './language.js'
 
 export interface AgentPromptFile {
   name: string
@@ -63,13 +64,15 @@ export function loadBasePromptFile(agentType: string): Promise<AgentPromptFile |
 }
 
 /**
- * 读取 Agent 的 prompt 文件；lang 非 zh 时优先语言变体（<type>.<lang>.md），缺失回退基础版。
+ * 读取 Agent 的 prompt 文件；lang 非 zh 时优先语言变体（<type>.<lang>.md），
+ * 新增语言（vi/de/fr/es/pt 等）没有专属文件时先回退英文版，最后回退基础版。
  * 变体的 model 字段无效：返回时 model 始终取基础版的值。
  */
 export async function loadAgentPromptFile(agentType: string, lang?: string | null): Promise<AgentPromptFile | null> {
   const base = await loadBasePromptFile(agentType)
-  if (!lang || lang === 'zh') return base
-  const localized = await readPromptFile(promptFilePath(agentType, lang))
-  if (!localized) return base
-  return { ...localized, model: base?.model || '' }
+  for (const candidate of promptFallbackLanguages(lang)) {
+    const localized = await readPromptFile(promptFilePath(agentType, candidate))
+    if (localized) return { ...localized, model: base?.model || '' }
+  }
+  return base
 }

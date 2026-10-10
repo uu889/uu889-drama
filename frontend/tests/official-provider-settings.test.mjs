@@ -28,13 +28,13 @@ test('settings page exposes official provider templates only', () => {
   assert.doesNotMatch(useApi, /huobaoPreset/i)
   assert.doesNotMatch(useApi, /\/huobao-preset/)
 
-  assert.match(settingsPage, /const providers = \['aiask', 'xai', 'gemini', 'openai', 'volcengine', 'minimax', 'aliyun', 'comfyui', 'sdwebui', 'fooocus'\]/)
+  assert.match(settingsPage, /const providers = \['aiask', 'xai', 'gemini', 'openai', 'claude', 'deepseek', 'qwen', 'volcengine', 'minimax', 'aliyun', 'veo', 'runway', 'comfyui', 'sdwebui', 'fooocus'\]/)
   assert.match(settingsPage, /https:\/\/generativelanguage\.googleapis\.com/)
   assert.match(settingsPage, /https:\/\/api\.openai\.com/)
   assert.match(settingsPage, /https:\/\/ark\.cn-beijing\.volces\.com/)
   assert.match(settingsPage, /https:\/\/\{WorkspaceId\}\.cn-beijing\.maas\.aliyuncs\.com/)
-  assert.doesNotMatch(settingsPage, /https:\/\/api\.deepseek\.com/)
-  assert.doesNotMatch(settingsPage, /https:\/\/dashscope\.aliyuncs\.com/)
+  assert.match(settingsPage, /https:\/\/api\.deepseek\.com/)
+  assert.match(settingsPage, /https:\/\/dashscope\.aliyuncs\.com\/compatible-mode\/v1/)
   assert.doesNotMatch(settingsPage, /https:\/\/api\.vidu\.com/)
   assert.doesNotMatch(settingsPage, /\['ali'|'ali',|, 'ali'\]/)
   assert.doesNotMatch(settingsPage, /firemux/)
@@ -77,7 +77,7 @@ test('settings page offers official default model IDs', () => {
 })
 
 test('text configs and aiask / ComfyUI configs expose the connection test button', () => {
-  assert.match(settingsPage, /v-if="st\.type === 'text' \|\| \['aiask', 'xai', 'comfyui', 'sdwebui', 'fooocus'\]\.includes\(c\.provider\)" class="btn btn-ghost btn-sm" @click="testExistingCfg\(c\)">\{\{ t\('settings\.ai\.test'\) \}\}/)
+  assert.match(settingsPage, /v-if="st\.type === 'text' \|\| \['aiask', 'xai', 'veo', 'runway', 'comfyui', 'sdwebui', 'fooocus'\]\.includes\(c\.provider\)" class="btn btn-ghost btn-sm" @click="testExistingCfg\(c\)">\{\{ t\('settings\.ai\.test'\) \}\}/)
 })
 
 test('settings page offers the supported official provider presets', () => {
@@ -123,4 +123,22 @@ test('local image services (ComfyUI / SD WebUI / Fooocus) expose their parameter
     assert.match(settingsPage, new RegExp(`v-model="cfgForm\.${field}"`), field)
   }
   assert.match(settingsPage, /function localSettingsPayload\(\)/)
+})
+
+test('new model providers: DeepSeek / Qwen / Claude / Grok text, Grok image, Veo / Runway video', () => {
+  assert.match(providerPresetBlock('text'), /deepseek: \{ label: 'DeepSeek 官方', baseUrl: 'https:\/\/api\.deepseek\.com'/)
+  assert.match(providerPresetBlock('text'), /qwen: \{ label: '通义千问（阿里云百炼）'/)
+  assert.match(providerPresetBlock('text'), /claude: \{ label: 'Claude（Anthropic）', baseUrl: 'https:\/\/api\.anthropic\.com', models: \['claude-opus-5-5'/)
+  assert.match(providerPresetBlock('text'), /xai: \{ label: 'Grok（xAI）', baseUrl: 'https:\/\/api\.x\.ai', models: \['grok-4\.7'/)
+  assert.match(providerPresetBlock('image'), /xai: \{ label: 'Grok 图片（xAI）'.*grok-imagine-image-2\.0/)
+  assert.match(providerPresetBlock('video'), /veo: \{ label: 'Google Veo（Gemini API）'.*veo-3\.1-generate-preview/)
+  assert.match(providerPresetBlock('video'), /runway: \{ label: 'Runway', baseUrl: 'https:\/\/api\.dev\.runwayml\.com'/)
+})
+
+test('nine UI / content languages are selectable', () => {
+  const i18n = readFileSync(new URL('../app/composables/i18n.ts', import.meta.url), 'utf8')
+  for (const lang of ['zh', 'en', 'ja', 'ko', 'vi', 'de', 'fr', 'es', 'pt']) {
+    assert.match(i18n, new RegExp(`value: '${lang}'`), lang)
+    assert.match(settingsPage, new RegExp(`value: '${lang}'`), lang)
+  }
 })

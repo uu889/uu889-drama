@@ -1,6 +1,6 @@
 {
   "name": "server",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "",
   "main": "src/index.ts",
   "scripts": {
@@ -15,6 +15,7 @@
   "license": "CC BY-NC-SA-4.0",
   "type": "module",
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.129",
     "@ai-sdk/google": "^3.0.53",
     "@ai-sdk/openai": "^3.0.48",
     "@hono/node-server": "^1.19.11",

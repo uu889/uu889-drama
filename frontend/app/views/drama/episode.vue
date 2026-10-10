@@ -2042,6 +2042,9 @@ const RESOLUTION_TIERS = {
   xai: ['480p', '720p', '1080p'],
   // 本地 ComfyUI：档位决定短边像素（480 / 704 / 1056），长边按画面比例
   comfyui: ['480p', '720p', '1080p'],
+  // Google Veo / Runway：720p、1080p 两档（Veo 1080p 固定 8 秒）
+  veo: ['720p', '1080p'],
+  runway: ['720p', '1080p'],
 }
 const RESOLUTION_DISPLAY = {
   volcengine: { '480p': '480p', '720p': '720p', '1080p': '720p' },
@@ -2050,6 +2053,8 @@ const RESOLUTION_DISPLAY = {
   aiask: { '480p': '480p', '720p': '720p', '1080p': '1080p' },
   xai: { '480p': '480p', '720p': '720p', '1080p': '1080p' },
   comfyui: { '480p': '480p', '720p': '720p', '1080p': '1080p' },
+  veo: { '480p': '720p', '720p': '720p', '1080p': '1080p' },
+  runway: { '480p': '720p', '720p': '720p', '1080p': '1080p' },
 }
 const resolutionProvider = computed(() => RESOLUTION_TIERS[selectedVideoConfig.value?.provider] ? selectedVideoConfig.value.provider : 'volcengine')
 const resolutionOptions = computed(() => RESOLUTION_TIERS[resolutionProvider.value].map(key => ({
@@ -2136,6 +2141,12 @@ const refImageLimit = computed(() => {
   if (isWan3Video.value) return 10
   const provider = selectedVideoConfig.value?.provider
   if (provider === 'aiask') return 7
+  // Veo 参考图最多 3 张（Lite 不支持参考图，只取第一张做首帧）；Runway 只用第一张做首帧
+  if (provider === 'veo') {
+    const model = bareModelName(videoModel.value) || configModels(selectedVideoConfig.value)[0] || ''
+    return /lite/i.test(model) ? 1 : 3
+  }
+  if (provider === 'runway') return 1
   if (provider === 'xai') {
     const model = bareModelName(videoModel.value) || configModels(selectedVideoConfig.value)[0] || ''
     return /^grok-imagine-video-1\.5/i.test(model) ? 9 : 7

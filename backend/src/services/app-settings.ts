@@ -10,7 +10,7 @@ import { eq } from 'drizzle-orm'
 import { db, schema } from '../db/index.js'
 import { now } from '../utils/response.js'
 
-export const CONTENT_LANGUAGES = ['zh', 'en', 'ja', 'ko'] as const
+export const CONTENT_LANGUAGES = ['zh', 'en', 'ja', 'ko', 'vi', 'de', 'fr', 'es', 'pt'] as const
 export type ContentLanguage = typeof CONTENT_LANGUAGES[number]
 
 const CONTENT_LANGUAGE_KEY = 'content_language'

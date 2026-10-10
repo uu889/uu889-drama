@@ -264,6 +264,11 @@
       "langNameEn": "英語",
       "langNameJa": "日本語",
       "langNameKo": "韓国語",
+      "langNameVi": "ベトナム語",
+      "langNameDe": "ドイツ語",
+      "langNameFr": "フランス語",
+      "langNameEs": "スペイン語",
+      "langNamePt": "ポルトガル語",
       "unifiedSwitchWarning": "{lang} に切替しました。UI と AI コンテンツ言語が同期され、まもなく再読み込みします…"
     },
     "ai": {

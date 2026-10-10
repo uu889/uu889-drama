@@ -12,6 +12,17 @@ const LANGUAGE_NATIVE_NAMES: Record<string, string> = {
   en: 'English',
   ja: '日本語 (Japanese)',
   ko: '한국어 (Korean)',
+  vi: 'Tiếng Việt (Vietnamese)',
+  de: 'Deutsch (German)',
+  fr: 'Français (French)',
+  es: 'Español (Spanish)',
+  pt: 'Português (Portuguese)',
+}
+
+/** 没有专属提示词 / 技能文件的语言，先回退英文版（比中文基础版更接近目标语言），再回退中文基础版 */
+export function promptFallbackLanguages(lang?: string | null): string[] {
+  if (!lang || lang === 'zh') return []
+  return lang === 'en' ? ['en'] : [lang, 'en']
 }
 
 export function buildLanguageDirective(lang?: string | null): string {

@@ -28,9 +28,11 @@
 
 | 유형 | 프로바이더 |
 |---|---|
-| **텍스트** | **aiask.me**, OpenAI(호환), Gemini, Volcengine |
-| **이미지** | **aiask.me**(gpt-image / grok-imagine-image / gemini-image), OpenAI, Gemini, Volcengine, **로컬 ComfyUI / Stable Diffusion WebUI(`/sdapi/v1/txt2img`) / Fooocus(Fooocus-API)** |
-| **영상** | **aiask.me Grok 영상**(grok-imagine-video-1.5), **Grok 영상(xAI 네이티브 API: `/v1/videos/generations`)**, **로컬 ComfyUI**, Seedance 2.0, MiniMax H3, Wan 3.0 |
+| **텍스트** | **aiask.me**, OpenAI(호환), Gemini, Volcengine, **DeepSeek**, **Qwen**, **Claude**, **Grok(xAI)** |
+| **이미지** | **aiask.me**(gpt-image / grok-imagine-image / gemini-image), **Grok 이미지(xAI)**, OpenAI, Gemini, Volcengine, **로컬 ComfyUI / Stable Diffusion WebUI(`/sdapi/v1/txt2img`) / Fooocus(Fooocus-API)** |
+| **영상** | **aiask.me Grok 영상**(grok-imagine-video-1.5), **Grok 영상(xAI 네이티브 API: `/v1/videos/generations`)**, **Google Veo**, **Runway**, **로컬 ComfyUI**, Seedance 2.0, MiniMax H3, Wan 3.0 |
+
+UI 및 생성 콘텐츠 언어: 中文 / English / 日本語 / 한국어 / Tiếng Việt / Deutsch / Français / Español / Português
 
 ## 🚀 빠른 시작
 

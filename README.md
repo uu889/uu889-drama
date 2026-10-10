@@ -44,15 +44,15 @@ data/       — Generated media and the SQLite database
 - 🎬 **Storyboards**: script → shot list with generated video prompts (`@name` maps to reference images)
 - 🎥 **Video**: batch generation per shot with one-click retry of failures; FFmpeg episode export
 - 🤖 **4 Mastra agents**: `script_rewriter` / `extractor` / `storyboard_breaker` / `prompt_generator`, with prompts and skills editable in Settings
-- 🌐 **Languages**: UI and generated content in Chinese / English / Japanese / Korean
+- 🌐 **Languages**: UI and generated content in Chinese / English / Japanese / Korean / Vietnamese / German / French / Spanish / Portuguese (prompts and skills without a dedicated translation fall back to English)
 
 ### 🔌 Providers
 
 | Type | Providers |
 |---|---|
-| **Text** | **aiask.me**, OpenAI (compatible), Gemini, Volcengine |
-| **Image** | **aiask.me** (gpt-image / grok-imagine-image / gemini-image), OpenAI, Gemini, Volcengine, **local ComfyUI / Stable Diffusion WebUI / Fooocus** |
-| **Video** | **aiask.me Grok video** (grok-imagine-video-1.5), **Grok video (xAI native)**, **local ComfyUI**, Volcengine Seedance 2.0, MiniMax H3, Alibaba Cloud Wan 3.0 |
+| **Text** | **aiask.me**, OpenAI (compatible), Gemini, Volcengine, **DeepSeek**, **Qwen**, **Claude**, **Grok (xAI)** |
+| **Image** | **aiask.me** (gpt-image / grok-imagine-image / gemini-image), **Grok image (xAI)**, OpenAI, Gemini, Volcengine, **local ComfyUI / Stable Diffusion WebUI / Fooocus** |
+| **Video** | **aiask.me Grok video** (grok-imagine-video-1.5), **Grok video (xAI native)**, **Google Veo**, **Runway**, **local ComfyUI**, Volcengine Seedance 2.0, MiniMax H3, Alibaba Cloud Wan 3.0 |
 
 ---
 
@@ -131,6 +131,22 @@ Text requests only carry parameters each model family accepts: OpenAI reasoning 
 - **Images**: a first frame becomes `image: {url}` (xAI has no last-frame field; a lone last frame is used as the image); shot reference images become `reference_images: [{url}]` (up to 14 on grok-imagine-video-1.5, 7 otherwise; max 720p; non-1.5 models max 10 s), and `@图片1name` in the prompt is rewritten to xAI's `<IMAGE_0>name`
 - **Poll** `GET /v1/videos/{request_id}`: `pending` → `done` / `failed` / `expired`
 - **Download** `video.url` (xAI's temporary URL is fetched without the key; a gateway-rewritten `/v1/videos/{id}/content` gets the key)
+
+---
+
+## 🧩 More Official Providers
+
+Pick the template under **Settings → Text / Image / Video → Add**, paste the provider's own API key and use **Test** to check it.
+
+| Provider | Template base URL | Notes |
+|---|---|---|
+| **DeepSeek** (text) | `https://api.deepseek.com` | `deepseek-v4-pro` / `deepseek-v4-flash`; thinking mode is switched off (`thinking: {type: "disabled"}`) so agent tool calls work |
+| **Qwen** (text) | `https://dashscope.aliyuncs.com/compatible-mode/v1` | Alibaba Cloud Model Studio OpenAI-compatible mode; `enable_thinking: false` |
+| **Claude** (text) | `https://api.anthropic.com` | Native Messages API (`x-api-key`); `temperature` / `top_p` are dropped for models that reject them (Opus 5.5, Sonnet 5.5, …) |
+| **Grok** (text) | `https://api.x.ai` | `grok-4.7` / `grok-4.6` / `grok-4.5` |
+| **Grok image** | `https://api.x.ai` | `grok-imagine-image-2.0`; `/v1/images/generations` with `aspect_ratio`, `/v1/images/edits` when the shot has a reference image |
+| **Google Veo** (video) | `https://generativelanguage.googleapis.com` | Gemini API key; `:predictLongRunning` → operation polling → download with the key. 4 / 6 / 8 s, 16:9 or 9:16, 720p / 1080p; 1080p or reference images (up to 3; Lite models take the first one as the start frame) force 8 s |
+| **Runway** (video) | `https://api.dev.runwayml.com` | `X-Runway-Version: 2024-11-06`; `gen4.5` (2–10 s, text or image), `gen4_turbo` (image only, 5 / 10 s), `veo3.1` / `veo3.1_fast` (4 / 6 / 8 s, first + last frame). The aspect ratio snaps to the closest supported pixel ratio; images over 5 MB are recompressed |
 
 ---
 
@@ -236,6 +252,8 @@ UU889_VERSION=1.0.0 docker compose up -d --build  # open http://localhost:5679
 **ComfyUI says the workflow is in UI format?** You pasted a regular save (with `nodes` / `links`). Use **Export (API)** instead.
 
 **ComfyUI reports `UNETLoader … not found`?** Download the models used by the built-in template or paste your own workflow.
+
+**ComfyUI fails with `CLIPLoader … incomplete metadata, file not fully covered`?** The model file is truncated or corrupt, usually from an interrupted download; the error names the file and its folder. For the built-in template it is the text encoder: delete `ComfyUI/models/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors`, download it again from Hugging Face `Comfy-Org/Wan_2.2_ComfyUI_Repackaged` (`split_files/text_encoders`, 6,735,906,897 bytes) and restart ComfyUI.
 
 ---
 

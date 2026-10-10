@@ -264,6 +264,11 @@
       "langNameEn": "English",
       "langNameJa": "Japanese",
       "langNameKo": "Korean",
+      "langNameVi": "Vietnamese",
+      "langNameDe": "German",
+      "langNameFr": "French",
+      "langNameEs": "Spanish",
+      "langNamePt": "Portuguese",
       "unifiedSwitchWarning": "Switched to {lang} — UI and AI content language update together. Refreshing…"
     },
     "ai": {

@@ -50,21 +50,7 @@ export class AiaskImageAdapter extends OpenAIImageAdapter {
       'Authorization': `Bearer ${config.apiKey}`,
     }
 
-    if (/^grok-imagine/i.test(model)) {
-      const body: any = {
-        model,
-        prompt: record.prompt,
-        n: 1,
-        aspect_ratio: sizeToGrokAspectRatio(record.size),
-        response_format: 'b64_json',
-      }
-      if (!refs.length) {
-        return { url: joinProviderUrl(config.baseUrl, '/v1', '/images/generations'), method: 'POST', headers, body }
-      }
-      if (refs.length === 1) body.image = { type: 'image_url', url: refs[0] }
-      else body.images = refs.map((url) => ({ type: 'image_url', url }))
-      return { url: joinProviderUrl(config.baseUrl, '/v1', '/images/edits'), method: 'POST', headers, body }
-    }
+    if (/^grok-imagine/i.test(model)) return this.buildGrokRequest(config, model, record, refs, true)
 
     const size = record.size || '1024x1024'
     if (refs.length) return this.buildEditsRequest(config, model, record.prompt, size, refs)
@@ -74,6 +60,30 @@ export class AiaskImageAdapter extends OpenAIImageAdapter {
       headers,
       body: { model, prompt: record.prompt, size, n: 1 },
     }
+  }
+
+  /**
+   * xAI grok-imagine 语义：aspect_ratio 代替 size、b64_json 返回；参考图走 JSON 形式的 /v1/images/edits。
+   * multipleRefs=false 时只发第一张（xAI 官方 edits 只有单个 image 字段）
+   */
+  protected buildGrokRequest(config: AIConfig, model: string, record: ImageGenerationRecord, refs: string[], multipleRefs: boolean): ProviderRequest {
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${config.apiKey}`,
+    }
+    const body: any = {
+      model,
+      prompt: record.prompt,
+      n: 1,
+      aspect_ratio: sizeToGrokAspectRatio(record.size),
+      response_format: 'b64_json',
+    }
+    if (!refs.length) {
+      return { url: joinProviderUrl(config.baseUrl, '/v1', '/images/generations'), method: 'POST', headers, body }
+    }
+    if (refs.length === 1 || !multipleRefs) body.image = { type: 'image_url', url: refs[0] }
+    else body.images = refs.map((url) => ({ type: 'image_url', url }))
+    return { url: joinProviderUrl(config.baseUrl, '/v1', '/images/edits'), method: 'POST', headers, body }
   }
 
   parseGenerateResponse(result: any): ImageGenResponse {
@@ -89,7 +99,26 @@ export class AiaskImageAdapter extends OpenAIImageAdapter {
   extractImageBase64(result: any): { data: string; mimeType: string } | null {
     const b64 = result?.data?.[0]?.b64_json
     if (!b64) return null
+    // xAI 在每张图上标 mime_type（通常是 jpeg）；OpenAI 系看 output_format，缺省 png
+    const declared = result?.data?.[0]?.mime_type
+    if (typeof declared === 'string' && declared.startsWith('image/')) return { data: b64, mimeType: declared }
     const format = String(result?.output_format || 'png').toLowerCase().replace('jpg', 'jpeg')
     return { data: b64, mimeType: `image/${format}` }
+  }
+}
+
+export const XAI_DEFAULT_IMAGE_MODEL = 'grok-imagine-image-2.0'
+
+/**
+ * Grok 图片 Adapter（xAI 原生接口 https://api.x.ai）
+ * 文生图: POST /v1/images/generations { model, prompt, n, aspect_ratio, response_format }
+ * 参考图: POST /v1/images/edits { model, prompt, image: { type: 'image_url', url } }（只取第一张，支持 data URI）
+ */
+export class XaiImageAdapter extends AiaskImageAdapter {
+  provider = 'xai'
+
+  buildGenerateRequest(config: AIConfig, record: ImageGenerationRecord): ProviderRequest {
+    const model = record.model || config.model || XAI_DEFAULT_IMAGE_MODEL
+    return this.buildGrokRequest(config, model, record, this.parseReferenceImages(record.referenceImages), false)
   }
 }

@@ -12,7 +12,7 @@ app.get('/content-language', async (c) => {
   return success(c, { language: await getContentLanguage() })
 })
 
-// PUT /content-language — 设置 AI 内容语言（body: { language: 'zh'|'en'|'ja'|'ko' }）
+// PUT /content-language — 设置 AI 内容语言（body: { language: CONTENT_LANGUAGES 之一 }）
 app.put('/content-language', async (c) => {
   const body = await c.req.json().catch(() => null)
   const language = body?.language

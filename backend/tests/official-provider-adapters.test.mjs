@@ -56,10 +56,11 @@ test('backend rejects unsupported providers at DB and route boundaries', () => {
   const route = read('src/routes/aiConfigs.ts')
 
   assert.match(ai, /officialProviders/)
-  assert.match(ai, /text:\s*\[\s*'aiask',\s*'openai',\s*'gemini',\s*'volcengine'\s*\]/)
-  assert.match(ai, /image:\s*\[\s*'aiask',\s*'openai',\s*'gemini',\s*'volcengine',\s*'comfyui',\s*'sdwebui',\s*'fooocus'\s*\]/)
-  assert.match(ai, /video:\s*\[\s*'aiask',\s*'xai',\s*'comfyui',\s*'volcengine',\s*'minimax',\s*'aliyun'\s*\]/)
-  assert.doesNotMatch(ai, /'deepseek'/)
+  assert.match(ai, /text:\s*\[\s*'aiask',\s*'openai',\s*'gemini',\s*'volcengine',\s*'deepseek',\s*'qwen',\s*'claude',\s*'xai'\s*\]/)
+  assert.match(ai, /image:\s*\[\s*'aiask',\s*'openai',\s*'gemini',\s*'volcengine',\s*'xai',\s*'comfyui',\s*'sdwebui',\s*'fooocus'\s*\]/)
+  assert.match(ai, /video:\s*\[\s*'aiask',\s*'xai',\s*'veo',\s*'runway',\s*'comfyui',\s*'volcengine',\s*'minimax',\s*'aliyun'\s*\]/)
+  // DeepSeek / 通义千问 / Claude / Grok 作为官方文本服务商接入
+  assert.match(ai, /'deepseek'/)
   assert.doesNotMatch(ai, /'ali'/)
   assert.doesNotMatch(ai, /'vidu'/)
   assert.doesNotMatch(ai, /audio:\s*\[/)
@@ -115,7 +116,10 @@ test('AI config probe uses provider-specific auth schemes', () => {
   assert.match(route, /\/models\/\$\{modelName\}:generateContent/)
   assert.match(route, /url\.searchParams\.set\('key', apiKey\)/)
   assert.match(route, /function bearerHeaders/)
-  assert.match(route, /p === 'openai'/)
+  // OpenAI 兼容服务商共用 /v1/models 探测；Claude / Veo / Runway 各有专用鉴权头
+  assert.match(route, /\['openai', 'aiask', 'xai', 'deepseek', 'qwen'\]\.includes\(p\)/)
+  assert.match(route, /'anthropic-version': '2023-06-01'/)
+  assert.match(route, /'X-Runway-Version': '2024-11-06'/)
   assert.match(route, /p === 'volcengine'/)
   assert.match(route, /p === 'minimax'/)
   assert.match(route, /p === 'aliyun'/)

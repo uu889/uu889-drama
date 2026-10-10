@@ -54,11 +54,49 @@ export function patchAiaskChatBody(body: Record<string, any>): Record<string, an
     case 'qwen':
       if (body.enable_thinking == null) body.enable_thinking = false
       break
+    case 'claude':
+      // 经网关转到 Anthropic 时同样受限：新 Claude 模型拒绝采样参数
+      patchClaudeBody(body)
+      break
     default:
       // gpt / claude / gemini / grok / 其它：只发标准参数
       break
   }
   return body
+}
+
+/**
+ * Claude 4.7 及以后的模型（Opus 4.7 / 4.8 / 5 / 5.5、Sonnet 5 / 5.5、Fable、Mythos）不再接受
+ * temperature / top_p / top_k（会 400）；更早的 Claude 仍可用采样参数。
+ */
+export function claudeRejectsSampling(model: unknown): boolean {
+  const m = String(model || '').toLowerCase()
+  return /claude-(fable|mythos)|claude-opus-(4-[78]|5)|claude-sonnet-5/.test(m)
+}
+
+/** Claude（Anthropic Messages API）请求体修正：去掉新模型不接受的采样参数 */
+export function patchClaudeBody(body: Record<string, any>): Record<string, any> {
+  if (claudeRejectsSampling(body.model)) {
+    delete body.temperature
+    delete body.top_p
+    delete body.top_k
+  }
+  return body
+}
+
+/** Claude 的 fetch：同样放在补丁链最内层（Mastra 默认会带 temperature: 0） */
+export function createClaudeFetch(inner: typeof fetch = fetch): typeof fetch {
+  return async (input: any, init?: any) => {
+    try {
+      if (init?.body && typeof init.body === 'string') {
+        const body = JSON.parse(init.body)
+        if (body && Array.isArray(body.messages)) {
+          init = { ...init, body: JSON.stringify(patchClaudeBody(body)) }
+        }
+      }
+    } catch { /* 非 JSON 请求体原样透传 */ }
+    return inner(input, init)
+  }
 }
 
 /** 作为 AI SDK 的 fetch：放在补丁链最内层，最后一步修正请求体 */

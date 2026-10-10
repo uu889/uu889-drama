@@ -23,7 +23,8 @@ test('video presets use official provider endpoints', () => {
   assert.doesNotMatch(providerPresets, /api\.firemux\.com/)
   assert.match(settingsPage, /https:\/\/ark\.cn-beijing\.volces\.com/)
   assert.match(providerPresets, /https:\/\/\{WorkspaceId\}\.cn-beijing\.maas\.aliyuncs\.com/)
-  assert.doesNotMatch(settingsPage, /https:\/\/dashscope\.aliyuncs\.com/)
+  // Wan 3.0 视频走百炼工作空间端点；dashscope 兼容模式只用于通义千问文本
+  assert.doesNotMatch(providerPresets.slice(providerPresets.indexOf('  video: {')), /https:\/\/dashscope\.aliyuncs\.com/)
   assert.doesNotMatch(settingsPage, /https:\/\/api\.vidu\.com/)
 })
 

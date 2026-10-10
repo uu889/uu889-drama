@@ -8,6 +8,7 @@ import { Agent } from '@mastra/core/agent'
 import type { RequestContext } from '@mastra/core/request-context'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { createOpenAI } from '@ai-sdk/openai'
+import { createAnthropic } from '@ai-sdk/anthropic'
 import { getTextConfig, getTextProviderBaseUrl, getConfigById } from '../services/ai.js'
 import { logTaskProgress } from '../utils/task-logger.js'
 import { scriptTools } from './tools/script-tools.js'
@@ -18,7 +19,13 @@ import { loadAgentSkills, skillWorkspaces } from './skills.js'
 import { loadAgentPromptFile, loadBasePromptFile } from './prompts.js'
 import { buildLanguageDirective } from './language.js'
 import { getContentLanguageFromRC } from './context.js'
-import { createAiaskChatFetch } from './aiask-chat.js'
+import { createAiaskChatFetch, createClaudeFetch } from './aiask-chat.js'
+
+/**
+ * 直连官方 API / 原样转发的网关：上游会拒绝中转站专用的关思考参数（thinking / enable_thinking /
+ * reasoning_effort），改由补丁链最内层按模型家族只发官方认可的参数
+ */
+const STRICT_CHAT_PROVIDERS = new Set(['aiask', 'deepseek', 'qwen', 'xai'])
 
 // Default prompts (used when workspace/prompts/<type>.md 文件缺失时兜底)
 export const DEFAULT_PROMPTS: Record<string, { name: string; instructions: string }> = {
@@ -311,10 +318,13 @@ async function getModel(fileModel: string | undefined, modelOverride?: string, t
   }
 
   // 叠加请求补丁：thinking-off（非官方端点）+ 配置温度 + 输出上限（非官方 OpenAI）
-  // aiask.me 原样转发给官方上游，不能用中转站的通用关思考参数，改由最内层按模型家族修正请求体
-  const thinkingOffFetch = providerName === 'aiask'
-    ? createAiaskChatFetch()
-    : createThinkingOffFetch(providerName, resolvedBaseURL)
+  // 官方直连 / aiask.me：不能用中转站的通用关思考参数，改由最内层按模型家族修正请求体；
+  // Claude 走 Anthropic 原生接口，只需去掉新模型不接受的采样参数
+  const thinkingOffFetch = providerName === 'claude'
+    ? createClaudeFetch()
+    : STRICT_CHAT_PROVIDERS.has(providerName)
+      ? createAiaskChatFetch()
+      : createThinkingOffFetch(providerName, resolvedBaseURL)
   const tempFetch = temperature !== null
     ? createTemperatureFetch(providerName, temperature, thinkingOffFetch)
     : thinkingOffFetch
@@ -329,6 +339,16 @@ async function getModel(fileModel: string | undefined, modelOverride?: string, t
       fetch: fetchImpl,
     })
     return googleProvider(modelName)
+  }
+
+  if (providerName === 'claude') {
+    // Anthropic Messages API（x-api-key 鉴权）；Base URL 可填 https://api.anthropic.com 或兼容的转发地址
+    const anthropicProvider = createAnthropic({
+      apiKey: textConfig.apiKey,
+      baseURL: resolvedBaseURL,
+      fetch: fetchImpl,
+    })
+    return anthropicProvider(modelName)
   }
 
   const provider = createOpenAI({
