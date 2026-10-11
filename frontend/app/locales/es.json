@@ -473,7 +473,8 @@
           "duration": "Duración (s)",
           "aspect_ratio": "Proporción",
           "resolution": "Resolución"
-        }
+        },
+        "stepsTag": "{n} pasos"
       },
       "local": {
         "apiKeyOptional": "opcional para servicios locales",
@@ -514,7 +515,10 @@
         "steps": "Pasos",
         "fields": "Campos",
         "tips": "Consejos"
-      }
+      },
+      "close": "Cerrar",
+      "discardConfirm": "Hay cambios sin guardar. ¿Cerrar y descartarlos?",
+      "outsideHint": "Hacer clic fuera ya no cierra el diálogo, para no perder lo escrito. Usa «Cerrar» arriba a la derecha, o Cancelar / Guardar."
     },
     "styleDialog": {
       "editTitle": "Editar estilo predefinido",

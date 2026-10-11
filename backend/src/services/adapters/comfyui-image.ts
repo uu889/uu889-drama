@@ -28,7 +28,7 @@ import {
   type ComfyPlaceholderValues,
 } from './comfyui-common'
 import { LOCAL_DEFAULT_NEGATIVE_PROMPT, applyPromptTemplate, explicitNumberSetting, localImageDimensions, numberSetting, textSetting } from './local-image'
-import { DEFAULT_IMAGE_TEMPLATE_ID, getComfyTemplate, resolveComfyTemplate, splitModelFiles } from './comfyui-templates'
+import { DEFAULT_IMAGE_TEMPLATE_ID, getComfyTemplate, modelOverrideFiles, resolveComfyTemplate, splitModelFiles } from './comfyui-templates'
 
 export const COMFYUI_DEFAULT_IMAGE_MODEL = 'sd_xl_base_1.0.safetensors'
 const MAX_REFERENCE_IMAGES = 6
@@ -86,6 +86,7 @@ export class ComfyUIImageAdapter extends ComfyUIClient implements ImageProviderA
       bind: {
         enabled: settings.comfyui_auto_bind !== false,
         model,
+        modelFiles: modelOverrideFiles(model, builtin),
         steps: explicitSteps,
         cfg: explicitCfg,
       },

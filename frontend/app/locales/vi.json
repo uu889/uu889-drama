@@ -473,7 +473,8 @@
           "duration": "Thời lượng (s)",
           "aspect_ratio": "Tỷ lệ",
           "resolution": "Độ phân giải"
-        }
+        },
+        "stepsTag": "{n} bước"
       },
       "local": {
         "apiKeyOptional": "không bắt buộc với dịch vụ cục bộ",
@@ -514,7 +515,10 @@
         "steps": "Các bước",
         "fields": "Cách điền",
         "tips": "Lưu ý"
-      }
+      },
+      "close": "Đóng",
+      "discardConfirm": "Có thay đổi chưa lưu. Đóng và bỏ các thay đổi?",
+      "outsideHint": "Bấm ra ngoài sẽ không đóng hộp thoại để tránh mất nội dung đã nhập. Hãy dùng nút Đóng ở góc phải trên, hoặc Hủy / Lưu."
     },
     "styleDialog": {
       "editTitle": "Sửa phong cách mẫu",

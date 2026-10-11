@@ -80,6 +80,54 @@ function wan14bTwoStage(highFile: string, lowFile: string, cond: [string, number
   }
 }
 
+// ─── MiniMax H3（ComfyUI 原生节点 MiniMaxH3ImageToVideo，音画同出）─────────────────────
+// 结构照 Comfy-Org 官方模板 video_minimax_h3_i2v：UNETLoader → (Turbo LoRA) → BasicGuider，
+// CLIPLoader(type=minimax) + 视频 VAE 进 MiniMaxH3ImageToVideo（自带提示词编码，无负向词），
+// SamplerCustomAdvanced(res_multistep / simple) 出音视频联合 latent，分别 VAEDecode / VAEDecodeAudio 后 CreateVideo 合成。
+const HF_H3 = 'https://huggingface.co/Comfy-Org/MiniMax-H3'
+const H3_FILES = {
+  unet: { file: 'minimax_h3_fl2va_int8_convrot.safetensors', folder: 'models/diffusion_models', url: `${HF_H3}/tree/main/diffusion_models` },
+  clip: { file: 'qwen3vl_32b_minimax_h3_int8_convrot.safetensors', folder: 'models/text_encoders', url: `${HF_H3}/tree/main/text_encoders` },
+  videoVae: { file: 'minimax_h3_video_vae_fp16.safetensors', folder: 'models/vae', url: `${HF_H3}/tree/main/vae` },
+  audioVae: { file: 'minimax_h3_audio_vae_fp32.safetensors', folder: 'models/vae', url: `${HF_H3}/resolve/main/vae/minimax_h3_audio_vae_fp32.safetensors` },
+  turbo8: { file: 'minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors', folder: 'models/loras', url: 'https://huggingface.co/lightx2v/Minimax-h3-Turbo/resolve/main/minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors' },
+  turbo4: { file: 'minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors', folder: 'models/loras', url: `${HF_H3}/resolve/main/loras/minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors` },
+} satisfies Record<string, ComfyTemplateModelFile>
+
+function minimaxH3Workflow(opts: { steps: number; lora?: string }): Record<string, any> {
+  const model: [string, number] = opts.lora ? ['121', 0] : ['6', 0]
+  return {
+    '6': { class_type: 'UNETLoader', inputs: { unet_name: H3_FILES.unet.file, weight_dtype: 'default' }, _meta: { title: '扩散模型' } },
+    ...(opts.lora ? { '121': { class_type: 'LoraLoaderModelOnly', inputs: { lora_name: opts.lora, strength_model: 1, model: ['6', 0] }, _meta: { title: 'Turbo LoRA' } } } : {}),
+    '13': { class_type: 'CLIPLoader', inputs: { clip_name: H3_FILES.clip.file, type: 'minimax', device: 'default' }, _meta: { title: '文本编码器' } },
+    '11': { class_type: 'VAELoader', inputs: { vae_name: H3_FILES.videoVae.file }, _meta: { title: '视频 VAE' } },
+    '24': { class_type: 'VAELoader', inputs: { vae_name: H3_FILES.audioVae.file }, _meta: { title: '音频 VAE' } },
+    '52': { class_type: 'LoadImage', inputs: { image: '{{image}}' }, _meta: { title: '首帧' } },
+    '53': { class_type: 'LoadImage', inputs: { image: '{{last_frame}}' }, _meta: { title: '尾帧' } },
+    '104': {
+      class_type: 'MiniMaxH3ImageToVideo',
+      inputs: {
+        prompt: '{{prompt}}', width: '{{width}}', height: '{{height}}', length: '{{frames}}',
+        clip: ['13', 0], vae: ['11', 0], first_frame: ['52', 0], last_frame: ['53', 0],
+      },
+      _meta: { title: 'MiniMax H3 图生视频（提示词）' },
+    },
+    '15': { class_type: 'RandomNoise', inputs: { noise_seed: '{{seed}}' } },
+    '17': { class_type: 'KSamplerSelect', inputs: { sampler_name: 'res_multistep' } },
+    '9': { class_type: 'BasicScheduler', inputs: { scheduler: 'simple', steps: opts.steps, denoise: 1, model } },
+    '16': { class_type: 'BasicGuider', inputs: { model, conditioning: ['104', 0] } },
+    '14': { class_type: 'SamplerCustomAdvanced', inputs: { noise: ['15', 0], guider: ['16', 0], sampler: ['17', 0], sigmas: ['9', 0], latent_image: ['104', 1] }, _meta: { title: '采样' } },
+    '10': { class_type: 'VAEDecode', inputs: { samples: ['14', 0], vae: ['11', 0] } },
+    '23': { class_type: 'VAEDecodeAudio', inputs: { samples: ['14', 0], vae: ['24', 0] }, _meta: { title: '解码音频' } },
+    '60': { class_type: 'CreateVideo', inputs: { fps: '{{fps}}', images: ['10', 0], audio: ['23', 0] }, _meta: { title: '合成视频' } },
+    '61': { class_type: 'SaveVideo', inputs: { filename_prefix: 'video/uu889-drama', format: 'auto', codec: 'auto', video: ['60', 0] }, _meta: { title: '保存视频' } },
+  }
+}
+
+const H3_BASE_FILES = [H3_FILES.unet, H3_FILES.clip, H3_FILES.videoVae, H3_FILES.audioVae]
+const H3_NOTE = '音画同出（对白 / 音效 / 配乐写进提示词）；无首尾帧时为文生视频，有首帧 / 尾帧时为首尾帧图生视频。固定 24fps，帧数按 17k+5 取整（5 秒 = 124 帧），短边最高 768（16:9 为 1344×768）。需要 ComfyUI 0.30.0 以上。'
+const H3_NOTE_EN = 'Video with native stereo audio (describe dialogue / SFX / music in the prompt); text-to-video without frames, first/last-frame image-to-video with them. Fixed 24 fps, frames snapped to 17k+5 (5 s = 124), short edge up to 768 (1344×768 at 16:9). Needs ComfyUI 0.30.0+.'
+
 export const COMFY_VIDEO_TEMPLATES: ComfyWorkflowTemplate[] = [
   {
     id: 'wan2.2-ti2v-5b',
@@ -172,6 +220,42 @@ export const COMFY_VIDEO_TEMPLATES: ComfyWorkflowTemplate[] = [
       ...wan14bTwoStage('wan2.2_t2v_high_noise_14B_fp8_scaled.safetensors', 'wan2.2_t2v_low_noise_14B_fp8_scaled.safetensors', ['6', 0], ['7', 0], ['40', 0]),
       '40': { class_type: 'EmptyHunyuanLatentVideo', inputs: { width: '{{width}}', height: '{{height}}', length: '{{frames}}', batch_size: 1 } },
     },
+  },
+  {
+    id: 'minimax-h3-fl2v',
+    kind: 'video',
+    label: 'MiniMax H3 首尾帧 / 文生（20 步，带声音）',
+    description: `MiniMax H3 FL2VA 完整版（int8）。${H3_NOTE} 显存建议 32GB 以上，20 步质量最好但最慢。`,
+    descriptionEn: `MiniMax H3 FL2VA full build (int8). ${H3_NOTE_EN} 32 GB+ VRAM recommended; 20 steps for best quality.`,
+    files: H3_BASE_FILES,
+    defaultModel: 'minimax-h3-fl2v',
+    recommended: { fps: 24, steps: 20 },
+    needsImage: 'optional',
+    workflow: minimaxH3Workflow({ steps: 20 }),
+  },
+  {
+    id: 'minimax-h3-fl2v-turbo-8step',
+    kind: 'video',
+    label: 'MiniMax H3 Turbo 8 步（带声音，推荐）',
+    description: `在 H3 完整版上加 8 步 Turbo LoRA（lightx2v），速度约为 20 步的 2.5 倍，画质接近。${H3_NOTE}`,
+    descriptionEn: `H3 full build plus the 8-step Turbo LoRA (lightx2v): about 2.5× faster than 20 steps with similar quality. ${H3_NOTE_EN}`,
+    files: [...H3_BASE_FILES, H3_FILES.turbo8],
+    defaultModel: 'minimax-h3-fl2v-turbo-8step',
+    recommended: { fps: 24, steps: 8 },
+    needsImage: 'optional',
+    workflow: minimaxH3Workflow({ steps: 8, lora: H3_FILES.turbo8.file }),
+  },
+  {
+    id: 'minimax-h3-fl2v-turbo-4step',
+    kind: 'video',
+    label: 'MiniMax H3 Turbo 4 步 768p（带声音，最快）',
+    description: `在 H3 完整版上加 4 步 768p Turbo LoRA，最快，适合预览草稿；分辨率按 768p 训练，选 1080p 也按 768p 出片。${H3_NOTE}`,
+    descriptionEn: `H3 full build plus the 4-step 768p Turbo LoRA: fastest, good for drafts; trained at 768p, so 1080p renders at 768p. ${H3_NOTE_EN}`,
+    files: [...H3_BASE_FILES, H3_FILES.turbo4],
+    defaultModel: 'minimax-h3-fl2v-turbo-4step',
+    recommended: { fps: 24, steps: 4 },
+    needsImage: 'optional',
+    workflow: minimaxH3Workflow({ steps: 4, lora: H3_FILES.turbo4.file }),
   },
 ]
 
@@ -288,6 +372,29 @@ export function splitModelFiles(model: string | null | undefined): string[] {
     .split(/[|,，+]/)
     .map((s) => s.trim())
     .filter((s) => /\.(safetensors|sft|ckpt|pt|pth|bin|gguf)$/i.test(s))
+}
+
+/** 所有模板里放在 models/loras 的文件名（这些不是主模型，不能写进 UNETLoader / CheckpointLoader） */
+const LORA_FILES = new Set(
+  [...COMFY_VIDEO_TEMPLATES, ...COMFY_IMAGE_TEMPLATES]
+    .flatMap((t) => t.files)
+    .filter((f) => f.folder.endsWith('loras'))
+    .map((f) => f.file.toLowerCase()),
+)
+
+/**
+ * 「模型」里需要写进主模型加载节点的文件：去掉 LoRA 文件；用内置模板时再去掉模板本来就用的文件
+ * （它们只是用来识别模板，工作流里已经是这些文件，不需要覆盖）。
+ */
+export function modelOverrideFiles(model: string | null | undefined, template?: ComfyWorkflowTemplate | null): string[] {
+  const own = new Set((template?.files || []).map((f) => f.file.toLowerCase()))
+  const files = splitModelFiles(model).filter((f) => !LORA_FILES.has(f.toLowerCase()) && !own.has(f.toLowerCase()))
+  return files
+}
+
+/** 工作流是否是 MiniMax H3（固定 24fps、17k+5 帧、768p 画布） */
+export function isMiniMaxH3Workflow(workflow: Record<string, any>): boolean {
+  return Object.values(workflow).some((n: any) => /^MiniMaxH3/.test(String(n?.class_type || '')))
 }
 
 /**

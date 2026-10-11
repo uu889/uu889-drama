@@ -7,7 +7,7 @@ import { joinProviderUrl } from '../services/adapters/url.js'
 import { isOfficialProvider, parseConfigSettings, parseConfigTemperature } from '../services/ai.js'
 import { comfyAuthHeaders, comfyUrl, parseComfyWorkflow } from '../services/adapters/comfyui-common.js'
 import { autoBindComfyWorkflow } from '../services/adapters/comfyui-bind.js'
-import { describeComfyTemplates, resolveComfyTemplate, splitModelFiles, type ComfyTemplateKind } from '../services/adapters/comfyui-templates.js'
+import { describeComfyTemplates, modelOverrideFiles, resolveComfyTemplate, splitModelFiles, type ComfyTemplateKind } from '../services/adapters/comfyui-templates.js'
 import { explicitNumberSetting, localAuthHeaders, localUrl } from '../services/adapters/local-image.js'
 import { redactUrl, logTaskError, logTaskProgress, logTaskSuccess } from '../utils/task-logger.js'
 
@@ -436,7 +436,7 @@ app.post('/comfyui/inspect', async (c) => {
   const autoBind = !(body.comfyui_auto_bind === false || body.comfyui_auto_bind === 'false')
   const steps = explicitNumberSetting(kind === 'image' ? body.image_steps : body.comfyui_steps, 1, 200)
   const cfg = explicitNumberSetting(kind === 'image' ? body.image_cfg_scale : body.comfyui_cfg, 0, 30)
-  const { report } = autoBindComfyWorkflow(source, kind, { enabled: autoBind, model, steps, cfg })
+  const { report } = autoBindComfyWorkflow(source, kind, { enabled: autoBind, model, modelFiles: modelOverrideFiles(model, template), steps, cfg })
 
   // 内置模板的 {{model}} 会替换成「模型」里的文件名（或模板默认文件）
   const modelValue = splitModelFiles(model).length ? model : template?.defaultModel || ''

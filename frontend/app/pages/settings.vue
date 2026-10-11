@@ -473,15 +473,27 @@
     </div>
 
     <!-- AI Config Dialog -->
-    <div v-if="cfgDialog" class="overlay" @click.self="cfgDialog = false">
-      <form class="dialog config-dialog" @submit.prevent="saveCfg">
+    <!-- 点遮罩不关闭：API 配置常常填到一半，误点外面会丢掉已填内容；只能用右上角关闭 / 取消 / 保存 -->
+    <div v-if="cfgDialog" class="overlay" @click.self="nudgeCfgDialog">
+      <form :class="['dialog', 'config-dialog', { 'is-nudged': cfgNudge }]" @submit.prevent="saveCfg">
         <div class="dialog-head">
           <div>
             <div class="dialog-title">{{ cfgEditId ? t('settings.cfg.editTitle') : t('settings.cfg.addTitle', { type: serviceMeta[cfgForm.service_type].label }) }}</div>
             <div class="dialog-sub">{{ t('settings.cfg.sub') }}</div>
           </div>
           <span class="tag tag-accent ml-auto">{{ serviceMeta[cfgForm.service_type].label }}</span>
+          <button
+            type="button"
+            class="dialog-close-btn"
+            :title="t('settings.cfg.close')"
+            :aria-label="t('settings.cfg.close')"
+            @click="closeCfgDialog"
+          >
+            <X :size="18" :stroke-width="2.4" />
+            <span>{{ t('settings.cfg.close') }}</span>
+          </button>
         </div>
+        <div v-if="cfgOutsideHint" class="cfg-outside-hint" role="status">{{ t('settings.cfg.outsideHint') }}</div>
         <div class="dialog-body config-dialog-body">
           <div class="preset-picker">
             <button
@@ -584,6 +596,7 @@
                   <strong>{{ activeComfyTemplate.label }}</strong>
                   <span class="tag">{{ t('settings.cfg.comfy.needsImage.' + (activeComfyTemplate.needs_image || 'none')) }}</span>
                   <span v-if="activeComfyTemplate.recommended?.fps" class="tag">{{ activeComfyTemplate.recommended.fps }} fps</span>
+                  <span v-if="activeComfyTemplate.recommended?.steps" class="tag">{{ t('settings.cfg.comfy.stepsTag', { n: activeComfyTemplate.recommended.steps }) }}</span>
                   <span v-if="activeComfyTemplate.recommended?.baseSize" class="tag">{{ activeComfyTemplate.recommended.baseSize }}px</span>
                 </div>
                 <p class="tpl-card-desc">{{ locale === 'zh' ? activeComfyTemplate.description : activeComfyTemplate.description_en }}</p>
@@ -621,7 +634,7 @@
               </label>
               <label class="field">
                 <span class="field-label">{{ t('settings.cfg.local.steps') }}</span>
-                <input v-model="cfgForm.comfyui_steps" class="input" type="number" min="1" max="200" :placeholder="t('settings.cfg.comfy.fromWorkflow')" />
+                <input v-model="cfgForm.comfyui_steps" class="input" type="number" min="1" max="200" :placeholder="comfySource === 'builtin' && activeComfyTemplate?.recommended?.steps ? String(activeComfyTemplate.recommended.steps) : t('settings.cfg.comfy.fromWorkflow')" />
               </label>
               <label class="field">
                 <span class="field-label">CFG</span>
@@ -783,7 +796,7 @@
             <Loader2 v-if="cfgTesting" :size="12" class="animate-spin" />
             <span v-else>{{ t('settings.cfg.test') }}</span>
           </button>
-          <button type="button" class="btn" @click="cfgDialog = false">{{ t('common.cancel') }}</button>
+          <button type="button" class="btn" @click="closeCfgDialog">{{ t('common.cancel') }}</button>
           <button type="submit" class="btn btn-primary">{{ t('common.save') }}</button>
         </div>
       </form>
@@ -1342,6 +1355,45 @@ function localSettingsPayload() {
   if (isFooocusForm.value) return { image_negative_prompt: text(cfgForm.image_negative_prompt), fooocus_performance: text(cfgForm.fooocus_performance), fooocus_styles: text(cfgForm.fooocus_styles), ...promptParams() }
   return {}
 }
+// ===== 配置弹窗：只能主动关闭；有未保存的修改时先确认 =====
+const cfgSnapshot = ref('')
+const cfgNudge = ref(false)
+const cfgOutsideHint = ref(false)
+let cfgNudgeTimer = null
+let cfgHintTimer = null
+function cfgFormState() {
+  return JSON.stringify({ ...cfgForm, models: [...cfgForm.models], comfySource: comfySource.value })
+}
+// 打开弹窗后（预设、模板等初始化都完成）记下初始内容，用来判断是否有未保存的修改
+watch(cfgDialog, (open) => {
+  cfgOutsideHint.value = false
+  if (open) nextTick(() => { cfgSnapshot.value = cfgFormState() })
+})
+const cfgDirty = computed(() => cfgDialog.value && !!cfgSnapshot.value && cfgFormState() !== cfgSnapshot.value)
+function closeCfgDialog() {
+  if (cfgDirty.value && !window.confirm(t('settings.cfg.discardConfirm'))) return
+  cfgDialog.value = false
+}
+/** 误点遮罩：不关闭，弹窗轻微晃动并提示用右上角的关闭按钮 */
+function nudgeCfgDialog() {
+  cfgNudge.value = false
+  clearTimeout(cfgNudgeTimer)
+  requestAnimationFrame(() => { cfgNudge.value = true })
+  cfgNudgeTimer = setTimeout(() => { cfgNudge.value = false }, 500)
+  // 提示放在弹窗里（toast 会盖住右上角的关闭按钮）
+  cfgOutsideHint.value = true
+  clearTimeout(cfgHintTimer)
+  cfgHintTimer = setTimeout(() => { cfgOutsideHint.value = false }, 3500)
+}
+// 填写过程中关闭 / 刷新页面也提醒
+function onCfgBeforeUnload(e) {
+  if (!cfgDirty.value) return
+  e.preventDefault()
+  e.returnValue = ''
+}
+onMounted(() => window.addEventListener('beforeunload', onCfgBeforeUnload))
+onBeforeUnmount(() => window.removeEventListener('beforeunload', onCfgBeforeUnload))
+
 // 工作流以紧凑 JSON 存库，编辑时格式化展示
 function formatWorkflow(raw) {
   if (!raw) return ''
@@ -2356,4 +2408,43 @@ onBeforeUnmount(stopUsagePoll)
 .model-group { display: flex; flex-direction: column; gap: 5px; }
 .model-group-title { font-size: 11.5px; font-weight: 600; color: var(--text-1); }
 .model-pick { cursor: pointer; border: none; font: inherit; }
+
+/* 配置弹窗：醒目的关闭按钮 + 误点遮罩时的晃动提示 */
+.dialog-close-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  height: 34px;
+  padding: 0 12px 0 9px;
+  border: 1.5px solid var(--error, #e5484d);
+  border-radius: var(--radius-pill);
+  background: var(--error-bg, rgba(229, 72, 77, 0.1));
+  color: var(--error, #e5484d);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+}
+.dialog-close-btn:hover { background: var(--error, #e5484d); color: #fff; }
+.dialog-close-btn:active { transform: scale(0.96); }
+.dialog-close-btn:focus-visible { outline: none; box-shadow: 0 0 0 3.5px var(--button-focus); }
+.config-dialog.is-nudged { animation: cfg-nudge 0.42s ease; }
+.config-dialog.is-nudged .dialog-close-btn { background: var(--error, #e5484d); color: #fff; }
+@keyframes cfg-nudge {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-7px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(2px); }
+}
+.cfg-outside-hint {
+  padding: 8px var(--sp-6);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--error, #e5484d);
+  background: var(--error-bg, rgba(229, 72, 77, 0.1));
+  border-bottom: 1px solid var(--border);
+  animation: scaleIn 0.18s var(--ease-out);
+}
 </style>

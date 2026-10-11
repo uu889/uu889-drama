@@ -47,6 +47,8 @@ export interface ComfyBindReport {
 export interface ComfyBindOptions {
   /** 「模型」原始值（文件名才会写入加载节点） */
   model?: string | null
+  /** 需要写进主模型加载节点的文件（已去掉 LoRA / 模板自带文件）；不传时从 model 里取 */
+  modelFiles?: string[]
   /** 设置里明确填写的步数 / CFG（未填写传 undefined） */
   steps?: number
   cfg?: number
@@ -64,6 +66,12 @@ const TEXT_FIELDS = ['text', 'prompt', 'text_g', 'text_l', 't5xxl', 'clip_l', 'p
 const NEGATIVE_FIELDS = ['negative_prompt']
 const TEXT_SOURCE_FIELDS = ['value', 'string', 'text', 'prompt']
 const ENCODER_RE = /textencode|cliptext|prompt|conditioning.*text|textencoder/i
+/** 自带 prompt 文本框的视频条件节点（MiniMax H3 等），提示词直接写在这类节点上 */
+const PROMPT_CONDITIONING_RE = /MiniMaxH3|tovideo|ImageToVideo/i
+/** 输出宽高的辅助节点（如官方 H3 模板的 Resolution Selector）：自动绑定时改成直接填 UU889-Drama 的宽高 */
+const RESOLUTION_HELPER_RE = /ResolutionSelector|Resolution\s*Selector|AspectRatio|ResolutionPicker/i
+/** 标题像「时长 / duration」的数字常量节点：自动绑定为时长（秒） */
+const DURATION_TITLE_RE = /duration|seconds|时长|秒/i
 /** 主模型加载节点：class → 文件字段 */
 const MAIN_LOADERS: Record<string, string> = {
   CheckpointLoaderSimple: 'ckpt_name',
@@ -180,7 +188,9 @@ export function autoBindComfyWorkflow(
         if (branch === 'negative' && /ZeroOut/i.test(node.class_type)) continue
         const inputs = node.inputs || {}
         const textFields = [...TEXT_FIELDS, ...(branch === 'negative' ? NEGATIVE_FIELDS : [])].filter((f) => f in inputs)
-        if (ENCODER_RE.test(node.class_type) && textFields.length) {
+        // 文本编码节点；或自带提示词的条件节点（如 MiniMaxH3ImageToVideo 的 prompt 字段）
+        const isEncoder = ENCODER_RE.test(node.class_type) || PROMPT_CONDITIONING_RE.test(node.class_type)
+        if (isEncoder && textFields.length) {
           for (const field of textFields) {
             const v = inputs[field]
             if (typeof v === 'string') out.push([id, field])
@@ -224,7 +234,7 @@ export function autoBindComfyWorkflow(
 
     if (!positive.size) {
       // 没有可追踪的采样器：按标题 / 顺序判断文本编码节点
-      const encoders = ids.filter((id) => ENCODER_RE.test(workflow[id].class_type) && TEXT_FIELDS.some((f) => typeof workflow[id].inputs?.[f] === 'string'))
+      const encoders = ids.filter((id) => (ENCODER_RE.test(workflow[id].class_type) || PROMPT_CONDITIONING_RE.test(workflow[id].class_type)) && TEXT_FIELDS.some((f) => typeof workflow[id].inputs?.[f] === 'string'))
       const isNeg = (id: string) => /negative|neg\b|负|反向/i.test(nodeTitle(workflow[id]))
       const pos = encoders.filter((id) => !isNeg(id))
       const neg = encoders.filter(isNeg)
@@ -316,7 +326,8 @@ export function autoBindComfyWorkflow(
       const node = workflow[id]
       if (!DIMENSION_NODE_RE.test(node.class_type) || /upscale/i.test(node.class_type)) continue
       const inputs = node.inputs || {}
-      if (typeof inputs.width === 'number' && typeof inputs.height === 'number') {
+      const fromHelper = (v: unknown) => isLink(v) && RESOLUTION_HELPER_RE.test(String(workflow[String(v[0])]?.class_type || ''))
+      if ((typeof inputs.width === 'number' || fromHelper(inputs.width)) && (typeof inputs.height === 'number' || fromHelper(inputs.height))) {
         bind(id, 'width', 'width')
         bind(id, 'height', 'height')
       }
@@ -329,6 +340,15 @@ export function autoBindComfyWorkflow(
       for (const field of FRAME_FIELDS) {
         if (typeof node.inputs?.[field] === 'number') bind(id, field, 'frames')
       }
+    }
+  }
+
+  // ── 时长（秒）：标题为「duration / 时长」的数字常量（如官方 H3 模板里换算帧数用的 Float (duration)）──
+  if (enabled && kind === 'video' && !existing.has('duration')) {
+    for (const id of ids) {
+      const node = workflow[id]
+      if (!/^Primitive(Float|Int)$|^PrimitiveNode$/.test(String(node.class_type)) || typeof node.inputs?.value !== 'number') continue
+      if (DURATION_TITLE_RE.test(nodeTitle(node))) bind(id, 'value', 'duration')
     }
   }
 
@@ -369,7 +389,7 @@ export function autoBindComfyWorkflow(
     const input = MAIN_LOADERS[workflow[id].class_type]
     report.loaders.push({ node_id: id, class_type: workflow[id].class_type, input, value: workflow[id].inputs?.[input] })
   }
-  const files = splitModelFiles(options.model)
+  const files = options.modelFiles ?? splitModelFiles(options.model)
   if (files.length && loaderIds.length) {
     const writable = loaderIds.filter((id) => {
       const v = workflow[id].inputs?.[MAIN_LOADERS[workflow[id].class_type]]

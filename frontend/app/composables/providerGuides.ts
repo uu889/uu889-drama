@@ -281,10 +281,11 @@ const zh: GuideTable = {
       links: [['阿里云百炼', 'https://bailian.console.aliyun.com']],
     },
     comfyui: {
-      summary: '本地 ComfyUI 生视频：内置 Wan 2.2 模板（5B 文图二合一 / 14B 图生 / 14B 首尾帧 / 14B 文生）开箱即用；也可粘贴自己的工作流，UU889-Drama 的提示词、首尾帧、参考图、时长、比例、分辨率、种子、FPS、模型都会自动接入，做到强控制。',
+      summary: '本地 ComfyUI 生视频：内置 Wan 2.2 模板（5B 文图二合一 / 14B 图生 / 14B 首尾帧 / 14B 文生）与 MiniMax H3 模板（音画同出，20 步 / Turbo 8 步 / Turbo 4 步）开箱即用；也可粘贴自己的工作流，UU889-Drama 的提示词、首尾帧、参考图、时长、比例、分辨率、种子、FPS、模型都会自动接入，做到强控制。',
         steps: [
         '启动 ComfyUI（建议更新到最新版，内置 Wan 2.2 节点）：默认 http://127.0.0.1:8188，ComfyUI Desktop 默认 :8000；在另一台机器上运行时加 --listen 0.0.0.0，Base URL 填那台机器的 IP。',
-        '「工作流来源」选一个内置模板：显存 12GB 左右选「Wan 2.2 TI2V 5B」；24GB 以上选 14B 图生（画质最好）或首尾帧（镜头衔接）。',
+        '「工作流来源」选一个内置模板：显存 12GB 左右选「Wan 2.2 TI2V 5B」；24GB 以上选 14B 图生（画质最好）或首尾帧（镜头衔接）；32GB 以上可选 MiniMax H3（视频自带对白 / 音效 / 配乐，推荐 Turbo 8 步）。',
+        'MiniMax H3 需要 ComfyUI 0.30.0 以上（自带 MiniMaxH3ImageToVideo 节点）和 4 个文件：diffusion_models/minimax_h3_fl2va_int8_convrot.safetensors、text_encoders/qwen3vl_32b_minimax_h3_int8_convrot.safetensors、vae/minimax_h3_video_vae_fp16.safetensors、vae/minimax_h3_audio_vae_fp32.safetensors；Turbo 模板再加 loras/ 里对应的 8 步或 4 步 LoRA。MiniMaxH3_Director 是交互式时间线编辑插件，UU889-Drama 通过接口提交时用不到，可以不装。',
         '按模板下方的清单下载模型文件，放到对应目录（diffusion_models / text_encoders / vae），文件名保持不变。',
         '「模型」填模板 ID（如 wan2.2-i2v-14b，会自动选中对应模板），或填模型文件名直接替换工作流里的扩散模型；Wan 2.2 14B 双模型写成「高噪声文件|低噪声文件」。',
         '用自己的工作流：在 ComfyUI 里「工作流 → 导出 (API)」得到 JSON，选「自定义工作流」粘贴。保持「自动绑定」开启，不需要手写占位符；想精确控制也可以在任意字段写 {{prompt}}、{{image}}、{{last_frame}} 等占位符（见下方列表），写了的类别以手写为准。',
@@ -294,13 +295,14 @@ const zh: GuideTable = {
       fields: [
         ['Base URL', 'http://127.0.0.1:8188（Desktop 版 :8000）'],
         ['API Key', '一般留空；有鉴权反向代理时填 Token'],
-        ['模型', '模板 ID（wan2.2-ti2v-5b 等）或模型文件名；双模型用 | 分隔'],
+        ['模型', '模板 ID（wan2.2-ti2v-5b、minimax-h3-fl2v-turbo-8step 等）或模型文件名；双模型用 | 分隔；填 Turbo LoRA 文件名会选中对应的 H3 Turbo 模板'],
         ['FPS', '留空 = 模板推荐值（5B 为 24，14B 为 16）或自定义工作流里的值'],
         ['步数 / CFG', '留空 = 不改工作流；填写后覆盖所有采样节点（两段采样会按比例换算分段点）'],
         ['负向提示词', '留空用 Wan 官方负向词'],
       ],
       tips: [
         '时长 × FPS 自动换算帧数（Wan 要求 4n+1，如 5 秒 16fps = 81 帧）；分辨率 480p / 720p / 1080p 按画面比例换算宽高（对齐 32）。',
+        'MiniMax H3 固定 24fps，帧数按 17k+5 取整（5 秒 = 124 帧，官方建议 5~15 秒）；短边最高 768（16:9 为 1344×768），选 1080p 也按 768p 出片。H3 没有负向提示词，声音（对白 / 音效 / 配乐）直接写在提示词里。',
         '没有首帧的分镜：5B 模板自动变成纯文生；14B 图生模板会降级运行，建议先生成分镜首帧。',
         '输出必须是 mp4：用 SaveVideo 或 VHS_VideoCombine（format 选 video/h264-mp4），只输出 GIF / WebP 会报错。',
         'ComfyUI 一次只跑一个任务，批量生成会排队；任务里能看到前面还有几个。',
@@ -446,10 +448,11 @@ const en: GuideTable = {
     minimax: { summary: 'MiniMax video (H3).', steps: ['Create a key at https://platform.minimaxi.com.', 'Click the preset, paste the key and save.'], fields: [['Base URL', 'https://api.minimaxi.com'], ['Models', 'MiniMax-H3']], tips: ['Supports first / last frame and references.'], links: [['MiniMax', 'https://platform.minimaxi.com']] },
     aliyun: { summary: 'Alibaba Cloud Wan 3.0 video.', steps: ['Create a key and find your WorkspaceId in Model Studio.', 'Replace {WorkspaceId} in Base URL.'], fields: [['Base URL', 'https://{WorkspaceId}.cn-beijing.maas.aliyuncs.com'], ['Models', 'wan3.0-video']], tips: ['{WorkspaceId} must be replaced.'], links: [['Model Studio', 'https://bailian.console.aliyun.com']] },
     comfyui: {
-      summary: 'Local ComfyUI video: built-in Wan 2.2 templates (5B text+image, 14B image-to-video, 14B first-last frame, 14B text-to-video), or your own workflow — prompt, first / last frame, references, duration, ratio, resolution, seed, FPS and model are all wired in for full control.',
+      summary: 'Local ComfyUI video: built-in Wan 2.2 templates (5B text+image, 14B image-to-video, 14B first-last frame, 14B text-to-video) and MiniMax H3 templates with native audio (20 steps / Turbo 8 / Turbo 4), or your own workflow — prompt, first / last frame, references, duration, ratio, resolution, seed, FPS and model are all wired in for full control.',
       steps: [
         'Start an up-to-date ComfyUI (Wan 2.2 nodes are built in): http://127.0.0.1:8188, Desktop :8000; use --listen 0.0.0.0 on another machine.',
-        'Pick a template: ~12 GB VRAM → Wan 2.2 TI2V 5B; 24 GB+ → 14B image-to-video (best quality) or first-last frame (transitions).',
+        'Pick a template: ~12 GB VRAM → Wan 2.2 TI2V 5B; 24 GB+ → 14B image-to-video (best quality) or first-last frame (transitions); 32 GB+ → MiniMax H3 (video with dialogue / SFX / music; Turbo 8-step recommended).',
+        'MiniMax H3 needs ComfyUI 0.30.0+ (built-in MiniMaxH3ImageToVideo node) and four files: diffusion_models/minimax_h3_fl2va_int8_convrot.safetensors, text_encoders/qwen3vl_32b_minimax_h3_int8_convrot.safetensors, vae/minimax_h3_video_vae_fp16.safetensors, vae/minimax_h3_audio_vae_fp32.safetensors; Turbo templates also need the 8-step or 4-step LoRA in loras/. MiniMaxH3_Director is an interactive timeline editor plugin that UU889-Drama does not need.',
         'Download the listed model files into the shown folders without renaming them.',
         'Models: a template ID (e.g. wan2.2-i2v-14b selects that template) or model file names to replace the diffusion model; for the 14B pair write "high-noise-file|low-noise-file".',
         'Own workflow: Workflow → Export (API) in ComfyUI, choose "Custom workflow" and paste it. Keep Auto-bind on — no placeholders needed; you can still write {{prompt}}, {{image}}, {{last_frame}} … in any field, and hand-written categories win.',
@@ -457,7 +460,7 @@ const en: GuideTable = {
         'Test and save. The video panel and Tasks drawer show: reference upload → queue position → current node → sampler stage & step → ETA → decode / encode → download (MB).',
       ],
       fields: [['Base URL', 'http://127.0.0.1:8188 (Desktop :8000)'], ['Models', 'template ID or model file names (| for pairs)'], ['FPS', 'empty = template value (24 for 5B, 16 for 14B) or the workflow value'], ['Steps / CFG', 'empty = keep the workflow; filled = override every sampler (two-stage split rescaled)']],
-      tips: ['Frames = duration × FPS aligned to 4n+1 (5 s at 16 fps = 81); 480p / 720p / 1080p map to width / height by ratio.', 'Output must be mp4 (SaveVideo or VHS_VideoCombine h264-mp4).', 'Detailed progress uses ComfyUI\'s WebSocket (/ws); behind a proxy without WebSocket only queue / elapsed time is shown.', 'Out of memory: lower resolution / duration, use fp8 / GGUF, or --lowvram.'],
+      tips: ['Frames = duration × FPS aligned to 4n+1 (5 s at 16 fps = 81); 480p / 720p / 1080p map to width / height by ratio.', 'MiniMax H3 is fixed at 24 fps with frames snapped to 17k+5 (5 s = 124); short edge up to 768 (1344×768 at 16:9), so 1080p renders at 768p. H3 has no negative prompt — describe dialogue / SFX / music in the prompt.', 'Output must be mp4 (SaveVideo or VHS_VideoCombine h264-mp4).', 'Detailed progress uses ComfyUI\'s WebSocket (/ws); behind a proxy without WebSocket only queue / elapsed time is shown.', 'Out of memory: lower resolution / duration, use fp8 / GGUF, or --lowvram.'],
       links: [['ComfyUI Wan 2.2 guide', 'https://docs.comfy.org/tutorials/video/wan/wan2_2'], ['Wan 2.2 models', 'https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged']],
     },
   },

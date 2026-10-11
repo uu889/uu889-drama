@@ -200,3 +200,86 @@ test('prompt template', () => {
   assert.equal(applyPromptTemplate('best quality, {{prompt}}', 'x'), 'best quality, x')
   assert.equal(applyPromptTemplate('best quality', 'x'), 'x, best quality')
 })
+
+test('minimax h3: templates, 24fps 17k+5 frames, 768p canvas, LoRA files never replace the UNet', async () => {
+  const { COMFY_VIDEO_TEMPLATES: list, modelOverrideFiles, isMiniMaxH3Workflow } = await import('../src/services/adapters/comfyui-templates')
+  const { minimaxH3Dimensions, minimaxH3FrameCount } = await import('../src/services/adapters/comfyui-video')
+  const ids = list.filter((t) => t.id.startsWith('minimax-h3')).map((t) => t.id)
+  assert.deepEqual(ids, ['minimax-h3-fl2v', 'minimax-h3-fl2v-turbo-8step', 'minimax-h3-fl2v-turbo-4step'])
+  assert.equal(minimaxH3FrameCount(5), 124)
+  assert.equal(minimaxH3FrameCount(2), 56)
+  assert.equal(minimaxH3FrameCount(10), 243)
+  for (const d of [1, 3, 7, 15]) assert.equal((minimaxH3FrameCount(d) - 5) % 17, 0)
+  assert.deepEqual(minimaxH3Dimensions('16:9', '1080p'), { width: 1344, height: 768 })
+  assert.deepEqual(minimaxH3Dimensions('9:16', '720p'), { width: 768, height: 1344 })
+  assert.deepEqual(minimaxH3Dimensions('1:1', '720p'), { width: 768, height: 768 })
+  assert.deepEqual(minimaxH3Dimensions('16:9', '480p'), { width: 864, height: 480 })
+  assert.deepEqual(minimaxH3Dimensions('21:9', '720p'), { width: 1344, height: 768 })
+  const turbo = list.find((t) => t.id === 'minimax-h3-fl2v-turbo-8step')!
+  assert.ok(isMiniMaxH3Workflow(turbo.workflow))
+  assert.deepEqual(modelOverrideFiles('minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors', null), [])
+  assert.deepEqual(modelOverrideFiles('minimax_h3_fl2va_int8_convrot.safetensors', turbo), [])
+  assert.deepEqual(modelOverrideFiles('my_h3.safetensors', turbo), ['my_h3.safetensors'])
+
+  const realFetch = globalThis.fetch
+  globalThis.fetch = (async () => new Response('{}', { status: 404 })) as typeof fetch
+  try {
+    const adapter = new ComfyUIVideoAdapter()
+    const cfg = { provider: 'comfyui', baseUrl: 'http://127.0.0.1:1', apiKey: '', model: 'minimax-h3-fl2v-turbo-8step' }
+    const req = await adapter.buildGenerateRequest(cfg, { id: 1, prompt: '女孩回头说：走吧。雨声渐大', duration: 5, aspectRatio: '16:9', resolution: '1080p' })
+    const wf = req.body.prompt
+    assert.equal(wf['104'].inputs.prompt, '女孩回头说：走吧。雨声渐大')
+    assert.equal(wf['104'].inputs.width, 1344)
+    assert.equal(wf['104'].inputs.height, 768)
+    assert.equal(wf['104'].inputs.length, 124)
+    assert.equal(wf['60'].inputs.fps, 24)
+    assert.equal(wf['9'].inputs.steps, 8)
+    assert.deepEqual(wf['9'].inputs.model, ['121', 0])
+    assert.equal(wf['6'].inputs.unet_name, 'minimax_h3_fl2va_int8_convrot.safetensors')
+    assert.equal(wf['121'].inputs.lora_name, 'minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors')
+    assert.equal(wf['13'].inputs.type, 'minimax')
+    assert.equal(typeof wf['15'].inputs.noise_seed, 'number')
+    // 没有首尾帧 → LoadImage 被裁掉，可选输入 first_frame / last_frame 的连线也删掉（纯文生）
+    assert.ok(!wf['52'] && !wf['53'])
+    assert.ok(!('first_frame' in wf['104'].inputs) && !('last_frame' in wf['104'].inputs))
+
+    // 「模型」填 LoRA 文件名：选中 4 步模板，UNet 不被改写
+    const req4 = await adapter.buildGenerateRequest({ ...cfg, model: 'minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors' }, { id: 2, prompt: 'x', duration: 3, aspectRatio: '9:16', resolution: '720p' })
+    assert.equal(req4.body.prompt['9'].inputs.steps, 4)
+    assert.equal(req4.body.prompt['6'].inputs.unet_name, 'minimax_h3_fl2va_int8_convrot.safetensors')
+    assert.equal(req4.body.prompt['104'].inputs.length, 73)
+  } finally {
+    globalThis.fetch = realFetch
+  }
+})
+
+test('minimax h3: an exported official-style workflow is auto-bound (prompt on the H3 node, Resolution Selector, duration)', () => {
+  const exported: Record<string, any> = {
+    '6': { class_type: 'UNETLoader', inputs: { unet_name: 'minimax_h3_fl2va_pruned_int8_convrot.safetensors', weight_dtype: 'default' } },
+    '13': { class_type: 'CLIPLoader', inputs: { clip_name: 'qwen3vl.safetensors', type: 'minimax', device: 'default' } },
+    '11': { class_type: 'VAELoader', inputs: { vae_name: 'v.safetensors' } },
+    '114': { class_type: 'LoadImage', inputs: { image: 'mouse.png' } },
+    '115': { class_type: 'ResolutionSelector', inputs: { aspect_ratio: '1:1 (Square)', megapixels: 0.4, multiple: 32 } },
+    '111': { class_type: 'PrimitiveFloat', inputs: { value: 2 }, _meta: { title: 'Float (duration)' } },
+    '107': { class_type: 'ComfyMathExpression', inputs: { expression: 'a', 'values.a': ['111', 0] } },
+    '104': { class_type: 'MiniMaxH3ImageToVideo', inputs: { prompt: 'old prompt', width: ['115', 0], height: ['115', 1], length: ['107', 1], clip: ['13', 0], vae: ['11', 0], first_frame: ['114', 0] } },
+    '15': { class_type: 'RandomNoise', inputs: { noise_seed: 1 } },
+    '9': { class_type: 'BasicScheduler', inputs: { scheduler: 'simple', steps: 20, denoise: 1, model: ['6', 0] } },
+    '16': { class_type: 'BasicGuider', inputs: { model: ['6', 0], conditioning: ['104', 0] } },
+    '17': { class_type: 'KSamplerSelect', inputs: { sampler_name: 'res_multistep' } },
+    '14': { class_type: 'SamplerCustomAdvanced', inputs: { noise: ['15', 0], guider: ['16', 0], sampler: ['17', 0], sigmas: ['9', 0], latent_image: ['104', 1] } },
+    '10': { class_type: 'VAEDecode', inputs: { samples: ['14', 0], vae: ['11', 0] } },
+    '91': { class_type: 'CreateVideo', inputs: { fps: 24, images: ['10', 0] } },
+    '92': { class_type: 'SaveVideo', inputs: { filename_prefix: 'video/MiniMax_H3', format: 'auto', codec: 'auto', video: ['91', 0] } },
+  }
+  const { workflow, report } = autoBindComfyWorkflow(exported, 'video', { steps: 8 })
+  assert.equal(workflow['104'].inputs.prompt, '{{prompt}}')
+  assert.equal(workflow['104'].inputs.width, '{{width}}')
+  assert.equal(workflow['104'].inputs.height, '{{height}}')
+  assert.equal(workflow['111'].inputs.value, '{{duration}}')
+  assert.equal(workflow['114'].inputs.image, '{{image}}')
+  assert.equal(workflow['15'].inputs.noise_seed, '{{seed}}')
+  assert.equal(workflow['91'].inputs.fps, '{{fps}}')
+  assert.equal(workflow['9'].inputs.steps, 8)
+  assert.ok(!report.warnings.some((w) => /提示词/.test(w)))
+})

@@ -473,7 +473,8 @@
           "duration": "長さ（秒）",
           "aspect_ratio": "アスペクト比",
           "resolution": "解像度"
-        }
+        },
+        "stepsTag": "{n} ステップ"
       },
       "local": {
         "apiKeyOptional": "ローカルサービスは空欄可",
@@ -514,7 +515,10 @@
         "steps": "手順",
         "fields": "入力項目",
         "tips": "注意点"
-      }
+      },
+      "close": "閉じる",
+      "discardConfirm": "保存していない変更があります。閉じると入力内容は失われます。閉じますか？",
+      "outsideHint": "入力内容を失わないよう、外側をクリックしても閉じません。右上の「閉じる」か「キャンセル / 保存」を使ってください。"
     },
     "styleDialog": {
       "editTitle": "スタイルプリセットを編集",

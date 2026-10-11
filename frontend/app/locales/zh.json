@@ -473,7 +473,8 @@
           "duration": "时长（秒）",
           "aspect_ratio": "画面比例",
           "resolution": "分辨率"
-        }
+        },
+        "stepsTag": "{n} 步"
       },
       "local": {
         "apiKeyOptional": "本地服务可留空",
@@ -514,7 +515,10 @@
         "steps": "上手步骤",
         "fields": "字段怎么填",
         "tips": "注意事项"
-      }
+      },
+      "close": "关闭",
+      "discardConfirm": "有未保存的修改，确定关闭吗？关闭后填写的内容会丢失。",
+      "outsideHint": "为防止误关丢失填写内容，点空白处不会关闭；请用右上角「关闭」或底部「取消 / 保存」。"
     },
     "styleDialog": {
       "editTitle": "编辑风格预设",

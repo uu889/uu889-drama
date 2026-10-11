@@ -473,7 +473,8 @@
           "duration": "Durée (s)",
           "aspect_ratio": "Format",
           "resolution": "Résolution"
-        }
+        },
+        "stepsTag": "{n} étapes"
       },
       "local": {
         "apiKeyOptional": "facultatif pour les services locaux",
@@ -514,7 +515,10 @@
         "steps": "Étapes",
         "fields": "Champs",
         "tips": "Conseils"
-      }
+      },
+      "close": "Fermer",
+      "discardConfirm": "Des modifications ne sont pas enregistrées. Fermer et les abandonner ?",
+      "outsideHint": "Cliquer à l’extérieur ne ferme plus la fenêtre, pour ne rien perdre. Utilisez « Fermer » en haut à droite, ou Annuler / Enregistrer."
     },
     "styleDialog": {
       "editTitle": "Modifier le préréglage de style",

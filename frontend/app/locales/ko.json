@@ -473,7 +473,8 @@
           "duration": "길이(초)",
           "aspect_ratio": "화면 비율",
           "resolution": "해상도"
-        }
+        },
+        "stepsTag": "{n}스텝"
       },
       "local": {
         "apiKeyOptional": "로컬 서비스는 비워 두어도 됩니다",
@@ -514,7 +515,10 @@
         "steps": "단계",
         "fields": "입력 항목",
         "tips": "주의 사항"
-      }
+      },
+      "close": "닫기",
+      "discardConfirm": "저장하지 않은 변경 사항이 있습니다. 닫으면 입력한 내용이 사라집니다. 닫을까요?",
+      "outsideHint": "입력한 내용을 잃지 않도록 바깥을 클릭해도 닫히지 않습니다. 오른쪽 위 \"닫기\" 또는 \"취소 / 저장\"을 사용하세요."
     },
     "styleDialog": {
       "editTitle": "스타일 프리셋 편집",

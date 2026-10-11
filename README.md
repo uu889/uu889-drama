@@ -180,7 +180,7 @@ UU889-Drama talks to ComfyUI's native HTTP API:
 1. Start ComfyUI (default `http://127.0.0.1:8188`; from Docker use `http://host.docker.internal:8188` and run ComfyUI with `--listen 0.0.0.0`)
 2. **Settings → Video → Add** and pick the **本地 ComfyUI** (local ComfyUI) template; the API key is optional (only for authenticating reverse proxies)
 3. **Workflow source**:
-   - **Built-in template**: Wan 2.2 TI2V 5B (text + image, default), Wan 2.2 I2V 14B (two-stage high / low noise), Wan 2.2 first-last frame 14B, Wan 2.2 T2V 14B — with model files, folders and download links; a template ID in Models (e.g. `wan2.2-i2v-14b`) selects it
+   - **Built-in template**: Wan 2.2 TI2V 5B (text + image, default), Wan 2.2 I2V 14B (two-stage high / low noise), Wan 2.2 first-last frame 14B, Wan 2.2 T2V 14B, **MiniMax H3** with native audio (20 steps / Turbo 8-step / Turbo 4-step 768p; fixed 24 fps, 17k+5 frames, 768 short edge; ComfyUI 0.30.0+) — with model files, folders and download links; a template ID in Models (e.g. `wan2.2-i2v-14b`) selects it
    - **Custom workflow**: paste the JSON from ComfyUI **Export (API)**. **No placeholders needed** — with Auto-bind on (default) the prompt / negative prompt, first / last frame / references (LoadImage), seed, width / height, frames, FPS and diffusion model are wired automatically; hand-written placeholders win for their category
 4. **Models**: a template ID, or model file names that replace the UNETLoader / CheckpointLoaderSimple values (`high-noise-file|low-noise-file` for the 14B pair)
 5. Optional: FPS (empty = template / workflow value), steps / CFG (empty = keep the workflow; set = override every sampler, two-stage split rescaled), negative prompt, prompt template

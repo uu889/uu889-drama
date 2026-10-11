@@ -473,7 +473,8 @@
           "duration": "Dauer (s)",
           "aspect_ratio": "Seitenverhältnis",
           "resolution": "Auflösung"
-        }
+        },
+        "stepsTag": "{n} Schritte"
       },
       "local": {
         "apiKeyOptional": "bei lokalen Diensten optional",
@@ -514,7 +515,10 @@
         "steps": "Schritte",
         "fields": "Felder",
         "tips": "Hinweise"
-      }
+      },
+      "close": "Schließen",
+      "discardConfirm": "Es gibt ungespeicherte Änderungen. Schließen und verwerfen?",
+      "outsideHint": "Ein Klick außerhalb schließt den Dialog nicht mehr, damit nichts verloren geht. Oben rechts „Schließen“ oder „Abbrechen / Speichern“ verwenden."
     },
     "styleDialog": {
       "editTitle": "Stilvorlage bearbeiten",

@@ -473,7 +473,8 @@
           "duration": "Duration (s)",
           "aspect_ratio": "Aspect ratio",
           "resolution": "Resolution"
-        }
+        },
+        "stepsTag": "{n} steps"
       },
       "local": {
         "apiKeyOptional": "optional for local services",
@@ -514,7 +515,10 @@
         "steps": "Steps",
         "fields": "Fields",
         "tips": "Tips"
-      }
+      },
+      "close": "Close",
+      "discardConfirm": "You have unsaved changes. Close and discard them?",
+      "outsideHint": "Clicking outside no longer closes this dialog, so nothing you typed is lost. Use Close at the top right, or Cancel / Save."
     },
     "styleDialog": {
       "editTitle": "Edit Style Preset",

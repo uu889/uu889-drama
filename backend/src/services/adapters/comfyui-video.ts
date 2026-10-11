@@ -21,7 +21,7 @@ import type {
 } from './types'
 import { parseUrlArray } from './media'
 import { applyPromptTemplate, explicitNumberSetting, textSetting } from './local-image'
-import { DEFAULT_VIDEO_TEMPLATE_ID, getComfyTemplate, resolveComfyTemplate } from './comfyui-templates'
+import { DEFAULT_VIDEO_TEMPLATE_ID, getComfyTemplate, isMiniMaxH3Workflow, modelOverrideFiles, resolveComfyTemplate } from './comfyui-templates'
 import {
   ComfyUIClient,
   COMFY_MISSING_ERROR,
@@ -77,6 +77,25 @@ export function comfyFrameCount(durationSeconds: number, fps: number, step = 4):
   return n * step + 1
 }
 
+/**
+ * MiniMax H3 画布：短边 480p 档为 480、其余档位为 768（模型原生 768p），长边按比例取 32 的倍数，
+ * 总面积不超过官方上限 768×1344（16:9 → 1344×768，9:16 → 768×1344，1:1 → 768×768）
+ */
+export function minimaxH3Dimensions(aspectRatio?: string | null, resolution?: string | null): { width: number; height: number } {
+  const short = String(resolution || '').toLowerCase() === '480p' ? 480 : 768
+  const [rw, rh] = String(aspectRatio || '16:9').split(':').map(Number)
+  const ratio = rw > 0 && rh > 0 ? rw / rh : 16 / 9
+  const maxLong = Math.floor((768 * 1344) / short / 32) * 32
+  const long = Math.min(maxLong, Math.max(short, Math.round((short * Math.max(ratio, 1 / ratio)) / 32) * 32))
+  return ratio >= 1 ? { width: long, height: short } : { width: short, height: long }
+}
+
+/** MiniMax H3 帧数：24fps 下的时长换算，向上取整到 17k+5（官方模板同一公式，5 秒 = 124 帧） */
+export function minimaxH3FrameCount(durationSeconds: number): number {
+  const base = Math.max(5, Math.round(durationSeconds * 24))
+  return base + ((((5 - (base % 17)) % 17) + 17) % 17)
+}
+
 /** 工作流自带的 fps（CreateVideo.fps / VHS_VideoCombine.frame_rate …），没有返回 null */
 export function detectWorkflowFps(workflow: Record<string, any>): number | null {
   for (const node of Object.values(workflow)) {
@@ -106,15 +125,19 @@ export class ComfyUIVideoAdapter extends ComfyUIClient implements VideoProviderA
     const builtin = custom ? null : resolveComfyTemplate('video', settings.comfyui_template, model)
     const template = custom || builtin!.workflow
 
+    // MiniMax H3：模型按 24fps、17k+5 帧、768p 画布训练，宽高 / 帧数 / FPS 按它的规则换算
+    const h3 = isMiniMaxH3Workflow(template)
     const fpsSetting = Number(settings.comfyui_fps)
     const fps = Number.isFinite(fpsSetting) && fpsSetting > 0
       ? Math.round(fpsSetting)
-      : (builtin?.recommended.fps ?? (custom ? detectWorkflowFps(custom) : null) ?? COMFYUI_DEFAULT_FPS)
+      : (builtin?.recommended.fps ?? (custom ? detectWorkflowFps(custom) : null) ?? (h3 ? 24 : COMFYUI_DEFAULT_FPS))
     const durationRaw = Math.round(Number(record.duration || 5))
     const duration = Number.isFinite(durationRaw) ? Math.min(60, Math.max(1, durationRaw)) : 5
-    const { width, height } = comfyDimensions(record.aspectRatio, record.resolution)
+    const { width, height } = h3
+      ? minimaxH3Dimensions(record.aspectRatio, record.resolution)
+      : comfyDimensions(record.aspectRatio, record.resolution)
     const frameStep = /LTXV/i.test(JSON.stringify(template)) ? 8 : 4
-    const frames = comfyFrameCount(duration, fps, frameStep)
+    const frames = h3 ? minimaxH3FrameCount(duration) : comfyFrameCount(duration, fps, frameStep)
     const seed = Number.isFinite(Number(record.seed)) && record.seed != null
       ? Number(record.seed)
       : Math.floor(Math.random() * 2 ** 32)
@@ -155,6 +178,7 @@ export class ComfyUIVideoAdapter extends ComfyUIClient implements VideoProviderA
       bind: {
         enabled: settings.comfyui_auto_bind !== false,
         model,
+        modelFiles: modelOverrideFiles(model, builtin),
         steps,
         cfg,
       },
