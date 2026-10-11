@@ -178,6 +178,12 @@ aiask.me 是 OpenAI 兼容的 AI API 网关，一个 Key 覆盖文本、图片�
 - **ComfyUI 生图占位符**：`{{prompt}}` `{{negative_prompt}}` `{{seed}}` `{{width}}` `{{height}}` `{{steps}}` `{{cfg}}` `{{model}}` `{{aspect_ratio}}` `{{image}}` `{{reference_image_1..6}}`，内置模板为 Checkpoint + KSampler + SaveImage（SDXL / SD1.5 通用）
 - **鉴权**：SD WebUI 开了 `--api-auth` 时 API Key 填 `用户名:密码`；Fooocus-API 开了 `--apikey` 时填同一个值
 - 本地 GPU 排队：ComfyUI 生图最长等 6 小时、Fooocus 1 小时；SD WebUI 为同步接口，单张最长 10 分钟
+- **内置模板（ComfyUI）**：SDXL（默认）、SD 1.5、FLUX.1 dev fp8、FLUX.1 schnell fp8；设置页列出每个模板需要的模型文件、放置目录和下载地址，可一键「填入编辑框」改成自己的
+- **自动绑定（ComfyUI）**：直接从 ComfyUI「导出 (API)」的工作流不用写占位符，正 / 负提示词、LoadImage 参考图、种子、宽高、Checkpoint 会按节点结构自动接入；「检查工作流」按钮列出每个节点被接到哪个参数，并检查模型文件是否存在
+- **提示词模板**：三种本地服务都可以设置 `masterpiece, best quality, {{prompt}}` 这样的模板，`{{prompt}}` 处插入 UU889-Drama 写好的提示词；SD WebUI / Fooocus 另有参数 / 风格预设一键套用
+- **中文提示词自动翻译**：SD / SDXL / FLUX 只认英文，本地生图默认在提交前用当前启用的文字模型把中文提示词翻译成英文（可关闭，失败时用原文）
+- **读取本机模型**：设置页可直接列出 ComfyUI 的 checkpoints / diffusion_models / LoRA、SD WebUI 的模型与采样器、Fooocus 的模型与风格，点选即填
+- **实时进度**：任务抽屉与资产卡片显示排队位置、采样步数、预计剩余时间、下载进度（SD WebUI 用 `force_task_id` + `/internal/progress`，Fooocus 用 `query-job` 的 `job_progress`）
 
 ---
 
@@ -187,8 +193,14 @@ aiask.me 是 OpenAI 兼容的 AI API 网关，一个 Key 覆盖文本、图片�
 
 1. 启动 ComfyUI（默认 `http://127.0.0.1:8188`；Docker 部署时容器内访问宿主机请用 `http://host.docker.internal:8188`，ComfyUI 需加 `--listen 0.0.0.0`）
 2. 「设置 → 视频服务 → 添加」选择「本地 ComfyUI」模板，API Key 可留空（仅在反向代理鉴权时填写）
-3. **工作流**：在 ComfyUI 中用「导出 (API)」/ Export (API) 得到 JSON 粘贴进来；留空则使用内置 **Wan 2.2 TI2V 5B** 模板（需要 `wan2.2_ti2v_5B_fp16.safetensors`、`umt5_xxl_fp8_e4m3fn_scaled.safetensors`、`wan2.2_vae.safetensors`）
-4. 可设置 FPS（默认 24）与负向提示词（默认 Wan 官方负向词）
+3. **工作流来源**二选一：
+   - **内置模板**：Wan 2.2 TI2V 5B（文生 / 图生二合一，默认）、Wan 2.2 I2V 14B（图生，高 / 低噪声两段采样）、Wan 2.2 首尾帧 14B、Wan 2.2 T2V 14B。设置页列出所需模型文件、放置目录与下载地址；「模型」填模板 ID（如 `wan2.2-i2v-14b`）即自动选中对应模板
+   - **自定义工作流**：在 ComfyUI 中用「导出 (API)」/ Export (API) 得到 JSON 粘贴进来。**不需要手写占位符**——开启「自动绑定」（默认）后，正 / 负提示词、首帧 / 尾帧 / 参考图（LoadImage）、种子、宽高、帧数、FPS、扩散模型会按节点结构自动接入 UU889-Drama 的参数；某类参数手写了占位符时以手写为准
+4. **模型**：填模板 ID，或填模型文件名直接替换工作流里的 UNETLoader / CheckpointLoaderSimple（Wan 2.2 14B 双模型写成 `高噪声文件|低噪声文件`）
+5. 可选：FPS（留空用模板推荐值或工作流自带值）、步数 / CFG（留空不改工作流；填写后覆盖所有采样节点，两段采样按比例换算分段点）、负向提示词（默认 Wan 官方负向词）、提示词模板
+6. 点「检查工作流」：表格列出每个节点的哪个字段接到了哪个参数、缺少哪些模型文件
+
+**实时进度**：后端订阅 ComfyUI 的 WebSocket（`/ws?clientId=`，提交 `/prompt` 时带同一个 `client_id`），工作台的视频面板、分镜列表和「任务」抽屉实时显示：上传参考图 → 排队位置 → 当前执行的节点 → 第几段采样第几步 → 预计剩余时间 → 解码 / 合成视频 → 下载回 UU889-Drama 的字节进度，并保留一份过程记录。WebSocket 不可用时退回显示排队位置与已等待时长，不影响生成。
 
 调用流程：`POST /upload/image`（上传工作流用到的参考图）→ `POST /prompt` → 轮询 `GET /history/{prompt_id}` → `GET /view?filename=…` 下载成片。
 

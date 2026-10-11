@@ -164,6 +164,12 @@ Pick the template under **Settings → Text / Image / Video → Add**, paste the
 - **Parameters**: negative prompt (generic default), steps (25), CFG (7), SD WebUI sampler, Fooocus performance (Speed / Quality / Extreme Speed / Lightning / Hyper-SD) and styles
 - **ComfyUI image placeholders**: `{{prompt}}` `{{negative_prompt}}` `{{seed}}` `{{width}}` `{{height}}` `{{steps}}` `{{cfg}}` `{{model}}` `{{aspect_ratio}}` `{{image}}` `{{reference_image_1..6}}`; the built-in template is Checkpoint + KSampler + SaveImage (SDXL / SD1.5)
 - **Auth**: SD WebUI with `--api-auth` → API key `user:password`; Fooocus-API with `--apikey` → the same key
+- **Built-in ComfyUI templates**: SDXL (default), SD 1.5, FLUX.1 dev fp8, FLUX.1 schnell fp8 — the settings page lists the model files, folders and download links, and can copy a template into the editor
+- **Auto-bind (ComfyUI)**: a workflow straight from **Export (API)** needs no placeholders; prompt / negative prompt, LoadImage references, seed, size and checkpoint are wired by node structure. **Check workflow** shows every binding and missing model files
+- **Prompt template**: e.g. `masterpiece, best quality, {{prompt}}` for all three services, plus SD WebUI / Fooocus parameter and style presets
+- **Prompt translation**: SD / SDXL / FLUX only understand English, so local image prompts in Chinese / Japanese / Korean are translated with the active text model first (can be turned off; falls back to the original)
+- **Read local models**: list ComfyUI checkpoints / diffusion models / LoRAs, SD WebUI models and samplers, Fooocus models and styles, and click to fill
+- **Live progress**: queue position, sampling step, ETA and download progress in the Tasks drawer and asset cards
 
 ---
 
@@ -173,8 +179,14 @@ UU889-Drama talks to ComfyUI's native HTTP API:
 
 1. Start ComfyUI (default `http://127.0.0.1:8188`; from Docker use `http://host.docker.internal:8188` and run ComfyUI with `--listen 0.0.0.0`)
 2. **Settings → Video → Add** and pick the **本地 ComfyUI** (local ComfyUI) template; the API key is optional (only for authenticating reverse proxies)
-3. **Workflow**: paste the JSON from ComfyUI **Export (API)**. Leave it empty to use the built-in **Wan 2.2 TI2V 5B** template (needs `wan2.2_ti2v_5B_fp16.safetensors`, `umt5_xxl_fp8_e4m3fn_scaled.safetensors`, `wan2.2_vae.safetensors`)
-4. Optionally set FPS (default 24) and a negative prompt (defaults to the official Wan negative prompt)
+3. **Workflow source**:
+   - **Built-in template**: Wan 2.2 TI2V 5B (text + image, default), Wan 2.2 I2V 14B (two-stage high / low noise), Wan 2.2 first-last frame 14B, Wan 2.2 T2V 14B — with model files, folders and download links; a template ID in Models (e.g. `wan2.2-i2v-14b`) selects it
+   - **Custom workflow**: paste the JSON from ComfyUI **Export (API)**. **No placeholders needed** — with Auto-bind on (default) the prompt / negative prompt, first / last frame / references (LoadImage), seed, width / height, frames, FPS and diffusion model are wired automatically; hand-written placeholders win for their category
+4. **Models**: a template ID, or model file names that replace the UNETLoader / CheckpointLoaderSimple values (`high-noise-file|low-noise-file` for the 14B pair)
+5. Optional: FPS (empty = template / workflow value), steps / CFG (empty = keep the workflow; set = override every sampler, two-stage split rescaled), negative prompt, prompt template
+6. **Check workflow** lists every node field → parameter binding and missing model files
+
+**Live progress**: the backend subscribes to ComfyUI's WebSocket (`/ws?clientId=`, the same `client_id` is sent with `/prompt`); the video panel, shot list and Tasks drawer show reference upload → queue position → current node → sampler stage and step → ETA → decode / encode → download bytes, with an activity log. Without WebSocket it falls back to queue position and elapsed time.
 
 Flow: `POST /upload/image` (reference images used by the workflow) → `POST /prompt` → poll `GET /history/{prompt_id}` → download via `GET /view?filename=…`.
 

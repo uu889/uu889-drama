@@ -1,3 +1,5 @@
+import type { ProgressReporter, TaskProgressPatch } from '../task-progress'
+
 /**
  * 图片生成 Provider Adapter 接口
  */
@@ -11,7 +13,7 @@ export interface ImageProviderAdapter {
    * @param record 图片生成记录
    * 允许异步：需要先上传素材等前置步骤的厂商可返回 Promise
    */
-  buildGenerateRequest(config: AIConfig, record: ImageGenerationRecord): ProviderRequest | Promise<ProviderRequest>
+  buildGenerateRequest(config: AIConfig, record: ImageGenerationRecord, ctx?: GenerateContext): ProviderRequest | Promise<ProviderRequest>
 
   /**
    * 解析生成响应，判断是同步还是异步
@@ -50,6 +52,18 @@ export interface ImageProviderAdapter {
   fetchPollResult?(config: AIConfig, taskId: string): Promise<any>
   cancel?(config: AIConfig, taskId: string): Promise<void>
   describeError?(status: number, bodyText: string): string | null
+  onSubmitted?(config: AIConfig, taskId: string, request: ProviderRequest, report?: ProgressReporter): void
+  describeProgress?(config: AIConfig, taskId: string, pollResult: any): TaskProgressPatch | null
+  onFinished?(config: AIConfig, taskId: string): void
+  trackSyncProgress?(config: AIConfig, request: ProviderRequest, report: ProgressReporter): () => void
+}
+
+/**
+ * 生成过程的上下文：适配器在构建请求（上传素材等）时上报进度。
+ * buildGenerateRequest 的第三个参数，可选，旧适配器忽略即可。
+ */
+export interface GenerateContext {
+  report: ProgressReporter
 }
 
 /** 轮询节奏：attempts 次、每次间隔 intervalMs；maxDurationMs 为总时长上限（null 不限） */
@@ -66,7 +80,7 @@ export interface VideoProviderAdapter {
   provider: string
 
   /** 允许异步：ComfyUI 需先上传参考图，aiask 需把参考图读成文件后走 multipart */
-  buildGenerateRequest(config: AIConfig, record: VideoGenerationRecord): ProviderRequest | Promise<ProviderRequest>
+  buildGenerateRequest(config: AIConfig, record: VideoGenerationRecord, ctx?: GenerateContext): ProviderRequest | Promise<ProviderRequest>
 
   parseGenerateResponse(result: any): VideoGenResponse
 
@@ -96,6 +110,21 @@ export interface VideoProviderAdapter {
 
   /** 可选：把上游错误响应整理成可读文案（返回 null 用通用格式） */
   describeError?(status: number, bodyText: string): string | null
+
+  /** 可选：任务已提交（拿到上游任务 ID）后调用，如 ComfyUI 开始订阅该 prompt 的执行事件；report 用于实时推送进度 */
+  onSubmitted?(config: AIConfig, taskId: string, request: ProviderRequest, report?: ProgressReporter): void
+
+  /** 可选：每次轮询后给出细粒度进度（排队位置、采样步数等）；返回 null 用通用的「生成中」 */
+  describeProgress?(config: AIConfig, taskId: string, pollResult: any): TaskProgressPatch | null
+
+  /** 可选：任务结束（成功 / 失败 / 放弃）后清理订阅 */
+  onFinished?(config: AIConfig, taskId: string): void
+
+  /**
+   * 可选：同步接口（请求阻塞到出结果，如 SD WebUI txt2img）在请求进行期间另行查询进度。
+   * 返回停止函数，请求结束后调用。
+   */
+  trackSyncProgress?(config: AIConfig, request: ProviderRequest, report: ProgressReporter): () => void
 }
 
 export interface DownloadRequest {

@@ -10,6 +10,8 @@
  * - settings.fooocus_performance（Speed / Quality / Extreme Speed / Lightning / Hyper-SD）、
  *   settings.fooocus_styles（逗号分隔，留空用 Fooocus 默认风格）
  * - 开启 --apikey 时配置里 API Key 填同一个值（以 X-API-KEY 头发送）
+ * - 提示词模板 settings.prompt_template（{{prompt}} 处插入 UU889-Drama 的提示词）
+ * - 进度：query-job 的 job_progress（0~100）与 job_status（如 "Sampling step 12/30"）
  */
 import type {
   ImageProviderAdapter,
@@ -19,8 +21,11 @@ import type {
   ImageGenResponse,
   ImagePollResponse,
 } from './types'
+import type { TaskProgressPatch } from '../task-progress'
+import { stagePercent } from '../task-progress'
 import {
   LOCAL_DEFAULT_NEGATIVE_PROMPT,
+  applyPromptTemplate,
   isDefaultModel,
   localAuthHeaders,
   localUrl,
@@ -83,7 +88,7 @@ export class FooocusImageAdapter implements ImageProviderAdapter {
     const settings = config.settings || {}
     const refs = parseRefs(record.referenceImages).slice(0, MAX_IMAGE_PROMPTS)
     const body: Record<string, any> = {
-      prompt: (record.prompt || '').trim(),
+      prompt: applyPromptTemplate(settings.prompt_template, record.prompt || ''),
       negative_prompt: textSetting(settings.image_negative_prompt, LOCAL_DEFAULT_NEGATIVE_PROMPT),
       aspect_ratios_selection: fooocusAspectRatio(record.size),
       performance_selection: textSetting(settings.fooocus_performance, 'Speed'),
@@ -142,6 +147,31 @@ export class FooocusImageAdapter implements ImageProviderAdapter {
       return { status: 'completed', imageUrl: first.base64 ? undefined : first.url }
     }
     return { status: stage === 'WAITING' ? 'pending' : 'processing' }
+  }
+
+  /** 轮询结果 → 进度：WAITING 排队；RUNNING 用 job_progress 与 job_status */
+  describeProgress(_config: AIConfig, _taskId: string, result: any): TaskProgressPatch | null {
+    const stage = String(result?.job_stage || '').toUpperCase()
+    const status = typeof result?.job_status === 'string' ? result.job_status.trim() : ''
+    if (stage === 'WAITING') {
+      return { stage: 'queued', message: `Fooocus 排队中${status ? `：${status}` : ''}`, detail: { provider_status: status || undefined } }
+    }
+    if (stage === 'RUNNING' || stage === '') {
+      const pct = Number(result?.job_progress)
+      const m = status.match(/step\s*(\d+)\s*\/\s*(\d+)/i)
+      return {
+        stage: 'running',
+        percent: Number.isFinite(pct) ? stagePercent('running', pct / 100) : undefined,
+        message: `Fooocus 出图中${Number.isFinite(pct) ? `：${Math.round(pct)}%` : ''}${status ? `（${status}）` : ''}`,
+        detail: {
+          provider_status: status || undefined,
+          step: m ? Number(m[1]) : undefined,
+          steps: m ? Number(m[2]) : undefined,
+        },
+        replaceDetail: true,
+      }
+    }
+    return null
   }
 
   extractImageUrl(result: any): string | null {

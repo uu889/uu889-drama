@@ -15,7 +15,12 @@ import { STORAGE_ROOT } from './paths.js'
 export async function downloadFile(
   url: string,
   subDir: string,
-  opts: { headers?: Record<string, string>; fallbackExt?: string } = {},
+  opts: {
+    headers?: Record<string, string>
+    fallbackExt?: string
+    /** 下载进度回调（total 为 null 表示服务端没给 Content-Length）；节流到约 4 次 / 秒 */
+    onProgress?: (downloaded: number, total: number | null) => void
+  } = {},
 ): Promise<string> {
   const dir = path.join(STORAGE_ROOT, subDir)
   fs.mkdirSync(dir, { recursive: true })
@@ -30,8 +35,34 @@ export async function downloadFile(
   const filename = `${uuid()}${ext}`
   const filePath = path.join(dir, filename)
 
-  const buffer = Buffer.from(await resp.arrayBuffer())
-  fs.writeFileSync(filePath, buffer)
+  const lengthHeader = Number(resp.headers.get('content-length'))
+  const total = Number.isFinite(lengthHeader) && lengthHeader > 0 ? lengthHeader : null
+  if (!opts.onProgress || !resp.body) {
+    const buffer = Buffer.from(await resp.arrayBuffer())
+    fs.writeFileSync(filePath, buffer)
+    opts.onProgress?.(buffer.length, total ?? buffer.length)
+  } else {
+    // 按块读取，边读边上报进度
+    const chunks: Buffer[] = []
+    let downloaded = 0
+    let lastReport = 0
+    const reader = (resp.body as any).getReader()
+    opts.onProgress(0, total)
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      const chunk = Buffer.from(value)
+      chunks.push(chunk)
+      downloaded += chunk.length
+      const now = Date.now()
+      if (now - lastReport > 250) {
+        lastReport = now
+        opts.onProgress(downloaded, total)
+      }
+    }
+    fs.writeFileSync(filePath, Buffer.concat(chunks))
+    opts.onProgress(downloaded, total ?? downloaded)
+  }
 
   // 返回相对路径（供 API 返回给前端）
   return `static/${subDir}/${filename}`

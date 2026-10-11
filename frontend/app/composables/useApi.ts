@@ -134,6 +134,12 @@ export const aiConfigAPI = {
   update: (id: number, d: any) => api.put(`/ai-configs/${id}`, d),
   del: (id: number) => api.del(`/ai-configs/${id}`),
   test: (d: any) => api.post('/ai-configs/test', d),
+  /** ComfyUI 内置工作流模板（kind: image | video） */
+  comfyTemplates: (kind: 'image' | 'video') => api.get(`/ai-configs/comfyui/templates?kind=${kind}`),
+  /** 检查 ComfyUI 工作流的参数绑定、提醒与缺失模型 */
+  comfyInspect: (d: any) => api.post('/ai-configs/comfyui/inspect', d),
+  /** 读取本地服务（ComfyUI / SD WebUI / Fooocus）里可用的模型、采样器、风格 */
+  localModels: (d: any) => api.post('/ai-configs/local/models', d),
 }
 
 // lang 缺省/为 zh 时读写基础版（不带 query，保持原请求形态）

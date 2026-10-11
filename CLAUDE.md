@@ -45,7 +45,9 @@ configs/   — 遗留死配置，代码零引用
 - **AI Agents**: Mastra，4 个 agent（script_rewriter / extractor / storyboard_breaker / prompt_generator），instructions 从 `workspace/prompts/*.md` + skills 动态拼接，模型按请求解析（文本服务商 aiask/openai/gemini/volcengine/deepseek/qwen/claude/xai，claude 走 `@ai-sdk/anthropic` 原生接口）；fetch 补丁链适配国内中转站（关思考/温度/max_tokens）
 - **媒体生成**: `services/generation.ts` 统一任务生命周期（sys_task 表），适配器模式：图片 aiask/openai/gemini/volcengine/xai/comfyui/sdwebui/fooocus（本地生图，见 adapters/local-image.ts），视频 aiask/xai/veo/runway/comfyui/volcengine/minimax/aliyun（veo = Gemini API `:predictLongRunning`；runway = `X-Runway-Version` 任务接口；xai = Grok 原生 `/v1/videos/generations`，参考图 `reference_images` + 提示词 `<IMAGE_n>`）。适配器 `buildGenerateRequest` 可返回 Promise（先上传素材），`resolveDownload` 给出成片下载方式（鉴权头 / 相对地址补全）
 - **aiask.me**: OpenAI 兼容网关，文本走 `/v1/chat/completions`；图片 `adapters/aiask-image.ts`（grok-imagine 用 aspect_ratio + JSON edits）；Grok 视频 `adapters/aiask-video.ts`：`POST /v1/videos` → `GET /v1/videos/{id}` → 带 Key 取 `/content`
-- **ComfyUI**: `adapters/comfyui-common.ts`（生图 `comfyui-image.ts` / 生视频 `comfyui-video.ts` 共用），工作流存 `ai_service_configs.settings.comfyui_workflow`（API 格式 JSON，空则用内置 Wan 2.2 TI2V 5B），`{{占位符}}` 替换 + 缺图节点裁剪；`/upload/image` → `/prompt` → `/history/{id}` → `/view`
+- **ComfyUI**: `adapters/comfyui-common.ts`（生图 `comfyui-image.ts` / 生视频 `comfyui-video.ts` 共用），工作流存 `ai_service_configs.settings.comfyui_workflow`（API 格式 JSON，空则按 `comfyui_template` / 模型选 `comfyui-templates.ts` 内置模板），`comfyui-bind.ts` 自动绑定没写占位符的工作流（提示词 / 图片 / 种子 / 宽高帧数 / FPS / 模型文件），`{{占位符}}` 替换 + 缺图节点裁剪；`/upload/image` → `/prompt` → `/history/{id}` → `/view`；`comfyui-progress.ts` 订阅 `/ws` 推送节点 / 采样进度
+- **生成进度**: `services/task-progress.ts` 内存态进度（阶段 / 百分比 / 排队 / 采样步数 / 下载字节 / 过程记录），随 `/tasks`、`/episodes/:id/generation-tasks` 返回 `progress`；适配器钩子 `onSubmitted` / `describeProgress` / `trackSyncProgress`（SD WebUI）；前端 `components/TaskProgress.vue`
+- **本地生图提示词**: `settings.prompt_template`（`{{prompt}}` 插入位置）、`settings.prompt_translate`（`services/prompt-translate.ts` 用文字模型译成英文，本地生图默认开）
 - **视频拼接**: `services/ffmpeg-merge.ts`，FFmpeg 二进制内置（ffmpeg-static），可用 `FFMPEG_BIN`/`FFPROBE_BIN` 覆盖
 
 ### Frontend

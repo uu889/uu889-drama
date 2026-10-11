@@ -62,3 +62,23 @@ export function toRawBase64OrUrl(ref: string): string {
 export function stripDataPrefix(b64: string): string {
   return String(b64 || '').replace(/^data:[^;]+;base64,/, '')
 }
+
+/**
+ * 提示词模板：把 UU889-Drama 生成的提示词套进用户的模板里再发给本地服务。
+ * 模板里写 {{prompt}} 表示插入位置；没写时追加在提示词后面（逗号分隔）；模板为空原样返回。
+ * 例：「masterpiece, best quality, {{prompt}}, cinematic lighting」
+ */
+export function applyPromptTemplate(template: unknown, prompt: string): string {
+  const tpl = typeof template === 'string' ? template.trim() : ''
+  const text = (prompt || '').trim()
+  if (!tpl) return text
+  if (/\{\{\s*prompt\s*\}\}/i.test(tpl)) return tpl.replace(/\{\{\s*prompt\s*\}\}/gi, text).trim()
+  return text ? `${text}, ${tpl}` : tpl
+}
+
+/** 设置里「明确填写」的数字（空值返回 undefined，用于决定是否覆盖工作流里的原值） */
+export function explicitNumberSetting(value: unknown, min: number, max: number): number | undefined {
+  if (value === '' || value == null) return undefined
+  const n = Number(value)
+  return Number.isFinite(n) && n >= min && n <= max ? n : undefined
+}

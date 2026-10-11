@@ -494,6 +494,33 @@
               {{ preset.label }}
             </button>
           </div>
+          <details v-if="cfgGuide" class="cfg-guide" :open="!cfgEditId">
+            <summary class="cfg-guide-summary">
+              <BookOpen :size="14" />
+              <span class="cfg-guide-title">{{ t('settings.cfg.guide.title') }}</span>
+              <span class="cfg-guide-sub">{{ cfgGuide.summary }}</span>
+            </summary>
+            <div class="cfg-guide-body">
+              <p class="cfg-guide-usage">{{ serviceUsage }}</p>
+              <div class="cfg-guide-section">{{ t('settings.cfg.guide.steps') }}</div>
+              <ol class="cfg-guide-steps">
+                <li v-for="(step, i) in cfgGuide.steps" :key="i">{{ step }}</li>
+              </ol>
+              <div class="cfg-guide-section">{{ t('settings.cfg.guide.fields') }}</div>
+              <table class="cfg-guide-fields">
+                <tr v-for="[k, v] in cfgGuide.fields" :key="k"><th>{{ k }}</th><td>{{ v }}</td></tr>
+              </table>
+              <template v-if="cfgGuide.tips.length">
+                <div class="cfg-guide-section">{{ t('settings.cfg.guide.tips') }}</div>
+                <ul class="cfg-guide-tips">
+                  <li v-for="(tip, i) in cfgGuide.tips" :key="i">{{ tip }}</li>
+                </ul>
+              </template>
+              <div v-if="cfgGuide.links.length" class="cfg-guide-links">
+                <a v-for="[label, url] in cfgGuide.links" :key="url" :href="url" target="_blank" rel="noopener">{{ label }} ↗</a>
+              </div>
+            </div>
+          </details>
           <label class="field">
             <span class="field-label">{{ t('settings.cfg.name') }}</span>
             <input v-model="cfgForm.name" class="input" :placeholder="t('settings.cfg.namePlaceholder')" />
@@ -534,26 +561,91 @@
             </div>
             <span class="field-hint">{{ t('settings.cfg.modelsHint') }}</span>
           </div>
+          <!-- ===== 本地服务：ComfyUI ===== -->
           <template v-if="isComfyForm">
-            <label class="field">
-              <span class="field-label">{{ t('settings.cfg.comfy.workflow') }} <span class="dim">({{ cfgForm.service_type === 'image' ? t('settings.cfg.comfy.workflowHintImage') : t('settings.cfg.comfy.workflowHint') }})</span></span>
-              <textarea v-model="cfgForm.comfyui_workflow" class="textarea mono comfy-workflow-input" rows="8" spellcheck="false" :placeholder="t('settings.cfg.comfy.workflowPlaceholder')"></textarea>
+            <div class="field">
+              <span class="field-label">{{ t('settings.cfg.comfy.source') }}</span>
+              <div class="seg-switch" role="tablist">
+                <button type="button" :class="['seg-btn', { active: comfySource === 'builtin' }]" @click="comfySource = 'builtin'">{{ t('settings.cfg.comfy.sourceBuiltin') }}</button>
+                <button type="button" :class="['seg-btn', { active: comfySource === 'custom' }]" @click="comfySource = 'custom'">{{ t('settings.cfg.comfy.sourceCustom') }}</button>
+              </div>
+            </div>
+            <template v-if="comfySource === 'builtin'">
+              <label class="field">
+                <span class="field-label">{{ t('settings.cfg.comfy.template') }}</span>
+                <select v-model="cfgForm.comfyui_template" class="input">
+                  <option value="">{{ t('settings.cfg.comfy.templateAuto') }}</option>
+                  <option v-for="tpl in comfyTemplates" :key="tpl.id" :value="tpl.id">{{ tpl.label }}</option>
+                </select>
+                <span class="field-hint">{{ t('settings.cfg.comfy.templateHint') }}</span>
+              </label>
+              <div v-if="activeComfyTemplate" class="tpl-card">
+                <div class="tpl-card-head">
+                  <strong>{{ activeComfyTemplate.label }}</strong>
+                  <span class="tag">{{ t('settings.cfg.comfy.needsImage.' + (activeComfyTemplate.needs_image || 'none')) }}</span>
+                  <span v-if="activeComfyTemplate.recommended?.fps" class="tag">{{ activeComfyTemplate.recommended.fps }} fps</span>
+                  <span v-if="activeComfyTemplate.recommended?.baseSize" class="tag">{{ activeComfyTemplate.recommended.baseSize }}px</span>
+                </div>
+                <p class="tpl-card-desc">{{ locale === 'zh' ? activeComfyTemplate.description : activeComfyTemplate.description_en }}</p>
+                <div class="tpl-files">
+                  <div class="tpl-files-title">{{ t('settings.cfg.comfy.filesTitle') }}</div>
+                  <div v-for="f in activeComfyTemplate.files" :key="f.file" class="tpl-file">
+                    <span class="mono tpl-file-path">ComfyUI/{{ f.folder }}/<b>{{ f.file }}</b></span>
+                    <a :href="f.url" target="_blank" rel="noopener" class="tpl-file-link">{{ t('settings.cfg.comfy.download') }}</a>
+                  </div>
+                </div>
+                <div class="tpl-card-actions">
+                  <button type="button" class="btn btn-sm" @click="useTemplateAsModel">{{ t('settings.cfg.comfy.useTemplateModel', { model: activeComfyTemplate.default_model }) }}</button>
+                  <button type="button" class="btn btn-sm" @click="copyTemplateToEditor">{{ t('settings.cfg.comfy.copyToEditor') }}</button>
+                </div>
+              </div>
+            </template>
+            <label v-else class="field">
+              <span class="field-label">{{ t('settings.cfg.comfy.workflow') }}</span>
+              <textarea v-model="cfgForm.comfyui_workflow" class="textarea mono comfy-workflow-input" rows="10" spellcheck="false" :placeholder="t('settings.cfg.comfy.workflowPlaceholder')"></textarea>
+              <span class="field-hint">{{ t('settings.cfg.comfy.exportHint') }}</span>
               <span class="field-hint">{{ t('settings.cfg.comfy.placeholders') }}</span>
               <span class="field-hint mono comfy-placeholder-list">{{ cfgForm.service_type === 'image' ? COMFY_IMAGE_PLACEHOLDERS : COMFY_PLACEHOLDERS }}</span>
             </label>
-            <div :class="cfgForm.service_type === 'video' ? 'comfy-row' : ''">
-              <label v-if="cfgForm.service_type === 'video'" class="field">
+            <label class="check-row">
+              <input v-model="cfgForm.comfyui_auto_bind" type="checkbox" />
+              <span>
+                <b>{{ t('settings.cfg.comfy.autoBind') }}</b>
+                <span class="field-hint">{{ cfgForm.service_type === 'image' ? t('settings.cfg.comfy.autoBindHintImage') : t('settings.cfg.comfy.autoBindHint') }}</span>
+              </span>
+            </label>
+            <div v-if="cfgForm.service_type === 'video'" class="local-row">
+              <label class="field">
                 <span class="field-label">FPS</span>
-                <input v-model="cfgForm.comfyui_fps" class="input" type="number" min="1" max="120" placeholder="24" />
+                <input v-model="cfgForm.comfyui_fps" class="input" type="number" min="1" max="120" :placeholder="String(activeComfyTemplate?.recommended?.fps || t('settings.cfg.comfy.fromWorkflow'))" />
               </label>
-              <label class="field comfy-negative">
-                <span class="field-label">{{ t('settings.cfg.comfy.negativePrompt') }}</span>
-                <input v-model="cfgForm.comfyui_negative_prompt" class="input" :placeholder="cfgForm.service_type === 'image' ? t('settings.cfg.local.negativePlaceholder') : t('settings.cfg.comfy.negativePlaceholder')" />
+              <label class="field">
+                <span class="field-label">{{ t('settings.cfg.local.steps') }}</span>
+                <input v-model="cfgForm.comfyui_steps" class="input" type="number" min="1" max="200" :placeholder="t('settings.cfg.comfy.fromWorkflow')" />
+              </label>
+              <label class="field">
+                <span class="field-label">CFG</span>
+                <input v-model="cfgForm.comfyui_cfg" class="input" type="number" min="0" max="30" step="0.5" :placeholder="t('settings.cfg.comfy.fromWorkflow')" />
               </label>
             </div>
+            <label class="field">
+              <span class="field-label">{{ t('settings.cfg.comfy.negativePrompt') }}</span>
+              <input v-model="cfgForm.comfyui_negative_prompt" class="input" :placeholder="cfgForm.service_type === 'image' ? t('settings.cfg.local.negativePlaceholder') : t('settings.cfg.comfy.negativePlaceholder')" />
+            </label>
           </template>
           <template v-if="isSdForm || isFooocusForm">
-            <p class="field-hint">{{ isSdForm ? t('settings.cfg.local.sdHint') : t('settings.cfg.fooocus.hint') }}</p>
+            <div class="field">
+              <span class="field-label">{{ t('settings.cfg.local.paramPresets') }}</span>
+              <div class="preset-picker">
+                <template v-if="isSdForm">
+                  <button v-for="p in SDWEBUI_PRESETS" :key="p.id" type="button" class="preset-pill" @click="applySdPreset(p)">{{ p.label }}</button>
+                </template>
+                <template v-else>
+                  <button v-for="p in FOOOCUS_PRESETS" :key="p.id" type="button" class="preset-pill" @click="applyFooocusPreset(p)">{{ locale === 'zh' ? p.zh : p.en }}</button>
+                </template>
+              </div>
+              <span class="field-hint">{{ isSdForm ? t('settings.cfg.local.sdHint') : t('settings.cfg.fooocus.hint') }}</span>
+            </div>
             <label class="field">
               <span class="field-label">{{ t('settings.cfg.comfy.negativePrompt') }}</span>
               <input v-model="cfgForm.image_negative_prompt" class="input" :placeholder="t('settings.cfg.local.negativePlaceholder')" />
@@ -563,15 +655,15 @@
             <div class="local-row">
               <label class="field">
                 <span class="field-label">{{ t('settings.cfg.local.baseSize') }}</span>
-                <input v-model="cfgForm.image_base_size" class="input" type="number" min="256" max="2048" step="64" placeholder="1024" />
+                <input v-model="cfgForm.image_base_size" class="input" type="number" min="256" max="2048" step="64" :placeholder="String(activeComfyTemplate?.recommended?.baseSize || 1024)" />
               </label>
               <label class="field">
                 <span class="field-label">{{ t('settings.cfg.local.steps') }}</span>
-                <input v-model="cfgForm.image_steps" class="input" type="number" min="1" max="150" placeholder="25" />
+                <input v-model="cfgForm.image_steps" class="input" type="number" min="1" max="150" :placeholder="isComfyForm ? t('settings.cfg.comfy.fromWorkflow') : '25'" />
               </label>
               <label class="field">
                 <span class="field-label">CFG</span>
-                <input v-model="cfgForm.image_cfg_scale" class="input" type="number" min="0" max="30" step="0.5" placeholder="7" />
+                <input v-model="cfgForm.image_cfg_scale" class="input" type="number" min="0" max="30" step="0.5" :placeholder="isComfyForm ? t('settings.cfg.comfy.fromWorkflow') : '7'" />
               </label>
             </div>
             <span class="field-hint">{{ t('settings.cfg.local.baseSizeHint') }}</span>
@@ -593,6 +685,83 @@
                 <span class="field-label">{{ t('settings.cfg.fooocus.styles') }}</span>
                 <input v-model="cfgForm.fooocus_styles" class="input" :placeholder="t('settings.cfg.fooocus.stylesPlaceholder')" />
               </label>
+            </div>
+          </template>
+          <!-- 提示词模板 + 中文翻译（全部本地服务） -->
+          <template v-if="isLocalMediaForm">
+            <div class="field">
+              <span class="field-label">{{ t('settings.cfg.local.promptTemplate') }}</span>
+              <div class="preset-picker">
+                <button
+                  v-for="p in promptTemplatePresets"
+                  :key="p.id"
+                  type="button"
+                  :class="['preset-pill', { 'is-on': cfgForm.prompt_template === p.value }]"
+                  @click="cfgForm.prompt_template = p.value"
+                >{{ locale === 'zh' ? p.zh : p.en }}</button>
+              </div>
+              <input v-model="cfgForm.prompt_template" class="input mono" :placeholder="t('settings.cfg.local.promptTemplatePlaceholder', { ph: PROMPT_PH })" />
+              <span class="field-hint">{{ t('settings.cfg.local.promptTemplateHint', { ph: PROMPT_PH }) }}</span>
+              <span class="field-hint prompt-preview"><b>{{ t('settings.cfg.local.preview') }}</b> {{ promptTemplatePreview }}</span>
+            </div>
+            <label class="check-row">
+              <input v-model="cfgForm.prompt_translate" type="checkbox" />
+              <span>
+                <b>{{ t('settings.cfg.local.translate') }}</b>
+                <span class="field-hint">{{ cfgForm.service_type === 'video' ? t('settings.cfg.local.translateHintVideo') : t('settings.cfg.local.translateHint') }}</span>
+              </span>
+            </label>
+            <div class="local-tools">
+              <button v-if="isComfyForm" type="button" class="btn btn-sm" :disabled="inspecting" @click="inspectComfyWorkflow">
+                <Loader2 v-if="inspecting" :size="12" class="animate-spin" />
+                {{ t('settings.cfg.comfy.inspect') }}
+              </button>
+              <button type="button" class="btn btn-sm" :disabled="localModelsLoading" @click="loadLocalModels">
+                <Loader2 v-if="localModelsLoading" :size="12" class="animate-spin" />
+                {{ t('settings.cfg.local.readModels') }}
+              </button>
+            </div>
+            <div v-if="inspectResult" class="inspect-panel">
+              <div class="inspect-head">
+                <strong>{{ t('settings.cfg.comfy.inspectTitle') }}</strong>
+                <span class="tag">{{ inspectResult.source === 'custom' ? t('settings.cfg.comfy.sourceCustom') : (inspectResult.template?.label || '') }}</span>
+                <button type="button" class="btn btn-ghost btn-icon btn-sm ml-auto" @click="inspectResult = null"><X :size="12" /></button>
+              </div>
+              <table class="inspect-table">
+                <thead><tr><th>{{ t('settings.cfg.comfy.colNode') }}</th><th>{{ t('settings.cfg.comfy.colField') }}</th><th>{{ t('settings.cfg.comfy.colTarget') }}</th><th>{{ t('settings.cfg.comfy.colSource') }}</th></tr></thead>
+                <tbody>
+                  <tr v-for="(b, i) in inspectBindings" :key="i">
+                    <td><span class="mono">#{{ b.node_id }}</span> {{ b.title || b.class_type }}</td>
+                    <td class="mono">{{ b.input }}</td>
+                    <td>{{ bindTargetLabel(b.target) }}<span v-if="b.source === 'override'" class="mono dim"> = {{ b.value }}</span></td>
+                    <td><span :class="['tag', 'bind-' + b.source]">{{ t('settings.cfg.comfy.bindSource.' + b.source) }}</span></td>
+                  </tr>
+                </tbody>
+              </table>
+              <div v-if="inspectResult.missing_models?.length" class="inspect-warn is-error">
+                <b>{{ t('settings.cfg.comfy.missingModels') }}</b>
+                <div v-for="m in inspectResult.missing_models" :key="m.value + m.class_type" class="mono">{{ m.class_type }}.{{ m.input }} = {{ m.value }}</div>
+              </div>
+              <div v-else-if="inspectResult.missing_models && inspectResult.model_files?.length" class="inspect-warn is-ok">{{ t('settings.cfg.comfy.modelsOk', { n: inspectResult.model_files.length }) }}</div>
+              <div v-if="inspectResult.comfy_error" class="inspect-warn">{{ inspectResult.comfy_error }}</div>
+              <ul v-if="inspectResult.warnings?.length" class="inspect-warnings">
+                <li v-for="w in inspectResult.warnings" :key="w">{{ w }}</li>
+              </ul>
+            </div>
+            <div v-if="localModels" class="inspect-panel">
+              <div class="inspect-head">
+                <strong>{{ t('settings.cfg.local.modelsTitle') }}</strong>
+                <span class="field-hint">{{ t('settings.cfg.local.modelsHint') }}</span>
+                <button type="button" class="btn btn-ghost btn-icon btn-sm ml-auto" @click="localModels = null"><X :size="12" /></button>
+              </div>
+              <div v-if="localModels.error" class="inspect-warn is-error">{{ localModels.error }}</div>
+              <div v-for="g in localModels.groups" :key="g.key" class="model-group">
+                <div class="model-group-title">{{ g.label }}<span v-if="g.folder" class="mono dim"> · ComfyUI/{{ g.folder }}</span> <span class="dim">({{ g.items.length }})</span></div>
+                <div class="model-chips">
+                  <button v-for="item in g.items.slice(0, 80)" :key="item" type="button" class="model-chip model-pick" @click="pickLocalItem(g.key, item)">{{ item }}</button>
+                  <span v-if="!g.items.length" class="dim">{{ t('settings.cfg.local.modelsEmpty') }}</span>
+                </div>
+              </div>
             </div>
           </template>
           <label v-if="cfgForm.service_type === 'text'" class="field">
@@ -737,7 +906,7 @@
 </template>
 
 <script setup>
-import { Plus, Pencil, Trash2, FileText, ChevronDown, Check, Loader2, Bot, Cpu, Sparkles, Palette, ExternalLink, Star, HardDrive, Database, RefreshCw, Download, Languages, SunMoon, X } from 'lucide-vue-next'
+import { Plus, Pencil, Trash2, FileText, ChevronDown, Check, Loader2, Bot, Cpu, Sparkles, Palette, ExternalLink, Star, HardDrive, Database, RefreshCw, Download, Languages, SunMoon, X, BookOpen } from 'lucide-vue-next'
 import BaseSelect from '~/components/BaseSelect.vue'
 import { toast } from 'vue-sonner'
 import { toastError } from '~/composables/useToast'
@@ -749,8 +918,9 @@ import { useTheme } from '~/composables/useTheme'
 import { providerIconUrl } from '~/composables/useProviderIcon'
 import { startTour, autoTour } from '~/composables/useTour'
 import { confirmUnifiedLanguage } from '~/composables/useUnifiedLanguage'
+import { getProviderGuide, getServiceUsage, PROMPT_TEMPLATE_PRESETS, SDWEBUI_PRESETS, FOOOCUS_PRESETS } from '~/composables/providerGuides'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const showBrandImage = ref(true)
 const tab = ref('ai')
@@ -774,8 +944,9 @@ const AIASK_SITE_URL = 'https://aiask.me'
 const aiaskApiKey = ref('')
 const aiaskSaving = ref(false)
 // 本地服务（ComfyUI / SD WebUI / Fooocus）专属参数存后端 settings JSON，接口上以顶层字段读写
-const LOCAL_SETTING_FIELDS = ['comfyui_workflow', 'comfyui_fps', 'comfyui_negative_prompt', 'image_base_size', 'image_steps', 'image_cfg_scale', 'image_sampler', 'image_negative_prompt', 'fooocus_performance', 'fooocus_styles']
-const EMPTY_CFG_FORM = { name: '', provider: '', api_key: '', base_url: '', models: [], service_type: 'text', priority: 0, temperature: '', ...Object.fromEntries(LOCAL_SETTING_FIELDS.map(k => [k, ''])) }
+const LOCAL_SETTING_FIELDS = ['comfyui_workflow', 'comfyui_template', 'comfyui_fps', 'comfyui_steps', 'comfyui_cfg', 'comfyui_negative_prompt', 'prompt_template', 'image_base_size', 'image_steps', 'image_cfg_scale', 'image_sampler', 'image_negative_prompt', 'fooocus_performance', 'fooocus_styles']
+// 布尔设置单独处理：自动绑定默认开；中文翻译默认值按服务类型（本地生图开、ComfyUI 视频关）
+const EMPTY_CFG_FORM = { name: '', provider: '', api_key: '', base_url: '', models: [], service_type: 'text', priority: 0, temperature: '', ...Object.fromEntries(LOCAL_SETTING_FIELDS.map(k => [k, ''])), comfyui_auto_bind: true, prompt_translate: true }
 const cfgForm = reactive({ ...EMPTY_CFG_FORM })
 const LOCAL_BASE_URLS = { comfyui: 'http://127.0.0.1:8188', sdwebui: 'http://127.0.0.1:7860', fooocus: 'http://127.0.0.1:8888' }
 const FOOOCUS_PERFORMANCE = ['Speed', 'Quality', 'Extreme Speed', 'Lightning', 'Hyper-SD']
@@ -785,6 +956,146 @@ const isSdForm = computed(() => cfgForm.provider === 'sdwebui' && cfgForm.servic
 const isFooocusForm = computed(() => cfgForm.provider === 'fooocus' && cfgForm.service_type === 'image')
 // 基准尺寸 / 步数 / CFG：ComfyUI 生图（内置模板）与 SD WebUI 使用
 const showLocalImageParams = computed(() => cfgForm.service_type === 'image' && ['comfyui', 'sdwebui'].includes(cfgForm.provider))
+const isLocalMediaForm = computed(() => isComfyForm.value || isSdForm.value || isFooocusForm.value)
+
+// ===== 配置说明（每个服务商 × 服务类型）=====
+const cfgGuide = computed(() => cfgForm.provider ? getProviderGuide(locale.value, cfgForm.service_type, cfgForm.provider) : null)
+const serviceUsage = computed(() => getServiceUsage(locale.value, cfgForm.service_type))
+
+// ===== 提示词模板 =====
+// 字面量 {{prompt}} 不能写进模板文本或 i18n 文案（会被插值），统一用常量传入
+const PROMPT_PH = '{{prompt}}'
+const promptTemplatePresets = computed(() => PROMPT_TEMPLATE_PRESETS.filter(p => p.for.includes(cfgForm.service_type === 'video' ? 'video' : 'image')))
+const promptTemplatePreview = computed(() => {
+  const sample = t('settings.cfg.local.samplePrompt')
+  const tpl = String(cfgForm.prompt_template || '').trim()
+  if (!tpl) return sample
+  return /\{\{\s*prompt\s*\}\}/i.test(tpl) ? tpl.replace(/\{\{\s*prompt\s*\}\}/gi, sample) : `${sample}, ${tpl}`
+})
+function applySdPreset(p) {
+  cfgForm.image_base_size = p.base
+  cfgForm.image_steps = p.steps
+  cfgForm.image_cfg_scale = p.cfg
+  cfgForm.image_sampler = p.sampler
+  if (p.prompt) cfgForm.prompt_template = p.prompt
+  toast.success(t('settings.cfg.local.presetApplied', { name: p.label }))
+}
+function applyFooocusPreset(p) {
+  cfgForm.fooocus_performance = p.performance === 'Speed' ? '' : p.performance
+  cfgForm.fooocus_styles = p.styles
+  toast.success(t('settings.cfg.local.presetApplied', { name: locale.value === 'zh' ? p.zh : p.en }))
+}
+
+// ===== ComfyUI：工作流来源 / 内置模板 / 检查绑定 =====
+const comfySource = ref('builtin')
+const comfyTemplateCache = reactive({ image: [], video: [] })
+const comfyTemplates = computed(() => comfyTemplateCache[cfgForm.service_type === 'image' ? 'image' : 'video'] || [])
+async function ensureComfyTemplates(kind) {
+  if (comfyTemplateCache[kind]?.length) return
+  try { comfyTemplateCache[kind] = await aiConfigAPI.comfyTemplates(kind) || [] } catch (e) { toastError(e) }
+}
+watch(() => [cfgDialog.value, cfgForm.provider, cfgForm.service_type], ([open, provider, type]) => {
+  if (open && provider === 'comfyui' && (type === 'image' || type === 'video')) ensureComfyTemplates(type)
+})
+/** 当前生效的内置模板：显式选择 > 模型名等于模板 ID > 模型文件属于某模板 > 默认（与后端 resolveComfyTemplate 一致） */
+const activeComfyTemplate = computed(() => {
+  const list = comfyTemplates.value
+  if (!list.length) return null
+  const byId = id => list.find(x => x.id === String(id || '').trim().toLowerCase())
+  if (cfgForm.comfyui_template && byId(cfgForm.comfyui_template)) return byId(cfgForm.comfyui_template)
+  const model = cfgForm.models[0] || ''
+  if (byId(model)) return byId(model)
+  const files = model.split(/[|,，+]/).map(x => x.trim().toLowerCase()).filter(Boolean)
+  const byFile = list.find(x => x.files.some(f => files.includes(f.file.toLowerCase())))
+  if (byFile) return byFile
+  if (cfgForm.service_type === 'image' && files.some(f => /flux/.test(f))) return byId(files.some(f => /schnell/.test(f)) ? 'flux1-schnell' : 'flux1-dev')
+  return list[0]
+})
+function useTemplateAsModel() {
+  const tpl = activeComfyTemplate.value
+  if (!tpl) return
+  cfgForm.comfyui_template = tpl.id
+  cfgForm.models = [tpl.default_model, ...cfgForm.models.filter(m => m !== tpl.default_model)]
+  if (cfgForm.service_type === 'image' && tpl.recommended?.baseSize && !cfgForm.image_base_size) cfgForm.image_base_size = tpl.recommended.baseSize
+}
+function copyTemplateToEditor() {
+  const tpl = activeComfyTemplate.value
+  if (!tpl) return
+  if (cfgForm.comfyui_workflow.trim() && !window.confirm(t('settings.cfg.comfy.overwriteConfirm'))) return
+  cfgForm.comfyui_workflow = JSON.stringify(tpl.workflow, null, 2)
+  comfySource.value = 'custom'
+}
+const inspecting = ref(false)
+const inspectResult = ref(null)
+const inspectBindings = computed(() => inspectResult.value?.bindings || [])
+function bindTargetLabel(target) {
+  const m = String(target || '').match(/^reference_image_(\d+)$/)
+  if (m) return t('settings.cfg.comfy.target.reference', { n: m[1] })
+  const key = `settings.cfg.comfy.target.${target}`
+  const label = t(key)
+  return label === key ? target : label
+}
+async function inspectComfyWorkflow() {
+  if (comfySource.value === 'custom' && cfgForm.comfyui_workflow.trim()) {
+    try { JSON.parse(cfgForm.comfyui_workflow) } catch { toast.warning(t('settings.cfg.comfy.workflowInvalid')); return }
+  }
+  inspecting.value = true
+  try {
+    inspectResult.value = await aiConfigAPI.comfyInspect({
+      service_type: cfgForm.service_type,
+      workflow: comfySource.value === 'custom' ? cfgForm.comfyui_workflow : '',
+      comfyui_template: cfgForm.comfyui_template,
+      model: cfgForm.models[0] || '',
+      comfyui_auto_bind: cfgForm.comfyui_auto_bind,
+      comfyui_steps: cfgForm.comfyui_steps,
+      comfyui_cfg: cfgForm.comfyui_cfg,
+      image_steps: cfgForm.image_steps,
+      image_cfg_scale: cfgForm.image_cfg_scale,
+      base_url: cfgForm.base_url || LOCAL_BASE_URLS.comfyui,
+      api_key: cfgForm.api_key,
+    })
+  } catch (e) {
+    toastError(e)
+  } finally {
+    inspecting.value = false
+  }
+}
+// ===== 读取本地服务里的模型 / 采样器 / 风格 =====
+const localModelsLoading = ref(false)
+const localModels = ref(null)
+async function loadLocalModels() {
+  localModelsLoading.value = true
+  try {
+    localModels.value = await aiConfigAPI.localModels({
+      provider: cfgForm.provider,
+      service_type: cfgForm.service_type,
+      base_url: cfgForm.base_url || LOCAL_BASE_URLS[cfgForm.provider],
+      api_key: cfgForm.api_key,
+    })
+  } catch (e) {
+    toastError(e)
+  } finally {
+    localModelsLoading.value = false
+  }
+}
+function pickLocalItem(group, item) {
+  if (group === 'samplers') { cfgForm.image_sampler = item; toast.success(t('settings.cfg.local.pickedSampler', { name: item })); return }
+  if (group === 'styles') {
+    const list = String(cfgForm.fooocus_styles || '').split(/[,，]/).map(x => x.trim()).filter(Boolean)
+    if (!list.includes(item)) list.push(item)
+    cfgForm.fooocus_styles = list.join(', ')
+    return
+  }
+  if (group === 'loras' || group === 'vae' || group === 'text_encoders') {
+    navigator.clipboard?.writeText(item).catch(() => {})
+    toast.info(t('settings.cfg.local.copiedName', { name: item }))
+    return
+  }
+  // 模型类：加入「模型」列表并设为默认（14B 双模型可在列表里手动改成「高噪声|低噪声」）
+  if (!cfgForm.models.includes(item)) cfgForm.models.unshift(item)
+  else pinModelTop(cfgForm.models.indexOf(item))
+  toast.success(t('settings.cfg.local.pickedModel', { name: item }))
+}
 // ComfyUI 工作流支持的占位符（与后端 comfyui-video.ts 保持一致）
 const COMFY_PLACEHOLDERS = '{{prompt}} {{negative_prompt}} {{seed}} {{width}} {{height}} {{duration}} {{fps}} {{frames}} {{aspect_ratio}} {{resolution}} {{model}} {{image}} {{first_frame}} {{last_frame}} {{reference_image_1}} ... {{reference_image_9}}'
 const COMFY_IMAGE_PLACEHOLDERS = '{{prompt}} {{negative_prompt}} {{seed}} {{width}} {{height}} {{steps}} {{cfg}} {{model}} {{aspect_ratio}} {{image}} {{reference_image_1}} ... {{reference_image_6}}'
@@ -877,6 +1188,7 @@ function applyProviderPreset(type, provider) {
   cfgForm.models = [...preset.models]
   // 配置名持久化进 DB：用 provider 英文 + 服务类型英文标识拼，不随界面语言漂移
   cfgForm.name = `${preset.label}-${type}`
+  if (!cfgEditId.value) cfgForm.prompt_translate = type !== 'video'
 }
 
 async function loadCfgs() { try { cfgs.value = await aiConfigAPI.list() } catch (e) { toastError(e) } }
@@ -946,9 +1258,12 @@ async function applyAiaskQuickConfig() {
 function startAddCfg(t) {
   cfgEditId.value = null
   cfgTestResult.value = null
-  Object.assign(cfgForm, { ...EMPTY_CFG_FORM, models: [], service_type: t })
+  Object.assign(cfgForm, { ...EMPTY_CFG_FORM, models: [], service_type: t, prompt_translate: t !== 'video' })
   const firstPreset = presetsByType(t)[0]
   if (firstPreset) applyProviderPreset(t, firstPreset.provider)
+  comfySource.value = 'builtin'
+  inspectResult.value = null
+  localModels.value = null
   cfgDialog.value = true
 }
 function startEditCfg(c) {
@@ -965,7 +1280,12 @@ function startEditCfg(c) {
     temperature: c.temperature ?? '',
     ...Object.fromEntries(LOCAL_SETTING_FIELDS.map(k => [k, c[k] ?? ''])),
     comfyui_workflow: formatWorkflow(c.comfyui_workflow),
+    comfyui_auto_bind: c.comfyui_auto_bind !== false,
+    prompt_translate: typeof c.prompt_translate === 'boolean' ? c.prompt_translate : c.service_type !== 'video',
   })
+  comfySource.value = c.comfyui_workflow ? 'custom' : 'builtin'
+  inspectResult.value = null
+  localModels.value = null
   cfgDialog.value = true
 }
 async function testCfgPayload(payload) {
@@ -1004,15 +1324,22 @@ function localSettingsPayload() {
   const num = v => (v === '' || v === null || v === undefined ? null : Number(v))
   const text = v => String(v ?? '').trim()
   const imageParams = () => ({ image_base_size: num(cfgForm.image_base_size), image_steps: num(cfgForm.image_steps), image_cfg_scale: num(cfgForm.image_cfg_scale) })
+  const promptParams = () => ({ prompt_template: text(cfgForm.prompt_template), prompt_translate: !!cfgForm.prompt_translate })
   if (isComfyForm.value) {
     return {
-      comfyui_workflow: text(cfgForm.comfyui_workflow),
+      // 选内置模板时清空自定义工作流（后端据此改用模板）
+      comfyui_workflow: comfySource.value === 'custom' ? text(cfgForm.comfyui_workflow) : '',
+      comfyui_template: comfySource.value === 'builtin' ? text(cfgForm.comfyui_template) : '',
+      comfyui_auto_bind: !!cfgForm.comfyui_auto_bind,
       comfyui_negative_prompt: text(cfgForm.comfyui_negative_prompt),
-      ...(cfgForm.service_type === 'video' ? { comfyui_fps: num(cfgForm.comfyui_fps) } : imageParams()),
+      ...promptParams(),
+      ...(cfgForm.service_type === 'video'
+        ? { comfyui_fps: num(cfgForm.comfyui_fps), comfyui_steps: num(cfgForm.comfyui_steps), comfyui_cfg: num(cfgForm.comfyui_cfg) }
+        : imageParams()),
     }
   }
-  if (isSdForm.value) return { image_negative_prompt: text(cfgForm.image_negative_prompt), image_sampler: text(cfgForm.image_sampler), ...imageParams() }
-  if (isFooocusForm.value) return { image_negative_prompt: text(cfgForm.image_negative_prompt), fooocus_performance: text(cfgForm.fooocus_performance), fooocus_styles: text(cfgForm.fooocus_styles) }
+  if (isSdForm.value) return { image_negative_prompt: text(cfgForm.image_negative_prompt), image_sampler: text(cfgForm.image_sampler), ...promptParams(), ...imageParams() }
+  if (isFooocusForm.value) return { image_negative_prompt: text(cfgForm.image_negative_prompt), fooocus_performance: text(cfgForm.fooocus_performance), fooocus_styles: text(cfgForm.fooocus_styles), ...promptParams() }
   return {}
 }
 // 工作流以紧凑 JSON 存库，编辑时格式化展示
@@ -1031,6 +1358,9 @@ async function saveCfg() {
   const comfy = localSettingsPayload()
   if (comfy.comfyui_workflow) {
     try { JSON.parse(comfy.comfyui_workflow) } catch { toast.warning(t('settings.cfg.comfy.workflowInvalid')); return }
+  }
+  if (isComfyForm.value && comfySource.value === 'custom' && !comfy.comfyui_workflow) {
+    toast.warning(t('settings.cfg.comfy.workflowEmpty')); return
   }
   try {
     if (cfgEditId.value) await aiConfigAPI.update(cfgEditId.value, { name: cfgForm.name, provider: cfgForm.provider, api_key: cfgForm.api_key, base_url: cfgForm.base_url, model: models, priority: cfgForm.priority, temperature, ...comfy })
@@ -1966,4 +2296,64 @@ onBeforeUnmount(stopUsagePoll)
   background: var(--accent);
   transition: width 0.2s ease;
 }
+
+/* 配置说明 */
+.cfg-guide { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-0); }
+.cfg-guide-summary { display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer; list-style: none; color: var(--accent); }
+.cfg-guide-summary::-webkit-details-marker { display: none; }
+.cfg-guide-title { font-size: 12.5px; font-weight: 650; flex-shrink: 0; }
+.cfg-guide-sub { font-size: 12px; color: var(--text-2); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cfg-guide[open] .cfg-guide-sub { white-space: normal; }
+.cfg-guide[open] .cfg-guide-summary { align-items: flex-start; flex-wrap: wrap; }
+.cfg-guide[open] .cfg-guide-sub { flex-basis: 100%; }
+.cfg-guide-body { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 8px; font-size: 12px; color: var(--text-1); line-height: 1.6; }
+.cfg-guide-usage { margin: 0; color: var(--text-2); }
+.cfg-guide-section { font-size: 11.5px; font-weight: 650; color: var(--text-0); margin-top: 4px; }
+.cfg-guide-steps, .cfg-guide-tips { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.cfg-guide-tips { color: var(--text-2); }
+.cfg-guide-fields { border-collapse: collapse; width: 100%; }
+.cfg-guide-fields th, .cfg-guide-fields td { text-align: left; vertical-align: top; padding: 4px 8px; border-top: 1px solid var(--border); font-size: 11.5px; }
+.cfg-guide-fields th { width: 96px; color: var(--text-2); font-weight: 600; white-space: nowrap; }
+.cfg-guide-links { display: flex; flex-wrap: wrap; gap: 12px; }
+.cfg-guide-links a { color: var(--accent); text-decoration: none; font-size: 12px; }
+.cfg-guide-links a:hover { text-decoration: underline; }
+
+/* 本地服务：来源切换 / 模板卡片 / 勾选项 */
+.seg-switch { display: inline-flex; padding: 3px; gap: 3px; border-radius: var(--radius-pill); background: var(--button-bg); align-self: flex-start; }
+.seg-btn { border: none; background: transparent; color: var(--text-2); font-size: 12px; font-weight: 600; padding: 5px 14px; border-radius: var(--radius-pill); cursor: pointer; }
+.seg-btn.active { background: var(--bg-1); color: var(--text-0); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08); }
+.tpl-card { border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; background: var(--bg-0); }
+.tpl-card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12.5px; }
+.tpl-card-desc { margin: 0; font-size: 12px; color: var(--text-2); line-height: 1.6; }
+.tpl-files { display: flex; flex-direction: column; gap: 4px; }
+.tpl-files-title { font-size: 11.5px; font-weight: 600; color: var(--text-1); }
+.tpl-file { display: flex; align-items: baseline; gap: 10px; font-size: 11px; }
+.tpl-file-path { color: var(--text-2); overflow-wrap: anywhere; min-width: 0; }
+.tpl-file-path b { color: var(--text-0); font-weight: 600; }
+.tpl-file-link { flex-shrink: 0; color: var(--accent); text-decoration: none; }
+.tpl-card-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.check-row { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: var(--text-1); cursor: pointer; }
+.check-row input { margin-top: 2px; accent-color: var(--accent); }
+.check-row > span { display: flex; flex-direction: column; gap: 2px; }
+.preset-pill.is-on { background: var(--accent-bg); color: var(--accent-text, var(--accent)); }
+.prompt-preview { overflow-wrap: anywhere; }
+.local-tools { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* 检查工作流 / 本机模型 */
+.inspect-panel { border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; background: var(--bg-0); }
+.inspect-head { display: flex; align-items: center; gap: 8px; font-size: 12.5px; flex-wrap: wrap; }
+.inspect-table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+.inspect-table th, .inspect-table td { text-align: left; padding: 5px 6px; border-top: 1px solid var(--border); vertical-align: top; }
+.inspect-table th { color: var(--text-2); font-weight: 600; border-top: none; }
+.inspect-table .tag { font-size: 10.5px; }
+.bind-auto { background: var(--accent-bg); color: var(--accent-text, var(--accent)); }
+.bind-placeholder { background: var(--success-bg); color: var(--success); }
+.bind-override { background: var(--warning-bg, rgba(240, 160, 0, 0.12)); color: var(--warning, #b7791f); }
+.inspect-warn { font-size: 11.5px; padding: 6px 8px; border-radius: 8px; background: var(--bg-1); color: var(--text-1); display: flex; flex-direction: column; gap: 2px; }
+.inspect-warn.is-error { background: var(--error-bg); color: var(--error); }
+.inspect-warn.is-ok { background: var(--success-bg); color: var(--success); }
+.inspect-warnings { margin: 0; padding-left: 18px; font-size: 11.5px; color: var(--text-2); display: flex; flex-direction: column; gap: 3px; }
+.model-group { display: flex; flex-direction: column; gap: 5px; }
+.model-group-title { font-size: 11.5px; font-weight: 600; color: var(--text-1); }
+.model-pick { cursor: pointer; border: none; font: inherit; }
 </style>

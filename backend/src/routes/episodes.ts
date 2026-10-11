@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { withTaskProgress } from '../services/task-progress.js'
 import { and, eq, isNull } from 'drizzle-orm'
 import { db, getInsertId, schema } from '../db/index.js'
 import { success, notFound, badRequest, now } from '../utils/response.js'
@@ -251,7 +252,7 @@ app.get('/:id/generation-tasks', async (c) => {
     .slice(0, 20)
 
   return success(c, {
-    tasks: toSnakeCaseArray(tasks),
+    tasks: toSnakeCaseArray(tasks).map(withTaskProgress),
     merges: toSnakeCaseArray(merges),
   })
 })

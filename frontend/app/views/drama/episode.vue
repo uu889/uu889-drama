@@ -350,6 +350,7 @@
                         <Loader2 v-if="isPendingCharImage(c.id)" :size="11" class="animate-spin" />
                         {{ (c.image_url || c.imageUrl) ? t('episode.asset.regen') : (isPendingCharImage(c.id) ? t('episode.asset.generating') : t('episode.asset.generate')) }}
                       </button>
+                      <TaskProgress v-if="isPendingCharImage(c.id) && taskProgressOf('character', c.id)" class="asset-progress" :progress="taskProgressOf('character', c.id)" compact />
                       <button class="btn btn-sm" :title="t('episode.asset.uploadCharImage')" :disabled="isUploadingAsset('character', c.id)" @click.stop="uploadAssetImage('character', c.id)">
                         <Loader2 v-if="isUploadingAsset('character', c.id)" :size="11" class="animate-spin" />
                         <svg v-else width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -418,6 +419,7 @@
                     {{ (s.image_url || s.imageUrl) ? t('episode.asset.regen') : (isPendingSceneImage(s.id) ? t('episode.asset.generating') : t('episode.asset.generate')) }}
                   </button>
                 </div>
+                <TaskProgress v-if="isPendingSceneImage(s.id) && taskProgressOf('scene', s.id)" class="asset-progress" :progress="taskProgressOf('scene', s.id)" compact />
               </div>
             </div>
             </template>
@@ -475,6 +477,7 @@
                     {{ (p.image_url || p.imageUrl) ? t('episode.asset.regen') : (isPendingPropImage(p.id) ? t('episode.asset.generating') : t('episode.asset.generate')) }}
                   </button>
                 </div>
+                <TaskProgress v-if="isPendingPropImage(p.id) && taskProgressOf('prop', p.id)" class="asset-progress" :progress="taskProgressOf('prop', p.id)" compact />
               </div>
             </div>
             <div v-else class="asset-props-empty">{{ t('episode.asset.propsEmpty') }}</div>
@@ -590,6 +593,11 @@
                         <span class="video-task-loc truncate">{{ task.meta }}</span>
                       </template>
                     </div>
+                    <TaskProgress
+                      v-if="videoTaskState(task.storyboard) === 'pending' && taskProgressOf('video', task.storyboard.id)"
+                      :progress="taskProgressOf('video', task.storyboard.id)"
+                      compact
+                    />
                     <div v-if="task.error" class="video-task-error" :title="task.error">
                       {{ mapError(task.error) }}
                       <div v-if="videoModerationHint(task.error)" class="video-task-error-hint">{{ videoModerationHint(task.error) }}</div>
@@ -733,6 +741,11 @@
                   <div class="video-player-empty-copy">
                     <div class="video-player-empty-title">{{ videoTaskState(selectedSb) === 'pending' ? t('episode.vid.emptyGenerating') : t('episode.vid.emptyNoVideo') }}</div>
                     <div class="video-player-empty-desc">{{ videoTaskState(selectedSb) === 'pending' ? t('episode.vid.emptyGeneratingDesc') : t('episode.vid.emptyNoVideoDesc') }}</div>
+                    <TaskProgress
+                      v-if="videoTaskState(selectedSb) === 'pending' && taskProgressOf('video', selectedSb.id)"
+                      class="video-player-progress"
+                      :progress="taskProgressOf('video', selectedSb.id)"
+                    />
                   </div>
                   <button
                     v-if="videoTaskState(selectedSb) !== 'pending'"
@@ -1058,6 +1071,7 @@
                   <span class="video-task-sep">·</span>
                   <span>#{{ row.id }}</span>
                 </div>
+                <TaskProgress v-if="row.progress && genTaskStateClass(row.status) === 'pending'" :progress="row.progress" />
                 <div v-if="row.errorMsg" class="video-task-error" :title="row.errorMsg">
                   {{ mapError(row.errorMsg) }}
                   <div v-if="row.kind === 'video' && videoModerationHint(row.errorMsg)" class="video-task-error-hint">{{ videoModerationHint(row.errorMsg) }}</div>
@@ -1439,6 +1453,7 @@ import { startTour, autoTour } from '~/composables/useTour'
 import { useAgent } from '~/composables/useAgent'
 import { toastError, mapError, MODERATION_RE } from '~/composables/useToast'
 import LocaleSwitcher from '~/components/LocaleSwitcher.vue'
+import TaskProgress from '~/components/TaskProgress.vue'
 
 definePageMeta({ layout: 'studio' })
 
@@ -2277,6 +2292,27 @@ const genTaskFailedCount = computed(() =>
   genMerges.value.filter(m => m.status === 'failed').length
 )
 
+// 每个目标（分镜视频 / 角色 / 场景 / 道具 / 分镜帧）最新一条进行中任务的实时进度
+const latestTaskProgress = computed(() => {
+  const map = new Map()
+  for (const task of genTasks.value) {
+    if (task.status !== 'processing' || !task.progress) continue
+    const key = task.type === 'video'
+      ? `video:${task.storyboard_id}`
+      : task.character_id ? `character:${task.character_id}`
+        : task.scene_id ? `scene:${task.scene_id}`
+          : task.prop_id ? `prop:${task.prop_id}`
+            : task.storyboard_id ? `frame:${task.storyboard_id}` : ''
+    if (!key) continue
+    const prev = map.get(key)
+    if (!prev || task.id > prev.id) map.set(key, task)
+  }
+  return map
+})
+function taskProgressOf(kind, id) {
+  return latestTaskProgress.value.get(`${kind}:${id}`)?.progress || null
+}
+
 function genTaskTargetLabel(task) {
   if (task.storyboard_id) {
     const sb = sbs.value.find(x => x.id === task.storyboard_id)
@@ -2308,6 +2344,7 @@ const genTaskRows = computed(() => {
     model: t.model || '',
     status: t.status || 'processing',
     errorMsg: t.error_msg || '',
+    progress: t.progress || null,
     previewUrl: t.local_path || t.result_url || '',
     prompt: t.prompt || '',
     createdAt: t.created_at || '',
@@ -2360,11 +2397,17 @@ function genTaskDuration(row) {
   return ms >= 60000 ? `${Math.floor(ms / 60000)}m${Math.round((ms % 60000) / 1000)}s` : `${Math.round(ms / 1000)}s`
 }
 
-// 抽屉打开且有进行中任务时,4s 轮询;关闭或全部结束时停止
-watch([taskDrawer, genTaskActiveCount], ([open, active]) => {
+// 有进行中的任务（或刚提交、本地标记为生成中）时 3s 轮询，带回实时进度；全部结束时停止
+const localPendingCount = computed(() =>
+  pendingVideoIds.value.length + pendingCharImageIds.value.length + pendingSceneImageIds.value.length + pendingPropImageIds.value.length)
+watch([taskDrawer, genTaskActiveCount, localPendingCount], ([open, active, local], prev) => {
   stopGenTasksPolling()
-  if (open && active > 0) {
-    genTasksTimer = setInterval(loadGenTasks, 4000)
+  if (active > 0 || local > 0) {
+    // 刚出现本地生成中的目标：立即拉一次，尽快显示进度
+    if (prev && local > (prev[2] || 0)) setTimeout(loadGenTasks, 800)
+    genTasksTimer = setInterval(loadGenTasks, 3000)
+  } else if (open) {
+    loadGenTasks()
   }
 })
 
@@ -6138,4 +6181,8 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
   }
 
 }
+
+/* 生成进度（TaskProgress） */
+.video-player-progress { width: min(360px, 100%); margin: 10px auto 0; }
+.asset-progress { width: 100%; }
 </style>

@@ -9,7 +9,9 @@ import { now } from '../utils/response.js'
 import { downloadFile, fetchImageAsCompressedDataUrl, generateImageThumb, readImageAsCompressedDataUrl, readImageAsDataUrl, saveBase64Image } from '../utils/storage.js'
 import { extractVideoPoster } from '../utils/video-poster.js'
 import { getImageAdapter, getVideoAdapter } from './adapters/registry'
-import type { AIConfig, ImageProviderAdapter, VideoProviderAdapter } from './adapters/types'
+import type { AIConfig, GenerateContext, ImageProviderAdapter, ProviderRequest, VideoProviderAdapter } from './adapters/types'
+import { formatBytes, formatEta, setTaskProgress, stagePercent, type TaskProgressPatch } from './task-progress.js'
+import { maybeTranslatePrompt, needsTranslation, shouldTranslatePrompt } from './prompt-translate.js'
 import { logTaskError, logTaskPayload, logTaskProgress, logTaskStart, logTaskSuccess, logTaskWarn, redactUrl } from '../utils/task-logger.js'
 
 type TaskType = 'image' | 'video'
@@ -172,6 +174,7 @@ async function createTask(
   })
 
   const id = getInsertId(res)
+  setTaskProgress(id, { stage: 'preparing', message: `已创建任务，准备参考素材（${config.provider}）` })
   processTask(id, config).catch(err => {
     logTaskError(taskLabel(type), 'process', { id, error: err.message })
     console.error(`${taskLabel(type)} ${id} failed:`, err)
@@ -204,18 +207,37 @@ async function processTask(id: number, config: AIConfig) {
     })
 
     let url: string, method: string, headers: Record<string, string>, body: unknown
+    let request: ProviderRequest
+    // 适配器构建请求时（上传参考图、连接进度通道等）上报进度
+    const ctx: GenerateContext = { report: (patch) => { setTaskProgress(id, patch) } }
+
+    // 本地 SD 系模型只认英文：按设置把中文提示词先翻译成英文（只影响发给上游的提示词）
+    let prompt = record.prompt
+    if (needsTranslation(prompt) && shouldTranslatePrompt(config.provider, type, config.settings)) {
+      setTaskProgress(id, { stage: 'preparing', percent: 1, message: '用文字模型把提示词翻译成英文（SD / SDXL / FLUX 只认英文）' })
+      prompt = await maybeTranslatePrompt(prompt || '', (message) => {
+        setTaskProgress(id, { stage: 'preparing', message: `提示词翻译失败，改用原文：${message}` })
+      })
+      if (prompt !== record.prompt) logTaskPayload(label, 'translated prompt', { id, prompt })
+    }
 
     if (type === 'image') {
       const adapter = getImageAdapter(config.provider)
       const resolvedReferenceImages = await normalizeReferenceImages(params.referenceImages)
-      ;({ url, method, headers, body } = await adapter.buildGenerateRequest(config, {
+      setTaskProgress(id, {
+        stage: 'preparing',
+        percent: 2,
+        message: resolvedReferenceImages.length ? `已读取 ${resolvedReferenceImages.length} 张参考图，构建请求` : '构建生成请求',
+      })
+      request = await adapter.buildGenerateRequest(config, {
         id: record.id,
         model: record.model,
-        prompt: record.prompt,
+        prompt,
         size: params.size,
         frameType: params.frameType,
         referenceImages: resolvedReferenceImages.length ? JSON.stringify(resolvedReferenceImages) : null,
-      }))
+      }, ctx)
+      ;({ url, method, headers, body } = request)
     } else {
       const adapter = getVideoAdapter(config.provider)
       const resolvedImageUrl = await normalizeVideoReferenceUrl(params.imageUrl)
@@ -226,10 +248,16 @@ async function processTask(id: number, config: AIConfig) {
       const resolvedReferenceVideoUrls = resolvePublicMediaUrls(params.referenceVideoUrls, 'video')
       const resolvedReferenceAudioUrls = resolvePublicMediaUrls(params.referenceAudioUrls, 'audio')
       const resolvedReferenceFileUrl = resolvePublicMediaUrl(params.referenceFileUrl, 'file')
-      ;({ url, method, headers, body } = await adapter.buildGenerateRequest(config, {
+      const imageCount = [resolvedImageUrl, resolvedFirstFrameUrl, resolvedLastFrameUrl].filter(Boolean).length + resolvedReferenceImageUrls.length
+      setTaskProgress(id, {
+        stage: 'preparing',
+        percent: 2,
+        message: imageCount ? `已读取 ${imageCount} 张首尾帧 / 参考图，构建请求` : '构建生成请求（纯文生视频）',
+      })
+      request = await adapter.buildGenerateRequest(config, {
         id: record.id,
         model: record.model,
-        prompt: record.prompt,
+        prompt,
         referenceMode: params.referenceMode,
         imageUrl: resolvedImageUrl,
         firstFrameUrl: resolvedFirstFrameUrl,
@@ -246,7 +274,8 @@ async function processTask(id: number, config: AIConfig) {
         seed: params.seed,
         promptExtend: params.promptExtend,
         watermark: params.watermark,
-      }))
+      }, ctx)
+      ;({ url, method, headers, body } = request)
     }
 
     logTaskProgress(label, 'request', {
@@ -264,16 +293,25 @@ async function processTask(id: number, config: AIConfig) {
       body: isMultipart ? `[multipart/form-data: ${[...(body as FormData).keys()].join(', ')}]` : body,
     })
 
-    const resp = await fetch(url, {
-      method,
-      headers,
-      body: isMultipart ? (body as FormData) : JSON.stringify(body),
-      signal: AbortSignal.timeout(600_000),
-    })
+    const mediaAdapter = type === 'video' ? getVideoAdapter(config.provider) : getImageAdapter(config.provider)
+    const submitPatch: TaskProgressPatch = { stage: 'submitting', message: `提交生成请求到 ${config.provider}` }
+    setTaskProgress(id, submitPatch)
+    // 同步接口（如 SD WebUI）请求会阻塞到出图：期间另行查询进度
+    const stopSyncProgress = mediaAdapter.trackSyncProgress?.(config, request, (patch) => { setTaskProgress(id, patch) })
+    let resp: Response
+    try {
+      resp = await fetch(url, {
+        method,
+        headers,
+        body: isMultipart ? (body as FormData) : JSON.stringify(body),
+        signal: AbortSignal.timeout(600_000),
+      })
+    } finally {
+      stopSyncProgress?.()
+    }
 
     if (!resp.ok) {
       const text = await resp.text()
-      const mediaAdapter = type === 'video' ? getVideoAdapter(config.provider) : getImageAdapter(config.provider)
       throw new Error(mediaAdapter.describeError?.(resp.status, text) || formatUpstreamError(resp.status, text))
     }
     const result = await resp.json() as any
@@ -284,6 +322,7 @@ async function processTask(id: number, config: AIConfig) {
       const { isAsync, taskId, imageUrl } = adapter.parseGenerateResponse(result)
 
       if (!isAsync && imageUrl) {
+        setTaskProgress(id, { stage: 'downloading', message: '生成完成，下载图片' })
         logTaskProgress(label, 'sync-complete', { id, imageUrl })
         await handleImageComplete(record, config, imageUrl)
         return
@@ -301,6 +340,7 @@ async function processTask(id: number, config: AIConfig) {
       }
 
       await markPolling(id, taskId)
+      adapter.onSubmitted?.(config, taskId!, request, (patch) => { setTaskProgress(id, patch) })
       pollTask(record, config, taskId!)
       return
     }
@@ -309,12 +349,14 @@ async function processTask(id: number, config: AIConfig) {
     const { isAsync, taskId, videoUrl } = adapter.parseGenerateResponse(result)
 
     if (!isAsync && videoUrl) {
+      setTaskProgress(id, { stage: 'downloading', message: '生成完成，下载视频' })
       logTaskProgress(label, 'sync-complete', { id, videoUrl })
       await handleVideoComplete(record, config, videoUrl, params.duration)
       return
     }
 
     await markPolling(id, taskId)
+    adapter.onSubmitted?.(config, taskId!, request, (patch) => { setTaskProgress(id, patch) })
     pollTask(record, config, taskId!)
   } catch (err: any) {
     await failTask(id, err.message)
@@ -325,10 +367,12 @@ async function markPolling(id: number, taskId: string | undefined) {
   await db.update(schema.sysTask)
     .set({ taskId, status: 'processing', updatedAt: now() })
     .where(eq(schema.sysTask.id, id))
+  setTaskProgress(id, { stage: 'queued', message: `已提交，上游任务 ID：${taskId}，等待开始处理` })
   logTaskProgress('SysTask', 'poll-start', { id, taskId })
 }
 
 async function failTask(id: number, message: string) {
+  setTaskProgress(id, { stage: 'failed', message })
   logTaskError('SysTask', 'failed', { id, error: message })
   await db.update(schema.sysTask)
     .set({ status: 'failed', errorMsg: message, updatedAt: now() })
@@ -370,7 +414,7 @@ async function pollTask(record: SysTaskRecord, config: AIConfig, taskId: string)
   const label = taskLabel(type)
   const adapter = type === 'image' ? getImageAdapter(config.provider) : getVideoAdapter(config.provider)
   // 图片 / 视频适配器的可选钩子（轮询节奏、自定义取状态、取消）签名一致
-  const hooks = adapter as Pick<VideoProviderAdapter, 'pollProfile' | 'fetchPollResult' | 'cancel'>
+  const hooks = adapter as Pick<VideoProviderAdapter, 'pollProfile' | 'fetchPollResult' | 'cancel' | 'describeProgress' | 'onFinished'>
   const profile = { ...POLL_PROFILES[type], ...(hooks.pollProfile || {}) }
   const startedAt = Date.now()
   let clientErrors = 0
@@ -380,6 +424,14 @@ async function pollTask(record: SysTaskRecord, config: AIConfig, taskId: string)
     await hooks.cancel?.(config, taskId).catch(() => {})
     await failTask(record.id, message)
   }
+
+  try {
+    await pollLoop()
+  } finally {
+    hooks.onFinished?.(config, taskId)
+  }
+
+  async function pollLoop() {
 
   for (let i = 0; i < profile.attempts; i++) {
     if (profile.maxDurationMs && Date.now() - startedAt >= profile.maxDurationMs) {
@@ -437,6 +489,21 @@ async function pollTask(record: SysTaskRecord, config: AIConfig, taskId: string)
     // 图片/视频 PollResponse 结构不同，这里统一按 any 取值后按 type 分支
     const pollResp: any = adapter.parsePollResponse(result)
 
+    if (pollResp.status === 'pending' || pollResp.status === 'processing') {
+      // 细粒度进度（ComfyUI 节点 / 采样步数、Fooocus 百分比）；没有时显示已等待时长
+      let patch: TaskProgressPatch | null = null
+      try { patch = hooks.describeProgress?.(config, taskId, result) ?? null } catch { patch = null }
+      const waited = formatEta((Date.now() - startedAt) / 1000)
+      if (patch) setTaskProgress(record.id, patch)
+      else {
+        setTaskProgress(record.id, {
+          stage: pollResp.status === 'pending' ? 'queued' : 'running',
+          message: `${pollResp.status === 'pending' ? '上游排队中' : '上游生成中'}（${config.provider}，已等待 ${waited || '0 秒'}，第 ${i + 1} 次查询状态）`,
+          detail: { poll_count: i + 1 },
+        })
+      }
+    }
+
     if (pollResp.status === 'failed') {
       // 上游明确失败（如内容审核拦截）属终态：立即落库，不重试不等待超时
       await failTask(record.id, pollResp.error || 'Generation failed')
@@ -445,6 +512,10 @@ async function pollTask(record: SysTaskRecord, config: AIConfig, taskId: string)
     if (pollResp.status !== 'completed') continue
 
     // 已完成：下载落盘。失败只做短暂重试后终止，不能混进轮询重试里每 10 秒重下一遍直到超时
+    setTaskProgress(record.id, {
+      stage: 'downloading',
+      message: `${config.provider} 已生成完成（用时 ${formatEta((Date.now() - startedAt) / 1000) || '不到 1 秒'}），开始下载结果`,
+    })
     try {
       if (type === 'image') {
         if (pollResp.imageUrl) {
@@ -474,6 +545,7 @@ async function pollTask(record: SysTaskRecord, config: AIConfig, taskId: string)
     return
   }
   await giveUp('Timeout: polling attempts exhausted')
+  }
 }
 
 async function handleImageComplete(record: SysTaskRecord, config: AIConfig, imageUrl: string) {
@@ -482,7 +554,9 @@ async function handleImageComplete(record: SysTaskRecord, config: AIConfig, imag
   const localPath = await downloadFile(download.url, 'images', {
     headers: download.headers,
     fallbackExt: download.fallbackExt,
+    onProgress: downloadReporter(record.id, '图片'),
   })
+  setTaskProgress(record.id, { stage: 'saving', message: '图片已下载，生成缩略图并写回分镜 / 资产' })
   // 列表页缩略图（前端按命名约定推导地址，失败不影响主流程）
   await generateImageThumb(localPath)
 
@@ -493,9 +567,14 @@ async function handleImageComplete(record: SysTaskRecord, config: AIConfig, imag
   logTaskSuccess('ImageTask', 'downloaded', { id: record.id, provider: record.provider, localPath })
 
   await writeBackImageAssets(record, localPath)
+  setTaskProgress(record.id, { stage: 'completed', percent: 100, message: '图片已生成并保存' })
 }
 
 async function handleImageCompleteBase64(record: SysTaskRecord, base64Data: string, mimeType: string) {
+  setTaskProgress(record.id, {
+    stage: 'saving',
+    message: `收到图片数据（${formatBytes(Math.round(base64Data.length * 0.75))}），保存并生成缩略图`,
+  })
   const localPath = await saveBase64Image(base64Data, mimeType, 'images')
   await generateImageThumb(localPath)
 
@@ -506,6 +585,7 @@ async function handleImageCompleteBase64(record: SysTaskRecord, base64Data: stri
   logTaskSuccess('ImageTask', 'saved-base64', { id: record.id, provider: record.provider, mimeType, localPath })
 
   await writeBackImageAssets(record, localPath)
+  setTaskProgress(record.id, { stage: 'completed', percent: 100, message: '图片已生成并保存' })
 }
 
 // 图片完成后回写业务表：分镜(按 frameType)、角色、场景、道具
@@ -536,7 +616,9 @@ async function handleVideoComplete(record: SysTaskRecord, config: AIConfig, vide
   const localPath = await downloadFile(download.url, 'videos', {
     headers: download.headers,
     fallbackExt: download.fallbackExt,
+    onProgress: downloadReporter(record.id, '视频'),
   })
+  setTaskProgress(record.id, { stage: 'saving', message: '视频已下载，提取封面帧并写回分镜' })
   // 海报帧供列表/封面展示，避免前端为显示首帧缓冲整个视频
   await extractVideoPoster(localPath)
   await db.update(schema.sysTask)
@@ -549,6 +631,26 @@ async function handleVideoComplete(record: SysTaskRecord, config: AIConfig, vide
     await db.update(schema.storyboards)
       .set({ videoUrl: localPath, duration: duration || undefined, updatedAt: now() })
       .where(eq(schema.storyboards.id, record.storyboardId))
+  }
+  setTaskProgress(record.id, { stage: 'completed', percent: 100, message: '视频已生成并保存到本地' })
+}
+
+/** 下载进度 → 任务进度（下载阶段占整体 90%~98%） */
+function downloadReporter(id: number, label: string) {
+  const started = Date.now()
+  return (downloaded: number, total: number | null) => {
+    const seconds = (Date.now() - started) / 1000
+    const speed = seconds > 0.5 ? downloaded / seconds : 0
+    const eta = total && speed ? (total - downloaded) / speed : null
+    setTaskProgress(id, {
+      stage: 'downloading',
+      percent: total ? stagePercent('downloading', downloaded / total) : undefined,
+      message: total
+        ? `下载${label}回 UU889-Drama：${formatBytes(downloaded)} / ${formatBytes(total)}（${Math.round((downloaded / total) * 100)}%）${speed ? `，${formatBytes(speed)}/s` : ''}${eta && eta > 1 ? `，约 ${formatEta(eta)}` : ''}`
+        : `下载${label}回 UU889-Drama：已接收 ${formatBytes(downloaded)}`,
+      detail: { downloaded_bytes: downloaded, total_bytes: total ?? undefined, eta_seconds: eta ? Math.round(eta) : undefined },
+      replaceDetail: true,
+    })
   }
 }
 

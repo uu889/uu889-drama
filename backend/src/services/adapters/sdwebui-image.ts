@@ -7,7 +7,11 @@
  *   填 default 则沿用 WebUI 当前加载的模型；否则经 override_settings.sd_model_checkpoint 临时切换
  * - 尺寸：项目尺寸按 settings.image_base_size²（默认 1024，SD1.5 填 512）换算，对齐 64
  * - 参考图暂不使用（WebUI 的 ControlNet / IP-Adapter 插件参数各异）；需要参考图时请用 ComfyUI 自定义工作流
+ * - 提示词模板 settings.prompt_template：「masterpiece, {{prompt}}, cinematic」，{{prompt}} 处插入 UU889-Drama 的提示词
+ * - 进度：请求带 force_task_id，出图期间轮询 POST /internal/progress { id_task }（排队位置、进度、ETA）；
+ *   老版本没有该接口时退回 GET /sdapi/v1/progress（全局进度：采样步数 / ETA）
  */
+import { randomBytes } from 'node:crypto'
 import type {
   ImageProviderAdapter,
   AIConfig,
@@ -16,8 +20,10 @@ import type {
   ImageGenResponse,
   ImagePollResponse,
 } from './types'
+import { formatEta, stagePercent, type ProgressReporter } from '../task-progress'
 import {
   LOCAL_DEFAULT_NEGATIVE_PROMPT,
+  applyPromptTemplate,
   isDefaultModel,
   localAuthHeaders,
   localImageDimensions,
@@ -36,7 +42,7 @@ export class SdWebuiImageAdapter implements ImageProviderAdapter {
     const settings = config.settings || {}
     const { width, height } = localImageDimensions(record.size, numberSetting(settings.image_base_size, 1024, 256, 2048))
     const body: Record<string, any> = {
-      prompt: (record.prompt || '').trim(),
+      prompt: applyPromptTemplate(settings.prompt_template, record.prompt || ''),
       negative_prompt: textSetting(settings.image_negative_prompt, LOCAL_DEFAULT_NEGATIVE_PROMPT),
       width,
       height,
@@ -47,6 +53,8 @@ export class SdWebuiImageAdapter implements ImageProviderAdapter {
       n_iter: 1,
       send_images: true,
       save_images: false,
+      // 自定义任务 ID：出图期间凭它查询排队位置与进度（WebUI 1.6+；老版本忽略该字段）
+      force_task_id: `task(uu889-${record.id}-${randomBytes(3).toString('hex')})`,
     }
     const sampler = textSetting(settings.image_sampler)
     if (sampler) body.sampler_name = sampler
@@ -93,5 +101,95 @@ export class SdWebuiImageAdapter implements ImageProviderAdapter {
 
   parsePollResponse(): ImagePollResponse {
     return { status: 'failed', error: 'Stable Diffusion WebUI 为同步接口，不支持轮询' }
+  }
+
+  /** txt2img 阻塞期间每 1.5 秒查一次进度 */
+  trackSyncProgress(config: AIConfig, request: ProviderRequest, report: ProgressReporter): () => void {
+    const taskId = String(request?.body?.force_task_id || '')
+    const headers = { 'Content-Type': 'application/json', ...localAuthHeaders(config.apiKey) }
+    let stopped = false
+    let useInternal = !!taskId
+    let seenActive = false
+    // 请求刚发出时 WebUI 可能还没登记这个任务 ID：连续 3 次查不到才判定为老版本，改查全局进度
+    let unknownCount = 0
+
+    const tick = async () => {
+      if (stopped) return
+      try {
+        if (useInternal) {
+          const resp = await fetch(localUrl(config.baseUrl, DEFAULT_BASE, '/internal/progress'), {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ id_task: taskId, id_live_preview: -1, live_preview: false }),
+            signal: AbortSignal.timeout(5000),
+          })
+          if (resp.ok) {
+            const data = await resp.json() as any
+            if (stopped) return
+            if (data?.active) {
+              seenActive = true
+              const progress = Number(data.progress) || 0
+              const eta = Number(data.eta)
+              report({
+                stage: 'running',
+                percent: stagePercent('running', progress),
+                message: `Stable Diffusion WebUI 出图中：${Math.round(progress * 100)}%${Number.isFinite(eta) && eta > 0 ? `，预计还需 ${formatEta(eta)}` : ''}`,
+                detail: { eta_seconds: Number.isFinite(eta) ? Math.round(eta) : undefined, provider_status: data.textinfo || undefined },
+                replaceDetail: true,
+              })
+              return
+            }
+            if (data?.queued) {
+              const m = String(data.textinfo || '').match(/(\d+)\s*\/\s*(\d+)/)
+              const ahead = m ? Math.max(0, Number(m[1]) - 1) : undefined
+              report({
+                stage: 'queued',
+                message: ahead != null ? `Stable Diffusion WebUI 排队中：前面还有 ${ahead} 个任务` : 'Stable Diffusion WebUI 排队中',
+                detail: { queue_ahead: ahead, queue_total: m ? Number(m[2]) : undefined },
+              })
+              return
+            }
+            // 既不在执行也不在排队：可能还没登记，或老版本不认 force_task_id（连续多次后改查全局进度）
+            if (data?.completed || seenActive) return
+            if (++unknownCount < 3) {
+              report({ stage: 'running', message: 'Stable Diffusion WebUI 已收到请求，准备出图' })
+              return
+            }
+            useInternal = false
+          } else if (resp.status === 404) {
+            useInternal = false
+          }
+        }
+        const resp = await fetch(localUrl(config.baseUrl, DEFAULT_BASE, '/sdapi/v1/progress?skip_current_image=true'), {
+          headers: localAuthHeaders(config.apiKey),
+          signal: AbortSignal.timeout(5000),
+        })
+        if (!resp.ok || stopped) return
+        const data = await resp.json() as any
+        const state = data?.state || {}
+        const step = Number(state.sampling_step)
+        const steps = Number(state.sampling_steps)
+        const progress = Number(data?.progress) || 0
+        const eta = Number(data?.eta_relative)
+        if (progress <= 0 && !step) {
+          report({ stage: 'running', message: 'Stable Diffusion WebUI 处理中（加载模型或等待其他任务）' })
+          return
+        }
+        report({
+          stage: 'running',
+          percent: stagePercent('running', progress),
+          message: `Stable Diffusion WebUI 采样中：第 ${step || 0}/${steps || '?'} 步${Number.isFinite(eta) && eta > 0 ? `，预计还需 ${formatEta(eta)}` : ''}`,
+          detail: { step: step || undefined, steps: steps || undefined, eta_seconds: Number.isFinite(eta) ? Math.round(eta) : undefined },
+          replaceDetail: true,
+        })
+      } catch { /* 查进度失败不影响出图 */ }
+    }
+
+    const timer = setInterval(() => { void tick() }, 1500)
+    timer.unref?.()
+    return () => {
+      stopped = true
+      clearInterval(timer)
+    }
   }
 }

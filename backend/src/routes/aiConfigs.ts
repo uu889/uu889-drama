@@ -5,8 +5,10 @@ import { success, notFound, created, badRequest, now } from '../utils/response.j
 import { toSnakeCase } from '../utils/transform.js'
 import { joinProviderUrl } from '../services/adapters/url.js'
 import { isOfficialProvider, parseConfigSettings, parseConfigTemperature } from '../services/ai.js'
-import { parseComfyWorkflow } from '../services/adapters/comfyui-common.js'
-import { localAuthHeaders } from '../services/adapters/local-image.js'
+import { comfyAuthHeaders, comfyUrl, parseComfyWorkflow } from '../services/adapters/comfyui-common.js'
+import { autoBindComfyWorkflow } from '../services/adapters/comfyui-bind.js'
+import { describeComfyTemplates, resolveComfyTemplate, splitModelFiles, type ComfyTemplateKind } from '../services/adapters/comfyui-templates.js'
+import { explicitNumberSetting, localAuthHeaders, localUrl } from '../services/adapters/local-image.js'
 import { redactUrl, logTaskError, logTaskProgress, logTaskSuccess } from '../utils/task-logger.js'
 
 const app = new Hono()
@@ -27,6 +29,8 @@ type SettingRule =
   | { kind: 'workflow' }
   | { kind: 'text'; max?: number }
   | { kind: 'number'; min: number; max: number; integer?: boolean }
+  /** 布尔：等于默认值时从 settings 里删除，只存非默认值；default 为 null 时 true / false 都存，空值删除（按服务类型决定默认） */
+  | { kind: 'boolean'; default: boolean | null }
 
 const IMAGE_PARAM_RULES: Record<string, SettingRule> = {
   image_base_size: { kind: 'number', min: 256, max: 2048, integer: true },
@@ -37,17 +41,27 @@ const IMAGE_PARAM_RULES: Record<string, SettingRule> = {
 const PROVIDER_SETTING_RULES: Record<string, Record<string, SettingRule>> = {
   comfyui: {
     comfyui_workflow: { kind: 'workflow' },
+    comfyui_template: { kind: 'text', max: 64 },
+    comfyui_auto_bind: { kind: 'boolean', default: true },
     comfyui_fps: { kind: 'number', min: 1, max: 120, integer: true },
+    comfyui_steps: { kind: 'number', min: 1, max: 200, integer: true },
+    comfyui_cfg: { kind: 'number', min: 0, max: 30 },
     comfyui_negative_prompt: { kind: 'text', max: 4000 },
+    prompt_template: { kind: 'text', max: 4000 },
+    prompt_translate: { kind: 'boolean', default: null },
     ...IMAGE_PARAM_RULES,
   },
   sdwebui: {
     image_negative_prompt: { kind: 'text', max: 4000 },
     image_sampler: { kind: 'text', max: 100 },
+    prompt_template: { kind: 'text', max: 4000 },
+    prompt_translate: { kind: 'boolean', default: null },
     ...IMAGE_PARAM_RULES,
   },
   fooocus: {
     image_negative_prompt: { kind: 'text', max: 4000 },
+    prompt_template: { kind: 'text', max: 4000 },
+    prompt_translate: { kind: 'boolean', default: null },
     fooocus_performance: { kind: 'text', max: 50 },
     fooocus_styles: { kind: 'text', max: 1000 },
   },
@@ -68,6 +82,11 @@ function pickProviderSettings(provider: string, body: any): Record<string, any> 
     if (rule.kind === 'workflow') {
       const workflow = parseComfyWorkflow(typeof raw === 'string' ? raw.trim() : raw)
       out[key] = workflow ? JSON.stringify(workflow) : null
+    } else if (rule.kind === 'boolean') {
+      const value = raw === true || raw === 'true' || raw === 1 || raw === '1'
+        ? true
+        : raw === false || raw === 'false' || raw === 0 || raw === '0' ? false : rule.default
+      out[key] = value === rule.default || value === null ? null : value
     } else if (rule.kind === 'text') {
       const text = String(raw ?? '').trim()
       out[key] = text ? text.slice(0, rule.max ?? 4000) : null
@@ -385,6 +404,171 @@ app.post('/test', async (c) => {
       message: error.message || '请求失败',
       response_preview: '',
     })
+  }
+})
+
+// ─── 本地服务辅助接口（设置页「模板 / 检查工作流 / 读取模型列表」）────────────────
+
+// GET /ai-configs/comfyui/templates?kind=video|image — 内置工作流模板（含 API 格式 JSON、所需模型与下载地址）
+app.get('/comfyui/templates', (c) => {
+  const kind = (c.req.query('kind') === 'image' ? 'image' : 'video') as ComfyTemplateKind
+  return success(c, describeComfyTemplates(kind))
+})
+
+/**
+ * POST /ai-configs/comfyui/inspect — 检查工作流会被怎样控制
+ * body: { service_type, workflow?, comfyui_template?, model?, comfyui_auto_bind?, steps?, cfg?, base_url?, api_key? }
+ * 返回绑定表（哪个节点的哪个字段接 UU889-Drama 的哪个参数）、提醒、用到的模型文件；
+ * 传了 base_url 时再查 ComfyUI 里这些模型文件是否存在。
+ */
+app.post('/comfyui/inspect', async (c) => {
+  const body = await c.req.json().catch(() => ({}))
+  const kind = (body.service_type === 'image' ? 'image' : 'video') as ComfyTemplateKind
+  const model = String(Array.isArray(body.model) ? body.model[0] || '' : body.model || '').trim()
+  let workflow: Record<string, any> | null
+  try {
+    workflow = parseComfyWorkflow(typeof body.workflow === 'string' ? body.workflow.trim() : body.workflow)
+  } catch (err: any) {
+    return badRequest(c, err.message)
+  }
+  const template = workflow ? null : resolveComfyTemplate(kind, body.comfyui_template, model)
+  const source = workflow || template!.workflow
+  const autoBind = !(body.comfyui_auto_bind === false || body.comfyui_auto_bind === 'false')
+  const steps = explicitNumberSetting(kind === 'image' ? body.image_steps : body.comfyui_steps, 1, 200)
+  const cfg = explicitNumberSetting(kind === 'image' ? body.image_cfg_scale : body.comfyui_cfg, 0, 30)
+  const { report } = autoBindComfyWorkflow(source, kind, { enabled: autoBind, model, steps, cfg })
+
+  // 内置模板的 {{model}} 会替换成「模型」里的文件名（或模板默认文件）
+  const modelValue = splitModelFiles(model).length ? model : template?.defaultModel || ''
+  const files = report.model_files.map((f) => ({ ...f }))
+  for (const b of report.bindings) {
+    if (b.target === 'model' && b.source === 'placeholder' && modelValue && splitModelFiles(modelValue).length) {
+      const loaderField = report.loaders.find((l) => l.node_id === b.node_id)
+      if (loaderField) files.push({ node_id: b.node_id, class_type: b.class_type, input: b.input, value: splitModelFiles(modelValue)[0] })
+    }
+  }
+
+  let missing: Array<{ value: string; class_type: string; input: string; available: number }> | null = null
+  let comfyError = ''
+  const baseUrl = String(body.base_url || '').trim()
+  if (baseUrl && files.length) {
+    const cfgLike = { provider: 'comfyui', baseUrl, apiKey: String(body.api_key || ''), model: '' }
+    missing = []
+    const classes = [...new Set(files.map((f) => f.class_type))]
+    const choices: Record<string, Record<string, string[]>> = {}
+    await Promise.all(classes.map(async (cls) => {
+      try {
+        const resp = await fetch(comfyUrl(cfgLike, `/object_info/${encodeURIComponent(cls)}`), { headers: comfyAuthHeaders(cfgLike), signal: AbortSignal.timeout(10_000) })
+        if (!resp.ok) return
+        const info = await resp.json() as any
+        const inputs = { ...(info?.[cls]?.input?.required || {}), ...(info?.[cls]?.input?.optional || {}) }
+        choices[cls] = {}
+        for (const [name, spec] of Object.entries<any>(inputs)) choices[cls][name] = comboOptions(spec)
+      } catch (err: any) {
+        comfyError = err?.message || String(err)
+      }
+    }))
+    let checked = 0
+    for (const f of files) {
+      const list = choices[f.class_type]?.[f.input]
+      if (!list || !list.length) continue
+      checked++
+      if (!list.includes(f.value)) missing.push({ value: f.value, class_type: f.class_type, input: f.input, available: list.length })
+    }
+    // 一个都没查到（ComfyUI 没启动 / 节点不存在）：不能说「都有」
+    if (!checked) {
+      missing = null
+      comfyError = comfyError || '无法从 ComfyUI 读取模型列表（/object_info），未检查模型文件是否存在；请确认 Base URL 正确且 ComfyUI 已启动'
+    }
+  }
+
+  return success(c, {
+    source: workflow ? 'custom' : 'builtin',
+    template: template ? { id: template.id, label: template.label, files: template.files, recommended: template.recommended, needs_image: template.needsImage || 'none' } : null,
+    auto_bind: autoBind,
+    bindings: report.bindings,
+    warnings: report.warnings,
+    outputs: report.outputs,
+    loaders: report.loaders,
+    model_files: files,
+    missing_models: missing,
+    comfy_error: comfyError || undefined,
+  })
+})
+
+/** ComfyUI /object_info 里 COMBO 输入的可选值（兼容 [[...], {}] 与 ["COMBO", { options }] 两种格式） */
+function comboOptions(spec: any): string[] {
+  if (!Array.isArray(spec)) return []
+  if (Array.isArray(spec[0])) return spec[0].map(String)
+  if (spec[0] === 'COMBO' && Array.isArray(spec[1]?.options)) return spec[1].options.map(String)
+  return []
+}
+
+/**
+ * POST /ai-configs/local/models — 读取本地服务里实际可用的模型 / 采样器 / 风格，设置页点选即可加入「模型」
+ * body: { provider, service_type, base_url, api_key }
+ */
+app.post('/local/models', async (c) => {
+  const body = await c.req.json().catch(() => ({}))
+  const provider = String(body.provider || '')
+  const apiKey = String(body.api_key || '')
+  const groups: Array<{ key: string; label: string; folder?: string; items: string[] }> = []
+  const getJson = async (url: string, headers: Record<string, string>) => {
+    const resp = await fetch(url, { headers, signal: AbortSignal.timeout(15_000) })
+    if (!resp.ok) throw new Error(`HTTP ${resp.status} ${url}`)
+    return resp.json() as Promise<any>
+  }
+  try {
+    if (provider === 'comfyui') {
+      const cfgLike = { provider, baseUrl: String(body.base_url || 'http://127.0.0.1:8188'), apiKey, model: '' }
+      const headers = comfyAuthHeaders(cfgLike)
+      const want: Array<[string, string, string, string]> = [
+        ['checkpoints', 'Checkpoint（CheckpointLoaderSimple）', 'CheckpointLoaderSimple', 'ckpt_name'],
+        ['diffusion_models', '扩散模型（UNETLoader）', 'UNETLoader', 'unet_name'],
+        ['gguf', 'GGUF 扩散模型（UnetLoaderGGUF）', 'UnetLoaderGGUF', 'unet_name'],
+        ['text_encoders', '文本编码器（CLIPLoader）', 'CLIPLoader', 'clip_name'],
+        ['vae', 'VAE（VAELoader）', 'VAELoader', 'vae_name'],
+        ['loras', 'LoRA（LoraLoader）', 'LoraLoader', 'lora_name'],
+      ]
+      const folders: Record<string, string> = {
+        checkpoints: 'models/checkpoints', diffusion_models: 'models/diffusion_models', gguf: 'models/unet',
+        text_encoders: 'models/text_encoders', vae: 'models/vae', loras: 'models/loras',
+      }
+      await Promise.all(want.map(async ([key, label, cls, input]) => {
+        try {
+          const info = await getJson(comfyUrl(cfgLike, `/object_info/${cls}`), headers)
+          const spec = info?.[cls]?.input?.required?.[input]
+          const items = comboOptions(spec)
+          if (info?.[cls]) groups.push({ key, label, folder: folders[key], items })
+        } catch { /* 节点不存在（如未装 GGUF 插件）时跳过 */ }
+      }))
+      groups.sort((a, b) => want.findIndex((w) => w[0] === a.key) - want.findIndex((w) => w[0] === b.key))
+      if (!groups.length) throw new Error('无法从 ComfyUI 读取节点信息，请确认地址正确且 ComfyUI 已启动')
+    } else if (provider === 'sdwebui') {
+      const base = String(body.base_url || '')
+      const headers = localAuthHeaders(apiKey)
+      const models = await getJson(localUrl(base, 'http://127.0.0.1:7860', '/sdapi/v1/sd-models'), headers)
+      groups.push({ key: 'checkpoints', label: 'Checkpoint（sd-models）', items: (Array.isArray(models) ? models : []).map((m: any) => String(m.model_name || m.title)).filter(Boolean) })
+      try {
+        const samplers = await getJson(localUrl(base, 'http://127.0.0.1:7860', '/sdapi/v1/samplers'), headers)
+        groups.push({ key: 'samplers', label: '采样器（填到「采样器」）', items: (Array.isArray(samplers) ? samplers : []).map((s: any) => String(s.name)).filter(Boolean) })
+      } catch { /* 可选 */ }
+    } else if (provider === 'fooocus') {
+      const base = String(body.base_url || '')
+      const headers = localAuthHeaders(apiKey)
+      const all = await getJson(localUrl(base, 'http://127.0.0.1:8888', '/v1/engines/all-models'), headers)
+      groups.push({ key: 'checkpoints', label: 'Checkpoint（model_filenames）', items: (all?.model_filenames || []).map(String) })
+      if (Array.isArray(all?.lora_filenames)) groups.push({ key: 'loras', label: 'LoRA（lora_filenames）', items: all.lora_filenames.map(String) })
+      try {
+        const styles = await getJson(localUrl(base, 'http://127.0.0.1:8888', '/v1/engines/styles'), headers)
+        if (Array.isArray(styles)) groups.push({ key: 'styles', label: '风格（填到「风格」，逗号分隔）', items: styles.map(String) })
+      } catch { /* 可选 */ }
+    } else {
+      return badRequest(c, '只支持本地服务（comfyui / sdwebui / fooocus）')
+    }
+    return success(c, { groups })
+  } catch (err: any) {
+    return success(c, { groups, error: err?.message || String(err) })
   }
 })
 

@@ -1,22 +1,27 @@
 /**
  * 本地 ComfyUI 视频 Adapter（ComfyUI 原生 HTTP API，公共流程见 comfyui-common.ts）
  *
- * 工作流来自配置 settings.comfyui_workflow（ComfyUI「导出 (API)」得到的 JSON），未配置时用内置
- * Wan 2.2 TI2V 5B 模板。占位符：
+ * 工作流来自配置 settings.comfyui_workflow（ComfyUI「导出 (API)」得到的 JSON），未配置时按
+ * settings.comfyui_template / 「模型」选择内置模板（comfyui-templates.ts，默认 Wan 2.2 TI2V 5B）。
+ * 没写占位符的工作流会被自动绑定（comfyui-bind.ts）：提示词、首尾帧 / 参考图、种子、宽高帧数、FPS、模型文件。
+ * 占位符：
  *   {{prompt}} {{negative_prompt}} {{seed}} {{width}} {{height}} {{duration}} {{fps}} {{frames}}
- *   {{aspect_ratio}} {{resolution}} {{model}}
+ *   {{aspect_ratio}} {{resolution}} {{model}} {{steps}} {{cfg}}
  *   {{image}}（首帧，无首帧时取第一张参考图）{{first_frame}} {{last_frame}} {{reference_image_1..9}}
  * 图片占位符没有对应素材时自动裁剪相关节点 —— 图生视频工作流里可选的 start_image 因此可以同时跑文生视频。
  */
 import type {
   VideoProviderAdapter,
   AIConfig,
+  GenerateContext,
   ProviderRequest,
   VideoGenerationRecord,
   VideoPollResponse,
   DownloadRequest,
 } from './types'
 import { parseUrlArray } from './media'
+import { applyPromptTemplate, explicitNumberSetting, textSetting } from './local-image'
+import { DEFAULT_VIDEO_TEMPLATE_ID, getComfyTemplate, resolveComfyTemplate } from './comfyui-templates'
 import {
   ComfyUIClient,
   COMFY_MISSING_ERROR,
@@ -37,7 +42,7 @@ export {
   type ComfyRequiredInputs,
 } from './comfyui-common'
 
-export const COMFYUI_DEFAULT_MODEL = 'wan2.2-ti2v-5b'
+export const COMFYUI_DEFAULT_MODEL = DEFAULT_VIDEO_TEMPLATE_ID
 export const COMFYUI_DEFAULT_FPS = 24
 const MAX_REFERENCE_IMAGES = 9
 
@@ -45,24 +50,10 @@ const MAX_REFERENCE_IMAGES = 9
 export const COMFYUI_DEFAULT_NEGATIVE_PROMPT = '色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走'
 
 /**
- * 内置模板：ComfyUI 官方 Wan 2.2 TI2V 5B（文生 / 图生二合一）。
- * 需要 models/diffusion_models/wan2.2_ti2v_5B_fp16.safetensors、
- * models/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors、models/vae/wan2.2_vae.safetensors。
+ * 内置默认模板：ComfyUI 官方 Wan 2.2 TI2V 5B（文生 / 图生二合一）。
+ * 其余模板（Wan 2.2 14B 图生 / 首尾帧 / 文生）见 comfyui-templates.ts。
  */
-export const COMFYUI_DEFAULT_WORKFLOW: Record<string, any> = {
-  '3': { class_type: 'KSampler', inputs: { seed: '{{seed}}', steps: 20, cfg: 5, sampler_name: 'uni_pc', scheduler: 'simple', denoise: 1, model: ['48', 0], positive: ['6', 0], negative: ['7', 0], latent_image: ['55', 0] } },
-  '6': { class_type: 'CLIPTextEncode', inputs: { text: '{{prompt}}', clip: ['38', 0] } },
-  '7': { class_type: 'CLIPTextEncode', inputs: { text: '{{negative_prompt}}', clip: ['38', 0] } },
-  '8': { class_type: 'VAEDecode', inputs: { samples: ['3', 0], vae: ['39', 0] } },
-  '37': { class_type: 'UNETLoader', inputs: { unet_name: 'wan2.2_ti2v_5B_fp16.safetensors', weight_dtype: 'default' } },
-  '38': { class_type: 'CLIPLoader', inputs: { clip_name: 'umt5_xxl_fp8_e4m3fn_scaled.safetensors', type: 'wan', device: 'default' } },
-  '39': { class_type: 'VAELoader', inputs: { vae_name: 'wan2.2_vae.safetensors' } },
-  '48': { class_type: 'ModelSamplingSD3', inputs: { shift: 8, model: ['37', 0] } },
-  '55': { class_type: 'Wan22ImageToVideoLatent', inputs: { width: '{{width}}', height: '{{height}}', length: '{{frames}}', batch_size: 1, vae: ['39', 0], start_image: ['56', 0] } },
-  '56': { class_type: 'LoadImage', inputs: { image: '{{image}}' } },
-  '57': { class_type: 'CreateVideo', inputs: { fps: '{{fps}}', images: ['8', 0] } },
-  '58': { class_type: 'SaveVideo', inputs: { filename_prefix: 'video/uu889-drama', format: 'auto', codec: 'auto', video: ['57', 0] } },
-}
+export const COMFYUI_DEFAULT_WORKFLOW: Record<string, any> = getComfyTemplate('video', DEFAULT_VIDEO_TEMPLATE_ID)!.workflow
 
 // 只认浏览器 <video> 与 FFmpeg 拼接都能处理的容器；动图（gif / 动态 webp）单独提示
 const VIDEO_EXT_RE = /\.(mp4|webm|mov|mkv)$/i
@@ -80,10 +71,22 @@ export function comfyDimensions(aspectRatio?: string | null, resolution?: string
   return ratio >= 1 ? { width: long, height: short } : { width: short, height: long }
 }
 
-/** 帧数：时长 × fps，对齐到 4n+1（Wan 系时间维压缩要求） */
-export function comfyFrameCount(durationSeconds: number, fps: number): number {
-  const n = Math.max(1, Math.round((durationSeconds * fps) / 4))
-  return n * 4 + 1
+/** 帧数：时长 × fps，对齐到 step·n+1（Wan 系时间维压缩 4 倍；LTX-Video 为 8 倍） */
+export function comfyFrameCount(durationSeconds: number, fps: number, step = 4): number {
+  const n = Math.max(1, Math.round((durationSeconds * fps) / step))
+  return n * step + 1
+}
+
+/** 工作流自带的 fps（CreateVideo.fps / VHS_VideoCombine.frame_rate …），没有返回 null */
+export function detectWorkflowFps(workflow: Record<string, any>): number | null {
+  for (const node of Object.values(workflow)) {
+    const inputs = node?.inputs || {}
+    for (const key of ['fps', 'frame_rate']) {
+      const v = inputs[key]
+      if (typeof v === 'number' && v > 0 && /video|webp|png|webm|conditioning|create/i.test(String(node?.class_type || ''))) return v
+    }
+  }
+  return null
 }
 
 /** 在 history 节点输出里找成片：优先 output 目录、mp4 */
@@ -93,16 +96,25 @@ export function findComfyVideoOutput(outputs: Record<string, any> | null | undef
 }
 
 export class ComfyUIVideoAdapter extends ComfyUIClient implements VideoProviderAdapter {
-  async buildGenerateRequest(config: AIConfig, record: VideoGenerationRecord): Promise<ProviderRequest> {
+  protected readonly mediaKind = 'video' as const
+
+  async buildGenerateRequest(config: AIConfig, record: VideoGenerationRecord, ctx?: GenerateContext): Promise<ProviderRequest> {
     const settings = config.settings || {}
-    const template = parseComfyWorkflow(settings.comfyui_workflow) || COMFYUI_DEFAULT_WORKFLOW
+    const model = (record.model || config.model || '').trim()
+    // 工作流来源：自定义工作流 > 设置里选的内置模板 > 「模型」对应的内置模板 > 默认 Wan 2.2 TI2V 5B
+    const custom = parseComfyWorkflow(settings.comfyui_workflow)
+    const builtin = custom ? null : resolveComfyTemplate('video', settings.comfyui_template, model)
+    const template = custom || builtin!.workflow
 
     const fpsSetting = Number(settings.comfyui_fps)
-    const fps = Number.isFinite(fpsSetting) && fpsSetting > 0 ? Math.round(fpsSetting) : COMFYUI_DEFAULT_FPS
+    const fps = Number.isFinite(fpsSetting) && fpsSetting > 0
+      ? Math.round(fpsSetting)
+      : (builtin?.recommended.fps ?? (custom ? detectWorkflowFps(custom) : null) ?? COMFYUI_DEFAULT_FPS)
     const durationRaw = Math.round(Number(record.duration || 5))
     const duration = Number.isFinite(durationRaw) ? Math.min(60, Math.max(1, durationRaw)) : 5
     const { width, height } = comfyDimensions(record.aspectRatio, record.resolution)
-    const frames = comfyFrameCount(duration, fps)
+    const frameStep = /LTXV/i.test(JSON.stringify(template)) ? 8 : 4
+    const frames = comfyFrameCount(duration, fps, frameStep)
     const seed = Number.isFinite(Number(record.seed)) && record.seed != null
       ? Number(record.seed)
       : Math.floor(Math.random() * 2 ** 32)
@@ -118,11 +130,11 @@ export class ComfyUIVideoAdapter extends ComfyUIClient implements VideoProviderA
     }
     refImages.forEach((ref, i) => { imageSources[`reference_image_${i + 1}`] = ref })
 
+    const steps = explicitNumberSetting(settings.comfyui_steps, 1, 200)
+    const cfg = explicitNumberSetting(settings.comfyui_cfg, 0, 30)
     const values: ComfyPlaceholderValues = {
-      prompt: (record.prompt || '').trim(),
-      negative_prompt: typeof settings.comfyui_negative_prompt === 'string' && settings.comfyui_negative_prompt.trim()
-        ? settings.comfyui_negative_prompt.trim()
-        : COMFYUI_DEFAULT_NEGATIVE_PROMPT,
+      prompt: applyPromptTemplate(settings.prompt_template, record.prompt || ''),
+      negative_prompt: textSetting(settings.comfyui_negative_prompt, COMFYUI_DEFAULT_NEGATIVE_PROMPT),
       seed,
       width,
       height,
@@ -132,9 +144,21 @@ export class ComfyUIVideoAdapter extends ComfyUIClient implements VideoProviderA
       length: frames,
       aspect_ratio: record.aspectRatio || '16:9',
       resolution: record.resolution || '720p',
-      model: record.model || config.model || COMFYUI_DEFAULT_MODEL,
+      model: model || builtin?.defaultModel || COMFYUI_DEFAULT_MODEL,
+      // 只有手写了 {{steps}} / {{cfg}} 的工作流才用到
+      steps: Math.round(steps ?? 20),
+      cfg: cfg ?? 5,
     }
-    return this.buildPromptRequest(config, template, values, imageSources, `uu889-${record.id}`)
+    return this.buildPromptRequest(config, template, values, imageSources, `uu889-${record.id}`, {
+      kind: 'video',
+      ctx,
+      bind: {
+        enabled: settings.comfyui_auto_bind !== false,
+        model,
+        steps,
+        cfg,
+      },
+    })
   }
 
   parsePollResponse(result: any): VideoPollResponse {

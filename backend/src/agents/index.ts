@@ -359,6 +359,11 @@ async function getModel(fileModel: string | undefined, modelOverride?: string, t
   return provider.chat(modelName)
 }
 
+/** 工具性的一次性文本调用（如把本地生图提示词翻译成英文）用当前启用的文本配置 */
+export function getUtilityTextModel() {
+  return getModel(undefined)
+}
+
 const AGENT_TOOLS: Record<string, Record<string, any>> = {
   script_rewriter: scriptTools,
   extractor: extractTools,

@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { withTaskProgress } from '../services/task-progress.js'
 import { eq } from 'drizzle-orm'
 import { db, schema } from '../db/index.js'
 import { success, created, badRequest } from '../utils/response.js'
@@ -206,12 +207,12 @@ app.post('/', async (c) => {
   }
 })
 
-// GET /tasks/:id — 轮询任务状态
+// GET /tasks/:id — 轮询任务状态（附实时进度 progress：阶段、百分比、排队 / 采样 / 下载细节）
 app.get('/:id', async (c) => {
   const id = Number(c.req.param('id'))
   const [row] = await db.select().from(schema.sysTask)
     .where(eq(schema.sysTask.id, id))
-  return success(c, row || null)
+  return success(c, row ? withTaskProgress(row) : null)
 })
 
 // GET /tasks — 按 type / storyboard_id / drama_id 过滤
@@ -226,7 +227,7 @@ app.get('/', async (c) => {
   if (storyboardId) rows = rows.filter(r => r.storyboardId === Number(storyboardId))
   if (dramaId) rows = rows.filter(r => r.dramaId === Number(dramaId))
 
-  return success(c, rows)
+  return success(c, rows.map(withTaskProgress))
 })
 
 // DELETE /tasks/:id

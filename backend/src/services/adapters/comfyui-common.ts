@@ -10,18 +10,25 @@
  * 图片占位符没有对应素材时，引用它的节点（如 LoadImage）连同只依赖它的下游节点一起移除，
  * 必填输入被断开的节点（按 /object_info 判断）也一并移除，其余指向被移除节点的连线删掉。
  */
-import type { AIConfig, DownloadRequest, ProviderRequest } from './types'
+import type { AIConfig, DownloadRequest, GenerateContext, ProviderRequest } from './types'
 import { loadReferenceFile } from './media'
+import { autoBindComfyWorkflow, type ComfyBindOptions } from './comfyui-bind'
+import { comfyMonitorFor, comfyQueuePosition, describeComfyPromptMeta } from './comfyui-progress'
+import { stagePercent, type TaskProgressPatch } from '../task-progress'
 
+/** WebSocket 不可用时提交用的 client_id（与进度订阅的 clientId 不同也能正常生成） */
 const COMFYUI_CLIENT_ID = 'uu889-drama'
 
 const NUMERIC_PLACEHOLDERS = new Set(['seed', 'width', 'height', 'duration', 'fps', 'frames', 'length', 'steps', 'cfg'])
-const TEXT_PLACEHOLDERS = new Set(['prompt', 'negative_prompt', 'aspect_ratio', 'resolution', 'model'])
+const TEXT_PLACEHOLDERS = new Set(['prompt', 'negative_prompt', 'aspect_ratio', 'resolution', 'model', 'shot_type', 'frame_type'])
 const IMAGE_PLACEHOLDER_RE = /^(image|first_frame|last_frame|reference_image_\d+)$/
 const PLACEHOLDER_RE = /\{\{\s*([a-z0-9_]+)\s*\}\}/gi
 
-// 本地 ComfyUI 串行出图 / 出片，批量提交时后面的任务要排很久：轮询上限放宽到 6 小时
-export const COMFYUI_POLL_PROFILE = { attempts: 2160, intervalMs: 10_000, maxDurationMs: null }
+/**
+ * 本地 ComfyUI 串行出图 / 出片，批量提交时后面的任务要排很久：轮询上限放宽到 6 小时。
+ * 每 3 秒查一次（本地服务，开销很小），排队位置与完成状态更及时；执行细节由 WebSocket 实时推送。
+ */
+export const COMFYUI_POLL_PROFILE = { attempts: 7200, intervalMs: 3_000, maxDurationMs: null }
 
 export type ComfyPlaceholderValues = Record<string, string | number | undefined>
 
@@ -260,6 +267,7 @@ export type ComfyHistoryState =
 
 export function readComfyHistory(result: any): ComfyHistoryState {
   if (result?.__comfyMissing) return { state: 'missing' }
+  if (result?.__comfyQueue) return { state: 'running' }
   const entry: any = result && typeof result === 'object' ? Object.values(result)[0] : null
   if (!entry || typeof entry !== 'object') return { state: 'running' }
   const status = entry.status || {}
@@ -292,8 +300,11 @@ export abstract class ComfyUIClient {
   pollProfile = COMFYUI_POLL_PROFILE
 
   /**
-   * 渲染工作流并构造 /prompt 请求：只上传工作流里实际引用到的图片；
-   * 若有节点被断开连线，查 /object_info 必填输入后重新渲染。
+   * 渲染工作流并构造 /prompt 请求：
+   * ① 自动绑定（没写占位符的工作流按节点结构识别提示词 / 图片 / 种子 / 尺寸 / 帧数 / FPS / 模型文件）
+   * ② 只上传工作流里实际引用到的图片（逐张上报进度）
+   * ③ 替换占位符；若有节点被断开连线，查 /object_info 必填输入后重新渲染
+   * ④ client_id 用进度订阅连接的 clientId，ComfyUI 才会把执行事件推给我们
    */
   protected async buildPromptRequest(
     config: AIConfig,
@@ -301,27 +312,79 @@ export abstract class ComfyUIClient {
     values: ComfyPlaceholderValues,
     imageSources: Record<string, string | undefined>,
     uploadPrefix: string,
+    opts: { kind: 'image' | 'video'; bind?: ComfyBindOptions; ctx?: GenerateContext } = { kind: 'video' },
   ): Promise<ProviderRequest> {
-    const templateText = JSON.stringify(template)
+    const { workflow: bound } = autoBindComfyWorkflow(template, opts.kind, opts.bind)
+    const templateText = JSON.stringify(bound)
     const uploaded = new Map<string, string>()
-    for (const [key, source] of Object.entries(imageSources)) {
-      if (!source || !new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'i').test(templateText)) continue
-      if (!uploaded.has(source)) uploaded.set(source, await this.uploadImage(config, source, `${uploadPrefix}-${key}`))
-      values[key] = uploaded.get(source)
+    const toUpload = Object.entries(imageSources).filter(([key, source]) =>
+      source && new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'i').test(templateText))
+    const distinct = new Set(toUpload.map(([, source]) => source))
+    if (distinct.size) {
+      opts.ctx?.report({ stage: 'uploading', message: `上传参考图到 ComfyUI（0/${distinct.size}）`, detail: { uploaded: 0, upload_total: distinct.size } })
+    }
+    for (const [key, source] of toUpload) {
+      if (!uploaded.has(source!)) {
+        uploaded.set(source!, await this.uploadImage(config, source!, `${uploadPrefix}-${key}`))
+        opts.ctx?.report({
+          stage: 'uploading',
+          percent: stagePercent('uploading', uploaded.size / distinct.size),
+          message: `上传参考图到 ComfyUI（${uploaded.size}/${distinct.size}）`,
+          detail: { uploaded: uploaded.size, upload_total: distinct.size },
+        })
+      }
+      values[key] = uploaded.get(source!)
     }
 
-    let workflow = renderComfyWorkflow(template, values)
-    const affected = classesWithDroppedLinks(template, workflow)
+    let workflow = renderComfyWorkflow(bound, values)
+    const affected = classesWithDroppedLinks(bound, workflow)
     if (affected.length) {
       const required = await this.fetchRequiredInputs(config, affected)
-      if (Object.keys(required).length) workflow = renderComfyWorkflow(template, values, required)
+      if (Object.keys(required).length) workflow = renderComfyWorkflow(bound, values, required)
     }
+
+    // 先连上进度 WebSocket 再提交，执行事件才不会丢；连不上也照常生成
+    const monitor = comfyMonitorFor(config)
+    const live = await monitor.ensureConnected().catch(() => false)
+    opts.ctx?.report({ stage: 'submitting', message: `提交工作流到 ComfyUI（${Object.keys(workflow).length} 个节点）` })
     return {
       url: comfyUrl(config, '/prompt'),
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...comfyAuthHeaders(config) },
-      body: { prompt: workflow, client_id: COMFYUI_CLIENT_ID },
+      body: { prompt: workflow, client_id: live ? monitor.clientId : COMFYUI_CLIENT_ID },
     }
+  }
+
+  /** 生成图片还是视频（决定自动绑定规则与进度文案） */
+  protected abstract readonly mediaKind: 'image' | 'video'
+
+  /** 提交成功：开始跟踪该 prompt 的执行进度（WebSocket 事件实时推给任务进度） */
+  onSubmitted(config: AIConfig, taskId: string, request: ProviderRequest, report?: (patch: TaskProgressPatch) => void) {
+    const workflow = request?.body?.prompt
+    if (!workflow || typeof workflow !== 'object') return
+    comfyMonitorFor(config).track(taskId, describeComfyPromptMeta(workflow, this.mediaKind), report)
+  }
+
+  onFinished(config: AIConfig, taskId: string) {
+    comfyMonitorFor(config).untrack(taskId)
+  }
+
+  /** 轮询后的细粒度进度：排队位置（来自 /queue）+ 节点 / 采样步数（来自 WebSocket） */
+  describeProgress(config: AIConfig, taskId: string, pollResult: any): TaskProgressPatch | null {
+    const monitor = comfyMonitorFor(config)
+    if (pollResult?.__comfyQueue !== undefined) monitor.setQueue(taskId, pollResult.__comfyQueue)
+    const patch = monitor.describe(taskId)
+    if (patch) return patch
+    const queue = pollResult?.__comfyQueue
+    if (queue && !queue.running) {
+      return {
+        stage: 'queued',
+        message: queue.ahead > 0 ? `ComfyUI 排队中：前面还有 ${queue.ahead} 个任务` : 'ComfyUI 排队中：下一个就轮到它',
+        detail: { queue_ahead: queue.ahead, queue_total: queue.total },
+      }
+    }
+    if (queue?.running) return { stage: 'running', message: 'ComfyUI 正在执行' }
+    return null
   }
 
   /** 查询节点类型的必填输入；老版本 ComfyUI 或网络失败时返回空表（退回只按连线判断） */
@@ -390,9 +453,9 @@ export abstract class ComfyUIClient {
     const history = await this.fetchJson(config, `/history/${encodeURIComponent(taskId)}`)
     if (history && typeof history === 'object' && Object.keys(history).length) return history
     const queue = await this.fetchJson(config, '/queue')
-    const inQueue = [...(queue?.queue_running || []), ...(queue?.queue_pending || [])]
-      .some((item: any) => Array.isArray(item) && String(item[1]) === taskId)
-    if (inQueue) return {}
+    const position = comfyQueuePosition(queue, taskId)
+    // 仍在队列：带上排队位置（describeProgress 用），readComfyHistory 视为执行中
+    if (position) return { __comfyQueue: position }
     // 查队列的间隙里刚好跑完：再查一次历史
     const again = await this.fetchJson(config, `/history/${encodeURIComponent(taskId)}`)
     if (again && typeof again === 'object' && Object.keys(again).length) return again

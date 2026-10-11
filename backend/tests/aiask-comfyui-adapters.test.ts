@@ -293,8 +293,11 @@ test('comfyui: lost tasks fail fast; animated-only output gets a clear error', a
     }) as typeof fetch
   }
   try {
-    respond({ '/history/p1': {}, '/queue': { queue_running: [], queue_pending: [[3, 'p1', {}, {}, []]] } })
-    assert.deepEqual(await adapter.fetchPollResult(cfg, 'p1'), {})
+    respond({ '/history/p1': {}, '/queue': { queue_running: [[1, 'other', {}, {}, []]], queue_pending: [[3, 'p1', {}, {}, []]] } })
+    const queued = await adapter.fetchPollResult(cfg, 'p1')
+    assert.deepEqual(queued, { __comfyQueue: { ahead: 1, total: 2, running: false } })
+    assert.equal(adapter.parsePollResponse(queued).status, 'processing')
+    assert.equal(adapter.describeProgress(cfg, 'p1', queued)?.stage, 'queued')
     respond({ '/history/p1': {}, '/queue': { queue_running: [], queue_pending: [] } })
     assert.deepEqual(await adapter.fetchPollResult(cfg, 'p1'), { __comfyMissing: true })
     respond({ '/history/p1': { p1: { status: { status_str: 'success' } } } })
