@@ -5,7 +5,7 @@ description: Video prompt specification — generates a time-segmented video-gen
 
 # Video Prompt (storyboard segment → video_prompt)
 
-From a single storyboard segment's description (containing the 【镜头N】 sub-shot structure and dialogue/narration) / atmosphere / duration, generate the `video_prompt` that drives AI video generation. **One storyboard segment = one 8-15-second video, with cuts allowed inside it**: consecutive segments may be different shots (change of shot size/angle/subject), joined with hard cuts; but the whole segment **never crosses scenes** and never uses flashbacks.
+From a single storyboard segment's description (containing the 【镜头N】 sub-shot structure and dialogue/narration) / atmosphere / duration, generate the `video_prompt` that drives AI video generation. **One storyboard segment = one 4-15-second video, with cuts allowed inside it**: consecutive segments may be different shots (change of shot size/angle/subject), joined with hard cuts; but the whole segment **never crosses scenes** and never uses flashbacks.
 
 ## Format
 
@@ -21,7 +21,9 @@ Characters: @Xiaoming, @Xiaohong; Scene: @Coffee Shop.
 Header rules:
 - Only list the characters who actually appear in this storyboard segment and the bound scene — do not list those who do not appear
 - When a prop has a notable appearance, it may be appended to the header (e.g. `; Props: @Letter`)
-- The header is its own line, ending with a period, followed by the time segments
+- The header is a standalone line ending with a period
+- If the segment has `blocking`, the next line is "Blocking: …", copying the opening positions from blocking (left/right, front/back, facing); keep the same left/right arrangement throughout
+- The time segments follow
 
 Split into 3-second segments, each segment on its own line separated by newlines, with time ranges continuous and adjoining (no overlaps, no gaps).
 
@@ -44,7 +46,15 @@ Organize each segment's content in this order (items with no content may be omit
 - **Shot size/camera move**: one camera state per segment (close shot / medium shot / wide shot / close-up; static / push / pull / pan / tracking); the camera move is continuous within a single sub-shot and may change after a cut
 - **Action**: one main action per segment, with concrete visible verbs (walk, turn around, look up, clench, pause)
 - **All emotion must become visible description**: no abstract words like "he is very sad / the mood is tense" — write it as "he lowers his head, fingers clench the rim of the cup, breathing grows heavier"
-- **Dialogue/narration**: write "CharacterName says: "line""; narration as "Narration: content"; a long line that cannot be spoken within 3 seconds is split across multiple segments; a segment without dialogue may note ambient/action sounds (e.g. "machines keep roaring")
+- **Dialogue/narration**: write "CharacterName says: "line""; narration as "Narration: content"; put each line only in the 3-second segment where its speaker is on camera, splitting lines that cannot be spoken within 3 seconds
+- **Segments without dialogue**: write "(no one speaks)" explicitly together with visible action or ambient sound (e.g. "machines keep roaring") — otherwise the video model invents lines
+
+## Dialogue and Continuity
+
+- **Use only the lines in the description**, word for word; when the lines are much shorter than the segment, fill the extra time with reactions, looks and action marked "(no one speaks)"
+- Shoot conversations as shot / reverse shot: the speaker is on camera, the next segment shows the listener reacting; keep left/right positions from blocking (180-degree rule)
+- The first segment matches blocking's opening positions; the last segment lands on blocking's end state so the next shot can cut in
+- At generation time the system also appends dialogue-control, character-lock, scene-lock, style-lock and continuity directives — do not repeat them in the prompt
 
 ## Reference Rules
 

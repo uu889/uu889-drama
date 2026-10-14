@@ -10,6 +10,7 @@ import { eq } from 'drizzle-orm'
 import { now } from '../../utils/response.js'
 import { logTaskProgress, logTaskSuccess } from '../../utils/task-logger.js'
 import { getDramaId, getEpisodeId } from '../context.js'
+import { checkShotTiming } from '../../services/shot-direction.js'
 
 async function syncStoryboardCharacters(storyboardId: number, characterIds: number[]) {
   await db.delete(schema.storyboardCharacters)
@@ -193,6 +194,7 @@ const readStoryboardContext = createTool({
           shot_type: sb.shotType || '',
           duration: sb.duration || 0,
           description: sb.description || '',
+          blocking: sb.blocking || '',
           atmosphere: sb.atmosphere || '',
           video_prompt: sb.videoPrompt || '',
         }
@@ -233,6 +235,7 @@ const storyboardFields = z.object({
   location: z.string().optional(),
   time: z.string().optional(),
   description: z.string().optional(),
+  blocking: z.string().optional().describe('人物站位与衔接：开场站位（每个角色在画面左/中/右、前/后景、朝向、姿态）+ 结尾状态；同场景连续段落开场必须承接上一段结尾'),
   result: z.string().optional(),
   atmosphere: z.string().optional(),
   image_prompt: z.string().optional(),
@@ -244,6 +247,29 @@ const storyboardFields = z.object({
   character_ids: z.array(z.number()).optional(),
   prop_ids: z.array(z.number()).optional(),
 })
+
+/** 按台词校正段落时长：演不完的自动加长；空余过多的不改（可能有动作戏），返回提醒让 Agent 处理 */
+async function fitDurationToDialogue(sb: z.infer<typeof storyboardFields>): Promise<{ duration: number; warning?: string }> {
+  const requested = Number(sb.duration) || 10
+  const ids = [...new Set((sb.character_ids || []).filter(Boolean))]
+  const names = ids.length
+    ? (await db.select().from(schema.characters)).filter(ch => ids.includes(ch.id)).map(ch => ch.name)
+    : []
+  const timing = checkShotTiming(sb.description, requested, names)
+  if (timing.status === 'too_short' && timing.recommended) {
+    return {
+      duration: Math.max(requested, timing.recommended),
+      warning: `#${sb.shot_number}: 台词需要约 ${timing.neededSeconds} 秒，时长已从 ${requested} 秒自动加到 ${Math.max(requested, timing.recommended)} 秒`,
+    }
+  }
+  if (timing.status === 'too_long') {
+    return {
+      duration: requested,
+      warning: `#${sb.shot_number}: 台词只需约 ${timing.neededSeconds} 秒，但段落 ${requested} 秒，有 ${timing.idleSeconds} 秒没人说话——视频模型会自己补台词。请用 update_storyboard 把 duration 改为 ${timing.recommended} 秒左右，或在 description 里把多出的时间写成具体的无台词动作 / 反应`,
+    }
+  }
+  return { duration: requested }
+}
 
 const saveStoryboards = createTool({
   id: 'save_storyboards',
@@ -283,15 +309,19 @@ const saveStoryboards = createTool({
       existingRows.filter(sb => !sb.deletedAt).map(sb => [sb.storyboardNumber, sb.id]),
     )
 
+    const timingWarnings: string[] = []
     for (const sb of storyboards) {
       await validateStoryboardBindings(episodeId, dramaId, sb.scene_id, sb.character_ids, sb.prop_ids)
+      const fitted = await fitDurationToDialogue(sb)
+      sb.duration = fitted.duration
+      if (fitted.warning) timingWarnings.push(fitted.warning)
       const existingId = shotToId.get(sb.shot_number)
       if (existingId !== undefined) {
         await db.update(schema.storyboards).set({
           title: sb.title, shotType: sb.shot_type,
           angle: sb.angle, movement: sb.movement,
           location: sb.location, time: sb.time,
-          description: sb.description, result: sb.result,
+          description: sb.description, blocking: sb.blocking, result: sb.result,
           atmosphere: sb.atmosphere, imagePrompt: sb.image_prompt,
           videoPrompt: sb.video_prompt, bgmPrompt: sb.bgm_prompt,
           soundEffect: sb.sound_effect,
@@ -307,7 +337,7 @@ const saveStoryboards = createTool({
           title: sb.title, shotType: sb.shot_type,
           angle: sb.angle, movement: sb.movement,
           location: sb.location, time: sb.time,
-          description: sb.description, result: sb.result,
+          description: sb.description, blocking: sb.blocking, result: sb.result,
           atmosphere: sb.atmosphere, imagePrompt: sb.image_prompt,
           videoPrompt: sb.video_prompt, bgmPrompt: sb.bgm_prompt,
           soundEffect: sb.sound_effect,
@@ -337,7 +367,12 @@ const saveStoryboards = createTool({
       count: storyboards.length,
       totalDuration,
     })
-    return { message: `Saved ${storyboards.length} storyboards`, count: storyboards.length, total_duration: totalDuration }
+    return {
+      message: `Saved ${storyboards.length} storyboards`,
+      count: storyboards.length,
+      total_duration: totalDuration,
+      ...(timingWarnings.length ? { timing_warnings: timingWarnings } : {}),
+    }
   },
 })
 
@@ -359,6 +394,7 @@ const updateStoryboard = createTool({
     bgm_prompt: z.string().optional(),
     sound_effect: z.string().optional(),
     description: z.string().optional(),
+    blocking: z.string().optional(),
     scene_id: z.number().nullable().optional(),
     character_ids: z.array(z.number()).optional(),
     prop_ids: z.array(z.number()).optional(),
@@ -420,6 +456,7 @@ const updateStoryboard = createTool({
     if ('bgm_prompt' in fields) updates.bgmPrompt = fields.bgm_prompt
     if ('sound_effect' in fields) updates.soundEffect = fields.sound_effect
     if ('description' in fields) updates.description = fields.description
+    if ('blocking' in fields) updates.blocking = fields.blocking
     if ('scene_id' in fields) updates.sceneId = fields.scene_id
     if ('duration' in fields) updates.duration = fields.duration
     await db.update(schema.storyboards).set(updates).where(eq(schema.storyboards.id, storyboard_id))

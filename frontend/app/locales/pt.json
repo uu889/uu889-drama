@@ -1000,6 +1000,36 @@
       "sec": "{n} s",
       "min": "{m} min {s} s",
       "hour": "{h} h {m} min"
+    },
+    "direction": {
+      "blocking": "Posições",
+      "blockingHint": "para continuidade: posições iniciais + estado final",
+      "blockingPlaceholder": "Início: Ming está sentado à janela, à esquerda; Hong entra pela porta, à direita. Fim: Hong senta-se em frente a Ming (direita) e eles se olham por cima da mesa.",
+      "timing": "{lines} fala(s), ~{need} s para dizer / plano {dur} s",
+      "fit": "Ajustar para {n} s conforme as falas",
+      "fitted": "Duração ajustada para {n} s",
+      "timingHint": {
+        "ok": "A duração combina com as falas. A geração trava estas falas; no resto do tempo ninguém fala.",
+        "too_long": "Cerca de {idle} s sem ninguém falar: modelos de vídeo costumam inventar falas (balbucio). Encurte o plano ou descreva uma ação concreta para esse tempo.",
+        "too_short": "As falas não cabem (faltam {idle} s) e serão cortadas ou apressadas. Aumente o plano ou passe falas para o próximo.",
+        "silent": "Este plano não tem diálogo."
+      },
+      "badgeLong": "longo demais",
+      "badgeShort": "falas excedem",
+      "dialogueLock": "Travar diálogo (só estas falas)",
+      "dialogueLockTip": "Adiciona controle de diálogo: só as falas da descrição, palavra por palavra, depois silêncio; planos sem fala: ninguém fala.",
+      "appearanceLock": "Travar personagens / cenário / estilo",
+      "appearanceLockTip": "Adiciona aparência e figurino dos personagens, disposição do cenário e consistência de estilo para rostos e estilo não variarem.",
+      "continuity": "Continuidade (posições + regra dos 180°)",
+      "continuityTip": "Adiciona as posições deste plano e o estado final do plano anterior do mesmo cenário, mantendo esquerda/direita.",
+      "chain": "Começar pelo último quadro do plano anterior",
+      "chainTip": "Quando o plano anterior do mesmo cenário é gerado, seu último quadro vira o primeiro quadro ou a referência 1 deste. Em lote, planos do mesmo cenário são gerados em ordem.",
+      "noPrev": "Cenário diferente do plano anterior: este plano abre uma nova cena.",
+      "prevTextOnly": "Continua das posições finais do plano #{n} (sem a imagem).",
+      "prevNoVideo": "O plano #{n} ainda não tem vídeo: gere-o primeiro para emendar no seu último quadro.",
+      "prevAsFirst": "Começa com o último quadro do plano #{n} como primeiro quadro.",
+      "prevAsRef": "Usa o último quadro do plano #{n} como referência 1 para igualar as posições iniciais.",
+      "chainBatch": "Continuidade ativada: {n} grupo(s) de planos do mesmo cenário serão gerados em ordem, cada um a partir do último quadro do anterior."
     }
   },
   "errors": {

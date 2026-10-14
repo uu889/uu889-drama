@@ -26,7 +26,12 @@ const REPO_ROOT = path.resolve(DESKTOP_ROOT, '..')
 const BACKEND_BUNDLE = path.join(DESKTOP_ROOT, 'build', 'backend.mjs')
 
 /** workspace 模板版本：内置模板更新时递增，触发向用户目录补缺失文件 */
-const TEMPLATE_VERSION = '4'
+const TEMPLATE_VERSION = '5'
+/**
+ * 本版本更新过的内置 skill 目录：升级时用新版覆盖（用户改过的旧文件先备份成 *.bak-v<旧版本>）。
+ * v5：分镜拆解按台词定时长 / 站位接戏，视频提示词无台词段标「无人说话」
+ */
+const UPDATED_SKILL_DIRS = ['storyboard-breaker', 'prompt-generator/video-prompt']
 const STORAGE_CONFIG_FILE = 'storage-config.json'
 
 let mainWindow: BrowserWindow | null = null
@@ -138,9 +143,28 @@ export function normCase(p: string): string {
  */
 function syncWorkspaceTemplate(templateDir: string, destDir: string) {
   const marker = path.join(destDir, '.template-version')
-  if (fs.existsSync(marker) && fs.readFileSync(marker, 'utf8').trim() === TEMPLATE_VERSION) return
+  const previous = fs.existsSync(marker) ? fs.readFileSync(marker, 'utf8').trim() : ''
+  if (previous === TEMPLATE_VERSION) return
   fs.cpSync(templateDir, destDir, { recursive: true, force: false, errorOnExist: false })
   fs.cpSync(path.join(templateDir, 'prompts'), path.join(destDir, 'prompts'), { recursive: true, force: true })
+  // 老用户升级：更新过的内置 skill 用新版覆盖，内容不同的旧文件先备份
+  if (previous) {
+    for (const rel of UPDATED_SKILL_DIRS) {
+      const src = path.join(templateDir, 'skills', rel)
+      const dst = path.join(destDir, 'skills', rel)
+      if (!fs.existsSync(src)) continue
+      for (const name of fs.readdirSync(src)) {
+        const from = path.join(src, name)
+        const to = path.join(dst, name)
+        if (!fs.statSync(from).isFile()) continue
+        if (fs.existsSync(to) && fs.readFileSync(to, 'utf8') !== fs.readFileSync(from, 'utf8')) {
+          fs.copyFileSync(to, `${to}.bak-v${previous}`)
+        }
+        fs.mkdirSync(dst, { recursive: true })
+        fs.copyFileSync(from, to)
+      }
+    }
+  }
   fs.writeFileSync(marker, TEMPLATE_VERSION)
 }
 

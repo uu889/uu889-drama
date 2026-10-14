@@ -7,7 +7,7 @@ import { eq } from 'drizzle-orm'
 import { getActiveConfig, getConfigById } from './ai.js'
 import { now } from '../utils/response.js'
 import { downloadFile, fetchImageAsCompressedDataUrl, generateImageThumb, readImageAsCompressedDataUrl, readImageAsDataUrl, saveBase64Image } from '../utils/storage.js'
-import { extractVideoPoster } from '../utils/video-poster.js'
+import { extractVideoEndFrame, extractVideoPoster } from '../utils/video-poster.js'
 import { getImageAdapter, getVideoAdapter } from './adapters/registry'
 import type { AIConfig, GenerateContext, ImageProviderAdapter, ProviderRequest, VideoProviderAdapter } from './adapters/types'
 import { formatBytes, formatEta, setTaskProgress, stagePercent, type TaskProgressPatch } from './task-progress.js'
@@ -621,6 +621,8 @@ async function handleVideoComplete(record: SysTaskRecord, config: AIConfig, vide
   setTaskProgress(record.id, { stage: 'saving', message: '视频已下载，提取封面帧并写回分镜' })
   // 海报帧供列表/封面展示，避免前端为显示首帧缓冲整个视频
   await extractVideoPoster(localPath)
+  // 结尾帧供同场景下一个镜头接戏（作为首帧 / 参考图）
+  await extractVideoEndFrame(localPath)
   await db.update(schema.sysTask)
     .set({ resultUrl: videoUrl, localPath, status: 'completed', completedAt: now(), updatedAt: now() })
     .where(eq(schema.sysTask.id, record.id))

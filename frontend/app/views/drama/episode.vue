@@ -588,6 +588,11 @@
                       </span>
                       <span class="video-task-sep">·</span>
                       <span>{{ task.duration }}s</span>
+                      <span
+                        v-if="task.storyboard.timing && ['too_long', 'too_short'].includes(task.storyboard.timing.status)"
+                        class="video-task-timing-warn"
+                        :title="t('episode.direction.timingHint.' + task.storyboard.timing.status, { idle: task.storyboard.timing.idle_seconds })"
+                      >{{ task.storyboard.timing.status === 'too_long' ? t('episode.direction.badgeLong') : t('episode.direction.badgeShort') }}</span>
                       <template v-if="task.meta">
                         <span class="video-task-sep">·</span>
                         <span class="video-task-loc truncate">{{ task.meta }}</span>
@@ -628,6 +633,10 @@
                     <label class="field">
                       <span class="field-label">{{ t('episode.sb.atmosphere') }}</span>
                       <textarea :value="selectedSb.atmosphere || ''" class="textarea" rows="2" @blur="updateField(selectedSb, 'atmosphere', $event.target.value)" :placeholder="t('episode.sb.atmospherePlaceholder')" />
+                    </label>
+                    <label class="field">
+                      <span class="field-label">{{ t('episode.direction.blocking') }} <span class="dim">({{ t('episode.direction.blockingHint') }})</span></span>
+                      <textarea :value="selectedSb.blocking || ''" class="textarea" rows="3" @blur="updateField(selectedSb, 'blocking', $event.target.value)" :placeholder="t('episode.direction.blockingPlaceholder')" />
                     </label>
                   </section>
 
@@ -807,6 +816,43 @@
 
                 <!-- 分镜时长 + 生成操作常驻底部：不随检查器内容滚动 -->
                 <div class="video-inspector-footer">
+                  <section class="video-inspector-section video-direction-card">
+                    <div
+                      v-if="selectedSb.timing && selectedSb.timing.status !== 'silent'"
+                      :class="['video-timing', 'is-' + selectedSb.timing.status]"
+                    >
+                      <div class="video-timing-line">
+                        <span>{{ t('episode.direction.timing', { lines: selectedSb.timing.lines, need: selectedSb.timing.needed_seconds, dur: selectedSb.duration || 10 }) }}</span>
+                        <button
+                          v-if="selectedSb.timing.status !== 'ok' && selectedSb.timing.recommended && selectedSb.timing.recommended !== Number(selectedSb.duration)"
+                          type="button"
+                          class="btn btn-sm"
+                          @click="fitDurationToDialogue(selectedSb)"
+                        >{{ t('episode.direction.fit', { n: selectedSb.timing.recommended }) }}</button>
+                      </div>
+                      <div class="video-timing-hint">{{ t('episode.direction.timingHint.' + selectedSb.timing.status, { idle: selectedSb.timing.idle_seconds }) }}</div>
+                    </div>
+                    <label class="video-direction-toggle" :title="t('episode.direction.dialogueLockTip')">
+                      <input v-model="videoDirection.dialogue_lock" type="checkbox" />
+                      <span>{{ t('episode.direction.dialogueLock') }}</span>
+                    </label>
+                    <label class="video-direction-toggle" :title="t('episode.direction.appearanceLockTip')">
+                      <input v-model="videoDirection.appearance_lock" type="checkbox" />
+                      <span>{{ t('episode.direction.appearanceLock') }}</span>
+                    </label>
+                    <label class="video-direction-toggle" :title="t('episode.direction.continuityTip')">
+                      <input v-model="videoDirection.continuity" type="checkbox" />
+                      <span>{{ t('episode.direction.continuity') }}</span>
+                    </label>
+                    <label v-if="videoDirection.continuity" class="video-direction-toggle is-sub" :title="t('episode.direction.chainTip')">
+                      <input v-model="videoDirection.chain_previous" type="checkbox" />
+                      <span>{{ t('episode.direction.chain') }}</span>
+                    </label>
+                    <div v-if="continuityStatus" :class="['video-continuity-status', 'is-' + continuityStatus.kind]">
+                      <img v-if="continuityStatus.image" :src="continuityStatus.image" alt="" @click="openImageViewer(continuityStatus.image, continuityStatus.text)" />
+                      <span>{{ continuityStatus.text }}</span>
+                    </div>
+                  </section>
                   <section class="video-inspector-section video-params-card">
                     <div class="video-param-row">
                       <span class="video-param-name">{{ t('episode.inspector.duration') }}</span>
@@ -2205,7 +2251,29 @@ function confirmBatchVideos() {
   batchVideoConfirm.value = { open: false, targets: [] }
   if (!targets.length) return
   const ids = targets.map(s => s.id)
-  targets.forEach(sb => genVid(sb, { silent: true }))
+  if (videoDirection.continuity && videoDirection.chain_previous) {
+    // 接戏：同场景且编号相邻的镜头串成一条链，链内按顺序生成（等上一镜出片、取到结尾帧再生成下一镜），不同链并行
+    const chains = []
+    for (const sb of [...targets].sort((a, b) => sbNumber(a) - sbNumber(b))) {
+      const last = chains[chains.length - 1]
+      const prev = previousShotInScene(sb)
+      if (last && prev && last[last.length - 1].id === prev.id) last.push(sb)
+      else chains.push([sb])
+    }
+    for (const chain of chains) {
+      // 排队中的镜头先显示为生成中
+      chain.slice(1).forEach(sb => {
+        chainQueuedIds.add(sb.id)
+        if (!isPendingVideo(sb.id)) pendingVideoIds.value.push(sb.id)
+      })
+      ;(async () => {
+        for (const sb of chain) await genVid(sb, { silent: true, wait: true })
+      })()
+    }
+    if (chains.some(c => c.length > 1)) toast.info(t('episode.direction.chainBatch', { n: chains.filter(c => c.length > 1).length }))
+  } else {
+    targets.forEach(sb => genVid(sb, { silent: true }))
+  }
   toast.success(t('episode.vid.batchStarted', { n: ids.length }))
   watchAsyncResult(() => ids.every(id => {
     const target = sbs.value.find(s => s.id === id)
@@ -2267,6 +2335,8 @@ async function loadGenTasks() {
     }
     // 刚点击提交、任务记录尚未加载出来的本地状态保留,避免状态闪退
     for (const id of pendingVideoIds.value) if (!latestBySb.has(id)) pending.add(id)
+    // 批量接戏链里还没轮到的镜头：保持生成中
+    for (const id of chainQueuedIds) { pending.add(id); delete failed[id] }
     for (const id of Object.keys(failedVideoMessages.value)) {
       if (!latestBySb.has(Number(id))) failed[id] = failedVideoMessages.value[id]
     }
@@ -2604,7 +2674,15 @@ function updateField(sb, field, value) {
   sb[field] = value
   const camelField = toCamel(field)
   if (camelField !== field) sb[camelField] = value
-  storyboardAPI.update(sb.id, { [field]: value }).catch(e => toastError(e))
+  storyboardAPI.update(sb.id, { [field]: value })
+    .then((res) => {
+      // 改描述 / 时长 / 角色后台词计时会变；换主视频后结尾帧会变
+      if (res && typeof res === 'object') {
+        if ('timing' in res) sb.timing = res.timing
+        if ('end_frame_url' in res) sb.end_frame_url = res.end_frame_url
+      }
+    })
+    .catch(e => toastError(e))
 }
 
 function toCamel(field) {
@@ -3107,12 +3185,14 @@ function formatHistoryTime(iso) {
   return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
 }
 
-function getShotReferenceImages(sb) {
+function getShotReferenceImages(sb, extraFirst = null) {
   const refs = []
   const pushRef = (value) => {
     if (!value || refs.includes(value) || refs.length >= refImageLimit.value) return
     refs.push(value)
   }
+  // 接戏：上一镜结尾画面作为第 1 张参考图
+  pushRef(extraFirst)
   const scene = getStoryboardScene(sb)
   pushRef(scene?.image_url || scene?.imageUrl)
   for (const char of getStoryboardCharacters(sb)) {
@@ -3236,7 +3316,7 @@ const mentionOptions = computed(() => {
 })
 
 // 按参考图顺序（场景图在前、角色图居中、道具图在后）为 @名字 建立索引映射，供视频提示词引用替换
-function getShotReferenceIndexMap(sb) {
+function getShotReferenceIndexMap(sb, extraFirst = null) {
   const ordered = []
   const seen = new Set()
   const push = (name, url) => {
@@ -3244,6 +3324,8 @@ function getShotReferenceIndexMap(sb) {
     seen.add(url)
     ordered.push({ name, imageUrl: url })
   }
+  // 与 getShotReferenceImages 同序：接戏帧占第 1 位（无名字，不参与 @名字 替换）
+  push('', extraFirst)
   const scene = getStoryboardScene(sb)
   push(scene?.location || '', scene?.image_url || scene?.imageUrl)
   for (const char of getStoryboardCharacters(sb)) {
@@ -3258,9 +3340,9 @@ function getShotReferenceIndexMap(sb) {
 }
 
 // 将视频提示词里的 @名字 替换为 @图片N名字（N 为参考图序号，1 起），生成时使用
-function resolveVideoPromptRefs(sb) {
+function resolveVideoPromptRefs(sb, extraFirst = null) {
   const prompt = sb.video_prompt || sb.videoPrompt || ''
-  const map = getShotReferenceIndexMap(sb)
+  const map = getShotReferenceIndexMap(sb, extraFirst)
   const names = Object.keys(map).sort((a, b) => b.length - a.length)
   if (!names.length) return prompt
   return prompt.replace(/@([^\s@]+)/g, (m, raw) => {
@@ -3325,19 +3407,99 @@ function uploadAssetImage(kind, id) {
   })
 }
 
+// ===== 镜头导演：台词控制 / 人物场景画风锁定 / 接戏 =====
+const DIRECTION_STORE_KEY = 'uu889:video-direction'
+const DIRECTION_DEFAULTS = { dialogue_lock: true, appearance_lock: true, continuity: true, chain_previous: true }
+function readDirectionPrefs() {
+  try { return { ...DIRECTION_DEFAULTS, ...(JSON.parse(localStorage.getItem(DIRECTION_STORE_KEY) || 'null') || {}) } } catch { return { ...DIRECTION_DEFAULTS } }
+}
+const videoDirection = reactive(readDirectionPrefs())
+watch(videoDirection, v => { try { localStorage.setItem(DIRECTION_STORE_KEY, JSON.stringify(v)) } catch { /* 静默 */ } }, { deep: true })
+/** 批量接戏链中排队、尚未提交的镜头 */
+const chainQueuedIds = new Set()
+
+function sbNumber(sb) { return Number(sb?.storyboard_number ?? sb?.storyboardNumber ?? 0) }
+/** 同一场景、编号紧挨着的上一镜（与后端判定一致）；不同场景返回 null */
+function previousShotInScene(sb) {
+  const sceneId = sb?.scene_id || sb?.sceneId
+  if (!sceneId) return null
+  const prev = sbs.value
+    .filter(s => sbNumber(s) < sbNumber(sb))
+    .sort((a, b) => sbNumber(b) - sbNumber(a))[0]
+  if (!prev || (prev.scene_id || prev.sceneId) !== sceneId) return null
+  return prev
+}
+// 上一镜结尾帧怎么用：给了首帧仍保留参考图的厂商（ComfyUI / MiniMax）和只用一张图的厂商（Runway、Veo Lite）作首帧；
+// 其余厂商首帧会顶掉角色参考图，改为放在参考图第 1 张
+const previousFrameMode = computed(() => {
+  const provider = selectedVideoConfig.value?.provider
+  if (provider === 'comfyui' || provider === 'minimax' || provider === 'runway') return 'first_frame'
+  if (refImageLimit.value <= 1) return 'first_frame'
+  return 'reference'
+})
+async function resolvePreviousEndFrame(sb) {
+  if (!videoDirection.continuity || !videoDirection.chain_previous) return null
+  const prev = previousShotInScene(sb)
+  if (!prev || !(prev.video_url || prev.videoUrl)) return null
+  if (prev.end_frame_url) return prev.end_frame_url
+  try {
+    const res = await storyboardAPI.endFrame(prev.id)
+    prev.end_frame_url = res?.end_frame_url || null
+    return prev.end_frame_url
+  } catch {
+    return null
+  }
+}
+/** 右栏接戏状态说明 */
+const continuityStatus = computed(() => {
+  const sb = selectedSb.value
+  if (!sb || !videoDirection.continuity) return null
+  const prev = previousShotInScene(sb)
+  if (!prev) return { kind: 'none', text: t('episode.direction.noPrev') }
+  const n = String(sbNumber(prev)).padStart(2, '0')
+  if (!videoDirection.chain_previous) return { kind: 'text', text: t('episode.direction.prevTextOnly', { n }) }
+  if (!(prev.video_url || prev.videoUrl)) return { kind: 'waiting', text: t('episode.direction.prevNoVideo', { n }) }
+  return {
+    kind: 'ready',
+    text: previousFrameMode.value === 'first_frame' ? t('episode.direction.prevAsFirst', { n }) : t('episode.direction.prevAsRef', { n }),
+    image: prev.end_frame_url ? '/' + prev.end_frame_url : '',
+  }
+})
+/** 按台词把分镜时长调到推荐值 */
+function fitDurationToDialogue(sb) {
+  const rec = Number(sb?.timing?.recommended)
+  if (!rec) return
+  updateField(sb, 'duration', rec)
+  sb.timing = { ...sb.timing, idle_seconds: Math.round((rec - sb.timing.needed_seconds) * 10) / 10, status: 'ok' }
+  toast.success(t('episode.direction.fitted', { n: rec }))
+}
+
 async function genVid(sb, opts = {}) {
-  const referenceImages = getShotReferenceImages(sb)
-  // 参考素材完全来自分镜绑定的角色/场景/道具图片
+  // 接戏：同场景上一镜的结尾画面（作为首帧，或作为第 1 张参考图）
+  const endFrame = await resolvePreviousEndFrame(sb)
+  const frameMode = endFrame ? previousFrameMode.value : null
+  const extraRef = frameMode === 'reference' ? endFrame : null
+  const referenceImages = getShotReferenceImages(sb, extraRef)
+  // 参考素材来自分镜绑定的角色/场景/道具图片（+ 接戏帧）
   const params = {
     storyboard_id: sb.id,
     drama_id: dramaId,
-    prompt: resolveVideoPromptRefs(sb),
+    prompt: resolveVideoPromptRefs(sb, extraRef),
     duration: Number(sb.duration || 10),
     aspect_ratio: dramaAspectRatio.value,
     generate_audio: true,
     model: bareModelName(videoModel.value) || undefined,
     config_id: ownerConfigId(videoModelOptions.value, videoModel.value),
     reference_image_urls: referenceImages,
+    ...(frameMode === 'first_frame' ? { first_frame_url: endFrame } : {}),
+    // 后端据此附加导演指令：台词控制、人物 / 场景 / 画风锁定、站位与接上一镜
+    direction: {
+      dialogue_lock: videoDirection.dialogue_lock,
+      appearance_lock: videoDirection.appearance_lock,
+      continuity: videoDirection.continuity,
+      previous_frame: frameMode,
+      previous_frame_index: frameMode === 'reference' ? 1 : undefined,
+    },
   }
   if (!params.prompt && !referenceImages.length) {
     toast.error(t('episode.vid.needRefOrPrompt'))
@@ -3346,10 +3508,13 @@ async function genVid(sb, opts = {}) {
   try {
     delete failedVideoMessages.value[sb.id]
     if (!isPendingVideo(sb.id)) pendingVideoIds.value.push(sb.id)
+    chainQueuedIds.delete(sb.id)
     const generation = await taskAPI.generate({ type: 'video', ...params })
     if (!opts.silent) toast.success(t('episode.vid.generating'))
     await refresh()
-    pollVideoGeneration(generation?.id, sb.id)
+    // 接戏链要等本镜出片才能生成下一镜：本地服务可能排队很久，最多等 1 小时
+    if (opts.wait) await pollVideoGeneration(generation?.id, sb.id, 900)
+    else pollVideoGeneration(generation?.id, sb.id)
   } catch (e) {
     pendingVideoIds.value = pendingVideoIds.value.filter(item => item !== sb.id)
     failedVideoMessages.value = {
@@ -3359,7 +3524,7 @@ async function genVid(sb, opts = {}) {
     toastError(e, { fallback: 'episode.vid.genFailed' })
   }
 }
-async function pollVideoGeneration(generationId, storyboardId) {
+async function pollVideoGeneration(generationId, storyboardId, maxPolls = 120) {
   if (!generationId) {
     watchAsyncResult(() => {
       const target = sbs.value.find(s => s.id === storyboardId)
@@ -3369,7 +3534,7 @@ async function pollVideoGeneration(generationId, storyboardId) {
     }, 60, 4000)
     return
   }
-  for (let i = 0; i < 120; i++) {
+  for (let i = 0; i < maxPolls; i++) {
     await sleep(4000)
     try {
       const res = await taskAPI.get(generationId)
@@ -6185,4 +6350,19 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
 /* 生成进度（TaskProgress） */
 .video-player-progress { width: min(360px, 100%); margin: 10px auto 0; }
 .asset-progress { width: 100%; }
+
+/* 镜头导演：台词计时 / 锁定开关 / 接戏状态 */
+.video-direction-card { display: flex; flex-direction: column; gap: 6px; }
+.video-timing { border-radius: 8px; padding: 7px 9px; font-size: 11.5px; background: var(--bg-1); border: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px; }
+.video-timing.is-ok { border-color: var(--success, #30a46c); }
+.video-timing.is-too_long, .video-timing.is-too_short { border-color: var(--warning, #e5a000); background: var(--warning-bg, rgba(229, 160, 0, 0.08)); }
+.video-timing-line { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: 600; color: var(--text-1); }
+.video-timing-hint { color: var(--text-2); line-height: 1.45; }
+.video-direction-toggle { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-1); cursor: pointer; }
+.video-direction-toggle input { accent-color: var(--accent); }
+.video-direction-toggle.is-sub { padding-left: 18px; }
+.video-continuity-status { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-2); line-height: 1.4; padding-left: 18px; }
+.video-continuity-status img { width: 52px; height: 30px; object-fit: cover; border-radius: 4px; cursor: zoom-in; flex-shrink: 0; }
+.video-continuity-status.is-waiting { color: var(--warning, #b7791f); }
+.video-task-timing-warn { font-size: 10.5px; padding: 1px 6px; border-radius: 999px; background: var(--warning-bg, rgba(229, 160, 0, 0.12)); color: var(--warning, #b7791f); white-space: nowrap; }
 </style>

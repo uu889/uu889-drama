@@ -123,6 +123,8 @@ export const storyboards = sqliteTable('storyboards', {
   bgmPrompt: text('bgm_prompt'),
   soundEffect: text('sound_effect'),
   description: text('description'),
+  /** 人物站位与衔接：开场站位 / 结尾状态（接戏用） */
+  blocking: text('blocking'),
   duration: integer('duration').default(0),
   composedImage: text('composed_image'),
   firstFrameImage: text('first_frame_image'),

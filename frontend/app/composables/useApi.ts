@@ -62,6 +62,8 @@ export const storyboardAPI = {
   create: (data: any) => api.post('/storyboards', data),
   update: (id: number, data: any) => api.put(`/storyboards/${id}`, data),
   del: (id: number) => api.del(`/storyboards/${id}`),
+  /** 确保该分镜当前视频的结尾帧已提取（接戏用），返回 { end_frame_url } */
+  endFrame: (id: number) => api.post(`/storyboards/${id}/end-frame`),
 }
 
 export const characterAPI = {

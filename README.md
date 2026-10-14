@@ -207,6 +207,18 @@ When an image placeholder has no media, the node using it (e.g. `LoadImage`), an
 
 ---
 
+## 🎬 Dialogue, Consistency and Continuity
+
+Fixes for the three most common AI-video problems:
+
+- **Improvised speech / gibberish** (5 s of lines in a 10 s shot, the model makes up the rest): shot duration is derived from the lines and auto-corrected during breakdown; the workbench shows "lines X s / shot Y s" with a one-click fix; generation adds a dialogue-control block — only these lines, word for word, silence the rest of the time
+- **Faces, sets and style drifting**: generation adds character locks (reference + look / outfit text), scene and style consistency
+- **Shots that don't cut together** (blocking errors, broken conversation rhythm): storyboards now carry blocking (opening positions + end state) and conversations follow shot / reverse shot and the 180-degree rule; the next shot in the same scene opens from the previous shot's last frame (first frame for ComfyUI / MiniMax / Runway, reference 1 elsewhere), and batch generation runs same-scene shots in order
+
+Each can be toggled in the video panel.
+
+---
+
 ## 📦 Deployment
 
 ### 🖥️ Desktop app

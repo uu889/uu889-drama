@@ -48,6 +48,7 @@ configs/   — 遗留死配置，代码零引用
 - **ComfyUI**: `adapters/comfyui-common.ts`（生图 `comfyui-image.ts` / 生视频 `comfyui-video.ts` 共用），工作流存 `ai_service_configs.settings.comfyui_workflow`（API 格式 JSON，空则按 `comfyui_template` / 模型选 `comfyui-templates.ts` 内置模板），`comfyui-bind.ts` 自动绑定没写占位符的工作流（提示词 / 图片 / 种子 / 宽高帧数 / FPS / 模型文件），`{{占位符}}` 替换 + 缺图节点裁剪；`/upload/image` → `/prompt` → `/history/{id}` → `/view`；`comfyui-progress.ts` 订阅 `/ws` 推送节点 / 采样进度
 - **生成进度**: `services/task-progress.ts` 内存态进度（阶段 / 百分比 / 排队 / 采样步数 / 下载字节 / 过程记录），随 `/tasks`、`/episodes/:id/generation-tasks` 返回 `progress`；适配器钩子 `onSubmitted` / `describeProgress` / `trackSyncProgress`（SD WebUI）；前端 `components/TaskProgress.vue`
 - **本地生图提示词**: `settings.prompt_template`（`{{prompt}}` 插入位置）、`settings.prompt_translate`（`services/prompt-translate.ts` 用文字模型译成英文，本地生图默认开）
+- **镜头导演 / 接戏**: `services/shot-direction.ts` 解析分镜 description 的台词估算时长（拆分镜时 `save_storyboards` 自动校正、返回 `timing_warnings`），生成视频时按请求 `direction` 附加【台词控制】【人物外观锁定】【场景一致】【画风一致】【人物站位】【接上一镜】；分镜 `blocking` 字段记录开场站位 / 结尾状态；成片完成后抽结尾帧 `x_last.jpg`（`utils/video-poster.ts`），同场景下一镜用作首帧或第 1 张参考图
 - **视频拼接**: `services/ffmpeg-merge.ts`，FFmpeg 二进制内置（ffmpeg-static），可用 `FFMPEG_BIN`/`FFPROBE_BIN` 覆盖
 
 ### Frontend

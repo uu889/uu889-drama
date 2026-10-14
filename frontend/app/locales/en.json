@@ -1000,6 +1000,36 @@
       "sec": "{n}s",
       "min": "{m}m {s}s",
       "hour": "{h}h {m}m"
+    },
+    "direction": {
+      "blocking": "Blocking",
+      "blockingHint": "for continuity: opening positions + end state",
+      "blockingPlaceholder": "Opening: Ming sits by the window, frame left; Hong enters from the door, frame right. End: Hong sits across from Ming (frame right), they look at each other across the table.",
+      "timing": "{lines} line(s), ~{need}s to perform / shot {dur}s",
+      "fit": "Set to {n}s for the lines",
+      "fitted": "Duration set to {n}s",
+      "timingHint": {
+        "ok": "Duration matches the lines. Generation locks these lines; nobody speaks the rest of the time.",
+        "too_long": "About {idle}s with nobody speaking — video models tend to invent lines (gibberish). Shorten the shot to fit the lines, or describe concrete action for that time.",
+        "too_short": "The lines do not fit ({idle}s short) and will be cut off or rushed. Lengthen the shot or move some lines to the next one.",
+        "silent": "This shot has no dialogue."
+      },
+      "badgeLong": "too long",
+      "badgeShort": "lines overrun",
+      "dialogueLock": "Lock dialogue (only these lines, no improvised speech)",
+      "dialogueLockTip": "Adds dialogue control: only the lines in the description, word for word, then silence; shots without lines tell everyone to keep quiet.",
+      "appearanceLock": "Lock characters / scene / style",
+      "appearanceLockTip": "Adds character look and outfit text, scene layout and style-consistency requirements to keep faces and art style from drifting.",
+      "continuity": "Continuity (blocking + 180-degree rule)",
+      "continuityTip": "Adds this shot's blocking and the previous same-scene shot's end state to the prompt and keeps left/right positions.",
+      "chain": "Open from the previous shot's last frame",
+      "chainTip": "After the previous same-scene shot is generated, its last frame becomes this shot's first frame or first reference. Batch generation runs same-scene shots one after another.",
+      "noPrev": "Different scene from the previous shot — this shot opens a new scene.",
+      "prevTextOnly": "Continues from the end blocking of shot #{n} (without its image).",
+      "prevNoVideo": "Shot #{n} has no video yet: generate it first so this shot can continue from its last frame.",
+      "prevAsFirst": "Opens from the last frame of shot #{n} as the first frame.",
+      "prevAsRef": "Uses the last frame of shot #{n} as reference 1 so the opening positions match.",
+      "chainBatch": "Continuity is on: {n} group(s) of same-scene shots will be generated in order, each continuing from the previous last frame."
     }
   },
   "errors": {

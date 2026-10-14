@@ -1000,6 +1000,36 @@
       "sec": "{n} s",
       "min": "{m} min {s} s",
       "hour": "{h} h {m} min"
+    },
+    "direction": {
+      "blocking": "Placement",
+      "blockingHint": "pour les raccords : positions de départ + état final",
+      "blockingPlaceholder": "Début : Ming est assis à gauche près de la fenêtre, Hong entre par la porte à droite. Fin : Hong est assise face à Ming (à droite), ils se regardent par-dessus la table.",
+      "timing": "{lines} réplique(s), ~{need} s à jouer / plan {dur} s",
+      "fit": "Passer à {n} s selon le texte",
+      "fitted": "Durée réglée sur {n} s",
+      "timingHint": {
+        "ok": "La durée correspond au texte. La génération verrouille ces répliques ; personne ne parle le reste du temps.",
+        "too_long": "Environ {idle} s sans parole : les modèles vidéo inventent alors des répliques (charabia). Raccourcissez le plan ou décrivez une action concrète pour ce temps.",
+        "too_short": "Les répliques ne tiennent pas ({idle} s de trop peu) et seront coupées ou précipitées. Allongez le plan ou déplacez des répliques au suivant.",
+        "silent": "Ce plan n’a pas de dialogue."
+      },
+      "badgeLong": "trop long",
+      "badgeShort": "texte trop long",
+      "dialogueLock": "Verrouiller le dialogue (ces répliques seulement)",
+      "dialogueLockTip": "Ajoute un contrôle du dialogue : uniquement les répliques de la description, mot pour mot, puis silence ; plans sans texte : personne ne parle.",
+      "appearanceLock": "Verrouiller personnages / décor / style",
+      "appearanceLockTip": "Ajoute l’apparence et les tenues des personnages, la disposition du décor et la cohérence du style pour éviter les dérives.",
+      "continuity": "Raccord (placement + règle des 180°)",
+      "continuityTip": "Ajoute le placement de ce plan et l’état final du plan précédent du même décor, et garde les positions gauche/droite.",
+      "chain": "Démarrer sur la dernière image du plan précédent",
+      "chainTip": "Une fois le plan précédent du même décor généré, sa dernière image devient la première image ou la référence 1 de ce plan. La génération par lot enchaîne les plans d’un même décor dans l’ordre.",
+      "noPrev": "Décor différent du plan précédent : ce plan ouvre une nouvelle scène.",
+      "prevTextOnly": "Enchaîne sur le placement final du plan #{n} (sans son image).",
+      "prevNoVideo": "Le plan #{n} n’a pas encore de vidéo : générez-le d’abord pour raccorder sur sa dernière image.",
+      "prevAsFirst": "Démarre sur la dernière image du plan #{n} comme première image.",
+      "prevAsRef": "Utilise la dernière image du plan #{n} comme référence 1 pour des positions de départ identiques.",
+      "chainBatch": "Raccord activé : {n} groupe(s) de plans d’un même décor seront générés dans l’ordre, chacun à partir de la dernière image du précédent."
     }
   },
   "errors": {

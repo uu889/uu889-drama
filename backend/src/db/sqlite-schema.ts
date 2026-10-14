@@ -101,6 +101,7 @@ export const sqliteSchemaStatements = [
     bgm_prompt TEXT,
     sound_effect TEXT,
     description TEXT,
+    blocking TEXT,
     duration INTEGER DEFAULT 0,
     composed_image TEXT,
     first_frame_image TEXT,
@@ -374,10 +375,24 @@ const UPGRADE_SQL = 'UPDATE style_presets SET "name" = ?, "prompt" = ?, "descrip
 // 内容寻址下架：命中下架种子原文才删除
 const REMOVE_SQL = 'DELETE FROM style_presets WHERE "value" = ? AND "prompt" = ?'
 
+/** 老库补列：CREATE TABLE IF NOT EXISTS 不会给已有表加新列，按 table_info 判断后 ALTER（幂等） */
+const ADDED_COLUMNS: Array<{ table: string; column: string; ddl: string }> = [
+  // 分镜段落的人物站位与衔接（开场站位 / 结尾状态），用于接戏
+  { table: 'storyboards', column: 'blocking', ddl: 'ALTER TABLE storyboards ADD COLUMN blocking TEXT' },
+]
+
+function ensureAddedColumns(sqlite: Database.Database) {
+  for (const { table, column, ddl } of ADDED_COLUMNS) {
+    const cols = sqlite.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>
+    if (cols.length && !cols.some((c) => c.name === column)) sqlite.exec(ddl)
+  }
+}
+
 export function initSqliteSchema(sqlite: Database.Database) {
   for (const statement of sqliteSchemaStatements) {
     sqlite.exec(statement)
   }
+  ensureAddedColumns(sqlite)
   const insertSeed = sqlite.prepare(SEED_SQL)
   const upgradeSeed = sqlite.prepare(UPGRADE_SQL)
   const removeSeed = sqlite.prepare(REMOVE_SQL)

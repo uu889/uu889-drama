@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { storyboardTiming, existingEndFrame } from '../services/storyboard-timing.js'
 import { withTaskProgress } from '../services/task-progress.js'
 import { and, eq, isNull } from 'drizzle-orm'
 import { db, getInsertId, schema } from '../db/index.js'
@@ -204,6 +205,10 @@ app.get('/:episode_id/storyboards', async (c) => {
     ...toSnakeCase(row),
     character_ids: charIdsByStoryboard.get(row.id) || [],
     prop_ids: propIdsByStoryboard.get(row.id) || [],
+    // 台词时长与分镜时长是否匹配（前端提示「台词 X 秒 / 分镜 Y 秒」）
+    timing: storyboardTiming(row, allChars.filter(ch => (charIdsByStoryboard.get(row.id) || []).includes(ch.id)).map(ch => ch.name)),
+    // 成片结尾帧（接戏用），文件存在才返回
+    end_frame_url: existingEndFrame(row.videoUrl),
     characters: allChars
       .filter(ch => (charIdsByStoryboard.get(row.id) || []).includes(ch.id))
       .map(ch => toSnakeCase(ch)),

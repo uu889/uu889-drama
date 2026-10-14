@@ -1000,6 +1000,36 @@
       "sec": "{n} giây",
       "min": "{m} phút {s} giây",
       "hour": "{h} giờ {m} phút"
+    },
+    "direction": {
+      "blocking": "Vị trí nhân vật",
+      "blockingHint": "để nối cảnh: vị trí mở đầu + trạng thái kết thúc",
+      "blockingPlaceholder": "Mở đầu: Minh ngồi cạnh cửa sổ bên trái khung hình, Hồng bước vào từ cửa bên phải. Kết thúc: Hồng ngồi đối diện Minh (bên phải), hai người nhìn nhau qua bàn.",
+      "timing": "{lines} câu thoại, cần khoảng {need} giây / phân cảnh {dur} giây",
+      "fit": "Đổi thành {n} giây theo thoại",
+      "fitted": "Đã đổi thời lượng thành {n} giây",
+      "timingHint": {
+        "ok": "Thời lượng khớp với thoại. Khi tạo sẽ khóa các câu này; thời gian còn lại không ai nói.",
+        "too_long": "Có khoảng {idle} giây không ai nói — mô hình video dễ tự bịa thoại (nói lung tung). Hãy rút ngắn theo thoại hoặc mô tả hành động cụ thể cho khoảng đó.",
+        "too_short": "Thoại không đủ chỗ (thiếu {idle} giây), sẽ bị cắt hoặc nói quá nhanh. Hãy tăng thời lượng hoặc chuyển bớt thoại sang phân cảnh sau.",
+        "silent": "Phân cảnh này không có thoại."
+      },
+      "badgeLong": "quá dài",
+      "badgeShort": "thoại quá dài",
+      "dialogueLock": "Khóa thoại (chỉ nói các câu này)",
+      "dialogueLockTip": "Thêm điều khiển thoại: chỉ nói đúng nguyên văn các câu trong mô tả rồi im lặng; phân cảnh không có thoại thì không ai mở miệng.",
+      "appearanceLock": "Khóa nhân vật / bối cảnh / phong cách",
+      "appearanceLockTip": "Thêm mô tả ngoại hình, trang phục nhân vật, bố cục bối cảnh và yêu cầu thống nhất phong cách để mặt và nét vẽ không bị trôi.",
+      "continuity": "Nối cảnh (vị trí + quy tắc 180 độ)",
+      "continuityTip": "Đưa vị trí nhân vật của cảnh này và trạng thái cuối của cảnh trước cùng bối cảnh vào prompt, giữ nguyên trái/phải.",
+      "chain": "Mở đầu bằng khung hình cuối của cảnh trước",
+      "chainTip": "Khi cảnh trước cùng bối cảnh đã tạo xong, khung hình cuối của nó thành khung hình đầu hoặc ảnh tham chiếu 1 của cảnh này. Khi tạo hàng loạt, các cảnh cùng bối cảnh được tạo lần lượt.",
+      "noPrev": "Khác bối cảnh với cảnh trước — cảnh này mở đầu một cảnh mới.",
+      "prevTextOnly": "Nối từ vị trí kết thúc của cảnh #{n} (không dùng hình).",
+      "prevNoVideo": "Cảnh #{n} chưa có video: hãy tạo nó trước để cảnh này nối từ khung hình cuối.",
+      "prevAsFirst": "Mở đầu bằng khung hình cuối của cảnh #{n} làm khung hình đầu.",
+      "prevAsRef": "Dùng khung hình cuối của cảnh #{n} làm ảnh tham chiếu 1 để vị trí mở đầu khớp.",
+      "chainBatch": "Đã bật nối cảnh: {n} nhóm cảnh cùng bối cảnh sẽ được tạo lần lượt, mỗi cảnh nối từ khung hình cuối của cảnh trước."
     }
   },
   "errors": {

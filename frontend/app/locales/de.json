@@ -1000,6 +1000,36 @@
       "sec": "{n} s",
       "min": "{m} min {s} s",
       "hour": "{h} h {m} min"
+    },
+    "direction": {
+      "blocking": "Blocking",
+      "blockingHint": "für Anschlüsse: Startpositionen + Endzustand",
+      "blockingPlaceholder": "Anfang: Ming sitzt links im Bild am Fenster, Hong kommt rechts durch die Tür. Ende: Hong sitzt Ming gegenüber (rechts), beide sehen sich über den Tisch an.",
+      "timing": "{lines} Satz/Sätze, ca. {need} s zum Spielen / Shot {dur} s",
+      "fit": "Auf {n} s für den Text setzen",
+      "fitted": "Dauer auf {n} s gesetzt",
+      "timingHint": {
+        "ok": "Dauer passt zum Text. Die Generierung fixiert diese Sätze; den Rest der Zeit spricht niemand.",
+        "too_long": "Etwa {idle} s spricht niemand – Videomodelle erfinden dann gern Text (Kauderwelsch). Shot auf den Text kürzen oder konkrete Handlung für diese Zeit beschreiben.",
+        "too_short": "Der Text passt nicht hinein ({idle} s zu kurz) und wird abgeschnitten oder gehetzt. Shot verlängern oder Sätze in den nächsten verschieben.",
+        "silent": "Dieser Shot hat keinen Dialog."
+      },
+      "badgeLong": "zu lang",
+      "badgeShort": "Text zu lang",
+      "dialogueLock": "Dialog fixieren (nur diese Sätze, nichts erfinden)",
+      "dialogueLockTip": "Fügt Dialogsteuerung hinzu: nur die Sätze aus der Beschreibung, wortgetreu, danach Stille; Shots ohne Text: niemand spricht.",
+      "appearanceLock": "Figuren / Szene / Stil fixieren",
+      "appearanceLockTip": "Fügt Aussehen und Kleidung der Figuren, Szenenaufbau und Stilkonsistenz hinzu, damit Gesichter und Stil nicht abdriften.",
+      "continuity": "Anschluss (Blocking + 180-Grad-Regel)",
+      "continuityTip": "Schreibt das Blocking dieses Shots und den Endzustand des vorigen Shots derselben Szene in den Prompt und hält links/rechts konstant.",
+      "chain": "Mit dem letzten Bild des vorigen Shots beginnen",
+      "chainTip": "Nach dem vorigen Shot derselben Szene wird dessen letztes Bild zum Startbild oder zur ersten Referenz dieses Shots. Stapelgenerierung erzeugt Shots einer Szene nacheinander.",
+      "noPrev": "Andere Szene als der vorige Shot – dieser Shot eröffnet eine neue Szene.",
+      "prevTextOnly": "Schließt an das End-Blocking von Shot #{n} an (ohne dessen Bild).",
+      "prevNoVideo": "Shot #{n} hat noch kein Video: erst generieren, dann kann dieser Shot an sein letztes Bild anschließen.",
+      "prevAsFirst": "Beginnt mit dem letzten Bild von Shot #{n} als Startbild.",
+      "prevAsRef": "Nutzt das letzte Bild von Shot #{n} als Referenz 1, damit die Startpositionen passen.",
+      "chainBatch": "Anschluss ist an: {n} Gruppe(n) von Shots derselben Szene werden nacheinander erzeugt, jeweils ab dem letzten Bild des vorigen."
     }
   },
   "errors": {

@@ -4,6 +4,8 @@ import { db, getInsertId, schema } from '../db/index.js'
 import { success, created, now, badRequest } from '../utils/response.js'
 import { toSnakeCase } from '../utils/transform.js'
 import { logTaskPayload, logTaskStart, logTaskSuccess } from '../utils/task-logger.js'
+import { extractVideoEndFrame } from '../utils/video-poster.js'
+import { existingEndFrame, storyboardTiming } from '../services/storyboard-timing.js'
 
 const app = new Hono()
 
@@ -134,7 +136,7 @@ app.put('/:id', async (c) => {
     image_prompt: 'imagePrompt', scene_id: 'sceneId', location: 'location',
     time: 'time', atmosphere: 'atmosphere', result: 'result',
     bgm_prompt: 'bgmPrompt', sound_effect: 'soundEffect',
-    video_url: 'videoUrl',
+    video_url: 'videoUrl', blocking: 'blocking',
   }
 
   const updates: Record<string, any> = { updatedAt: now() }
@@ -158,7 +160,29 @@ app.put('/:id', async (c) => {
     characterIds: body.character_ids,
     propIds: body.prop_ids,
   })
-  return success(c)
+  // 改了描述 / 时长 / 角色后台词计时会变，顺带返回最新值；换了主视频时补提结尾帧
+  const [fresh] = await db.select().from(schema.storyboards).where(eq(schema.storyboards.id, id))
+  const names = await storyboardCharacterNames(id)
+  if ('video_url' in body && fresh?.videoUrl) await extractVideoEndFrame(fresh.videoUrl)
+  return success(c, { timing: fresh ? storyboardTiming(fresh, names) : null, end_frame_url: existingEndFrame(fresh?.videoUrl) })
+})
+
+async function storyboardCharacterNames(storyboardId: number): Promise<string[]> {
+  const ids = await getStoryboardCharacterIds(storyboardId)
+  if (!ids.length) return []
+  const chars = await db.select().from(schema.characters)
+  return chars.filter(ch => ids.includes(ch.id)).map(ch => ch.name)
+}
+
+// POST /storyboards/:id/end-frame — 确保当前视频的结尾帧已提取（老视频补提），返回相对路径
+app.post('/:id/end-frame', async (c) => {
+  const id = Number(c.req.param('id'))
+  const [sb] = await db.select().from(schema.storyboards).where(eq(schema.storyboards.id, id))
+  if (!sb) return badRequest(c, '镜头不存在')
+  if (!sb.videoUrl) return badRequest(c, '该镜头还没有视频')
+  const path = await extractVideoEndFrame(sb.videoUrl)
+  if (!path) return badRequest(c, '结尾帧提取失败（视频文件不存在或 FFmpeg 不可用）')
+  return success(c, { end_frame_url: path })
 })
 
 // DELETE /storyboards/:id

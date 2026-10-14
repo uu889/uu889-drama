@@ -1000,6 +1000,36 @@
       "sec": "{n} s",
       "min": "{m} min {s} s",
       "hour": "{h} h {m} min"
+    },
+    "direction": {
+      "blocking": "Posiciones",
+      "blockingHint": "para el raccord: posiciones iniciales + estado final",
+      "blockingPlaceholder": "Inicio: Ming está sentado junto a la ventana, a la izquierda; Hong entra por la puerta, a la derecha. Final: Hong se sienta frente a Ming (derecha) y se miran por encima de la mesa.",
+      "timing": "{lines} línea(s), ~{need} s para decirlas / plano {dur} s",
+      "fit": "Ajustar a {n} s según el texto",
+      "fitted": "Duración ajustada a {n} s",
+      "timingHint": {
+        "ok": "La duración encaja con el texto. Se bloquean estas líneas; el resto del tiempo nadie habla.",
+        "too_long": "Unos {idle} s sin que nadie hable: los modelos de vídeo tienden a inventar diálogo (galimatías). Acorta el plano o describe una acción concreta para ese tiempo.",
+        "too_short": "Las líneas no caben (faltan {idle} s) y se cortarán o irán aceleradas. Alarga el plano o pasa líneas al siguiente.",
+        "silent": "Este plano no tiene diálogo."
+      },
+      "badgeLong": "demasiado largo",
+      "badgeShort": "texto excede",
+      "dialogueLock": "Bloquear diálogo (solo estas líneas)",
+      "dialogueLockTip": "Añade control de diálogo: solo las líneas de la descripción, palabra por palabra, y luego silencio; en planos sin texto nadie habla.",
+      "appearanceLock": "Bloquear personajes / escenario / estilo",
+      "appearanceLockTip": "Añade aspecto y vestuario de los personajes, la distribución del escenario y la coherencia de estilo para que caras y estilo no varíen.",
+      "continuity": "Raccord (posiciones + regla de 180°)",
+      "continuityTip": "Añade las posiciones de este plano y el estado final del plano anterior del mismo escenario, manteniendo izquierda/derecha.",
+      "chain": "Empezar con el último fotograma del plano anterior",
+      "chainTip": "Cuando se genera el plano anterior del mismo escenario, su último fotograma pasa a ser el primer fotograma o la referencia 1 de este. En lote, los planos de un escenario se generan en orden.",
+      "noPrev": "Escenario distinto al del plano anterior: este plano abre una escena nueva.",
+      "prevTextOnly": "Continúa desde las posiciones finales del plano #{n} (sin su imagen).",
+      "prevNoVideo": "El plano #{n} aún no tiene vídeo: genéralo primero para enlazar con su último fotograma.",
+      "prevAsFirst": "Empieza con el último fotograma del plano #{n} como primer fotograma.",
+      "prevAsRef": "Usa el último fotograma del plano #{n} como referencia 1 para igualar las posiciones iniciales.",
+      "chainBatch": "Raccord activado: {n} grupo(s) de planos del mismo escenario se generarán en orden, cada uno desde el último fotograma del anterior."
     }
   },
   "errors": {

@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { buildShotDirectives } from '../services/shot-direction.js'
 import { withTaskProgress } from '../services/task-progress.js'
 import { eq } from 'drizzle-orm'
 import { db, schema } from '../db/index.js'
@@ -9,6 +10,53 @@ import { getDramaStylePrompt } from '../services/style-preset.js'
 import { logTaskError, logTaskPayload, logTaskStart, logTaskSuccess } from '../utils/task-logger.js'
 
 const app = new Hono()
+
+/** 读取分镜、绑定角色 / 场景、同场景上一镜，生成导演指令 */
+async function buildStoryboardDirectives(
+  storyboardId: number,
+  prompt: string,
+  direction: any,
+  extra: { duration: number; hasStylePreset: boolean },
+): Promise<string> {
+  const [sb] = await db.select().from(schema.storyboards).where(eq(schema.storyboards.id, storyboardId))
+  if (!sb) return ''
+  const charLinks = await db.select().from(schema.storyboardCharacters).where(eq(schema.storyboardCharacters.storyboardId, sb.id))
+  const charIds = charLinks.map(l => l.characterId)
+  const chars = charIds.length
+    ? (await db.select().from(schema.characters)).filter(ch => charIds.includes(ch.id) && !ch.deletedAt)
+    : []
+  const [scene] = sb.sceneId ? await db.select().from(schema.scenes).where(eq(schema.scenes.id, sb.sceneId)) : []
+
+  // 同一集、同一场景、编号紧挨着的上一镜才算「接戏」
+  let previous: { number: number; blocking?: string | null; description?: string | null } | null = null
+  if (direction.continuity !== false && sb.sceneId) {
+    const siblings = (await db.select().from(schema.storyboards).where(eq(schema.storyboards.episodeId, sb.episodeId)))
+      .filter(row => !row.deletedAt && row.storyboardNumber < sb.storyboardNumber)
+      .sort((a, b) => b.storyboardNumber - a.storyboardNumber)
+    const prev = siblings[0]
+    if (prev && prev.sceneId === sb.sceneId) {
+      previous = { number: prev.storyboardNumber, blocking: prev.blocking, description: prev.description }
+    }
+  }
+  const frameMode = direction.previous_frame === 'first_frame' || direction.previous_frame === 'reference' ? direction.previous_frame : null
+
+  return buildShotDirectives({
+    description: sb.description,
+    duration: extra.duration || sb.duration || 0,
+    blocking: sb.blocking,
+    characters: chars.map(ch => ({ name: ch.name, appearance: ch.appearance, styling: ch.styling })),
+    sceneName: scene?.location || null,
+    previous,
+    previousFrame: frameMode && previous ? { mode: frameMode, index: Number(direction.previous_frame_index) || 1 } : null,
+    prompt,
+    hasStylePreset: extra.hasStylePreset,
+    options: {
+      dialogueLock: direction.dialogue_lock !== false,
+      appearanceLock: direction.appearance_lock !== false,
+      continuity: direction.continuity !== false,
+    },
+  })
+}
 
 type TaskType = 'image' | 'video'
 
@@ -154,10 +202,19 @@ app.post('/', async (c) => {
 
     // 视频生成时把项目视觉风格词注入提示词最前方（与图片侧的自动注入保持一致口径）
     let videoPrompt = videoBody?.prompt
+    let stylePrompt = ''
     if (type === 'video' && String(videoPrompt || '').trim()) {
       const dramaId = body.drama_id ?? storyboardDramaId ?? null
-      const stylePrompt = await getDramaStylePrompt(dramaId)
+      stylePrompt = await getDramaStylePrompt(dramaId)
       if (stylePrompt) videoPrompt = `${stylePrompt}，\n${videoPrompt}`
+    }
+    // 镜头导演指令：台词控制（防止补台词）、人物 / 场景 / 画风锁定、站位与接上一镜
+    if (type === 'video' && body.storyboard_id && body.direction && typeof body.direction === 'object') {
+      const directives = await buildStoryboardDirectives(Number(body.storyboard_id), String(videoBody?.prompt || ''), body.direction, {
+        duration: Number(videoBody?.duration || 0),
+        hasStylePreset: !!stylePrompt,
+      })
+      if (directives) videoPrompt = `${String(videoPrompt || '').trim()}\n\n${directives}`.trim()
     }
 
     const id = type === 'image'
