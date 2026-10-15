@@ -24,6 +24,7 @@ Checkpoint、风格 LoRA、触发词和推荐参数。设置页里可以逐个�
 - 你在配置里明确填写的步数、CFG、采样器、基准尺寸、负向提示词、Fooocus 风格优先于推荐值；没填才用推荐值。
 - 触发词自动加在提示词最前面（已包含就不重复）。
 - LoRA 填 `none` 表示该风格不用 LoRA；覆盖里的文件名必须与服务模型目录里的文件名一致（ComfyUI 子目录写成 `子目录/文件名`）。
+- **许可**：默认推荐只用 ✅ 可商用 或 ⚠️ 有条件可用的模型（条件写在每张表下面，最常见的是「可以卖图，但不能把模型做成收费生图服务」）；⛔ 非商用 / 需作者授权的模型（如 GuoFeng4、Juggernaut、Jhyd）只放在「可选替代」，不在下载命令里。许可按 2026-10 的模型页面核对，作者可能修改条款，商用前请以模型页为准，本文不构成法律意见。
 - 所有生图底模都是 SDXL 1.0 生态（显存 8GB 起，推荐 12GB）。风格 LoRA 都是按 SDXL 1.0 训练的，换别的 SDXL 底模也能用，但效果需要自己试。
 
 ## 一、Stable Diffusion WebUI（模型来自 Civitai）
@@ -33,28 +34,38 @@ Checkpoint、风格 LoRA、触发词和推荐参数。设置页里可以逐个�
 | 风格 | Checkpoint（底模） | 风格 LoRA | 权重 | 触发词（自动加） | 推荐参数 | 许可 |
 | --- | --- | --- | --- | --- | --- | --- |
 | 3D 漫剧 | [ProtoVision XL（v6.6.0 BakedVAE）](https://civitai.com/models/125703?modelVersionId=265938)<br>`ProtoVisionXL_0.6.6.0.fp16.safetensors` | [Samaritan 3D Cartoon SDXL](https://civitai.com/models/121932?modelVersionId=132727)<br>`samaritan_3d_cartoon_sdxl.safetensors` | 0.8 | 3d cartoon | DPM++ 2M Karras，30 步，CFG 6 | ⚠️ 注意许可 |
-| 日漫赛璐璐 | [Animagine XL 4.0（v4 Opt）](https://civitai.com/models/1188071?modelVersionId=1408658)<br>`animagine-xl-4.0-opt.safetensors` | 不需要 | — | masterpiece, high score, great score, absurdres | Euler a，28 步，CFG 5 | ⚠️ 注意许可 |
-| 吉卜力手绘 | [AlbedoBase XL（v3.1 Large）](https://civitai.com/models/140737?modelVersionId=1041855)<br>`albedobaseXL_v31Large.safetensors` | [Studio Ghibli （Art Style Capture） LoRA XL（v2）](https://civitai.com/models/187938?modelVersionId=216231)<br>`studio_ghibli_xl_v2.safetensors` | 0.8 | Studio Ghibli | DPM++ 2M Karras，30 步，CFG 6 | ⚠️ 注意许可 |
-| 水彩绘本 | [AlbedoBase XL（v3.1 Large）](https://civitai.com/models/140737?modelVersionId=1041855)<br>`albedobaseXL_v31Large.safetensors` | [Picture-Story Book For Children XL 儿童绘本](https://civitai.com/models/119288?modelVersionId=129548)<br>`picbookXLloraV1.safetensors` | 0.8 | watercolor, picture book, paper texture | DPM++ 2M Karras，30 步，CFG 6，Clip skip 2 | ⚠️ 注意许可 |
-| 美式漫画 | [AlbedoBase XL（v3.1 Large）](https://civitai.com/models/140737?modelVersionId=1041855)<br>`albedobaseXL_v31Large.safetensors` | [Comic style SDXL - Jhyd（BF16 精简版）](https://civitai.com/models/134144?modelVersionId=147719)<br>`jhyd-step00001000.smaller.safetensors` | 0.8 | jhyd style, comic book, bold ink outlines, high saturation | DPM++ 2M Karras，30 步，CFG 6 | ⚠️ 注意许可 |
-| 国风 2.5D | [国风4 GuoFeng4 XL（v1.2 fp16）](https://civitai.com/models/118009?modelVersionId=199325)<br>`GuoFeng4.2Fp16.safetensors` | 不需要 | — | — | DPM++ 2M SDE Karras，30 步，CFG 8，Clip skip 2 | ⚠️ 注意许可 |
+| 日漫赛璐璐 | [Animagine XL 4.0（v4 Opt）](https://civitai.com/models/1188071?modelVersionId=1408658)<br>`animagine-xl-4.0-opt.safetensors` | 不需要 | — | masterpiece, high score, great score, absurdres | Euler a，28 步，CFG 5 | ✅ 可商用 |
+| 吉卜力手绘 | [SD XL 1.0（VAE fix，官方底模）](https://civitai.com/models/101055?modelVersionId=128078)<br>`sd_xl_base_1.0_0.9vae.safetensors` | [Studio Ghibli （Art Style Capture） LoRA XL（v2）](https://civitai.com/models/187938?modelVersionId=216231)<br>`studio_ghibli_xl_v2.safetensors` | 0.8 | Studio Ghibli | DPM++ 2M Karras，30 步，CFG 6 | ✅ 可商用 |
+| 水彩绘本 | [SD XL 1.0（VAE fix，官方底模）](https://civitai.com/models/101055?modelVersionId=128078)<br>`sd_xl_base_1.0_0.9vae.safetensors` | [Picture-Story Book For Children XL 儿童绘本](https://civitai.com/models/119288?modelVersionId=129548)<br>`picbookXLloraV1.safetensors` | 0.8 | watercolor, picture book, paper texture | DPM++ 2M Karras，30 步，CFG 6，Clip skip 2 | ⚠️ 注意许可 |
+| 美式漫画 | [SD XL 1.0（VAE fix，官方底模）](https://civitai.com/models/101055?modelVersionId=128078)<br>`sd_xl_base_1.0_0.9vae.safetensors` | [Comic realism（SDXL）](https://civitai.com/models/219089?modelVersionId=247021)<br>`Comic_realism.safetensors` | 0.5 | a comic book illustration of | DPM++ 2M Karras，30 步，CFG 6 | ✅ 可商用 |
+| 国风 2.5D | [Animagine XL 4.0（v4 Opt）](https://civitai.com/models/1188071?modelVersionId=1408658)<br>`animagine-xl-4.0-opt.safetensors` | [Chinese style illustration design（ChineseMyth）](https://civitai.com/models/526483?modelVersionId=584967)<br>`Chinese_myth_animagineXLV31.safetensors` | 0.85 | ChineseMyth, chinese style, hanfu, xianxia | DPM++ 2M Karras，22 步，CFG 5 | ✅ 可商用 |
 | 韩系网漫 | [Animagine XL 4.0（v4 Opt）](https://civitai.com/models/1188071?modelVersionId=1408658)<br>`animagine-xl-4.0-opt.safetensors` | [Manhwa Artstyle / Webtoon（SDXL v1.0）](https://civitai.com/models/257995?modelVersionId=290917)<br>`manhwa-artstyle-000018.safetensors` | 0.6 | manhwa-artstyle | DPM++ 2M Karras，28 步，CFG 7 | ⚠️ 注意许可 |
-| 黑白漫画 | [Animagine XL 4.0（v4 Opt）](https://civitai.com/models/1188071?modelVersionId=1408658)<br>`animagine-xl-4.0-opt.safetensors` | [LineAniRedmond 线稿漫画（v2.0 SDXL）](https://civitai.com/models/127018?modelVersionId=177544)<br>`LineAniRedmondV2-Lineart-LineAniAF.safetensors` | 0.8 | lineart, LineAniAF, monochrome, greyscale, manga, screentone | Euler a，28 步，CFG 5 | ⚠️ 注意许可 |
+| 黑白漫画 | [Animagine XL 4.0（v4 Opt）](https://civitai.com/models/1188071?modelVersionId=1408658)<br>`animagine-xl-4.0-opt.safetensors` | [LineAniRedmond 线稿漫画（v2.0 SDXL）](https://civitai.com/models/127018?modelVersionId=177544)<br>`LineAniRedmondV2-Lineart-LineAniAF.safetensors` | 0.8 | lineart, LineAniAF, monochrome, greyscale, manga, screentone | Euler a，28 步，CFG 5 | ✅ 可商用 |
 
 **许可**（以「用生成的图 / 视频做商业短剧」为准；✅ 可商用无需授权，⚠️ 可以用但有条件或来源不清，⛔ 非商用或需作者授权）：
 
 | 模型 | 许可 | 等级 | 说明 |
 | --- | --- | --- | --- |
-| [ProtoVision XL（v6.6.0 BakedVAE）](https://civitai.com/models/125703?modelVersionId=265938) | — | ⚠️ 注意许可 | — |
-| [Samaritan 3D Cartoon SDXL](https://civitai.com/models/121932?modelVersionId=132727) | — | ⚠️ 注意许可 | — |
-| [Animagine XL 4.0（v4 Opt）](https://civitai.com/models/1188071?modelVersionId=1408658) | — | ⚠️ 注意许可 | — |
-| [AlbedoBase XL（v3.1 Large）](https://civitai.com/models/140737?modelVersionId=1041855) | — | ⚠️ 注意许可 | — |
-| [Studio Ghibli （Art Style Capture） LoRA XL（v2）](https://civitai.com/models/187938?modelVersionId=216231) | — | ⚠️ 注意许可 | — |
-| [Picture-Story Book For Children XL 儿童绘本](https://civitai.com/models/119288?modelVersionId=129548) | — | ⚠️ 注意许可 | — |
-| [Comic style SDXL - Jhyd（BF16 精简版）](https://civitai.com/models/134144?modelVersionId=147719) | — | ⚠️ 注意许可 | — |
-| [国风4 GuoFeng4 XL（v1.2 fp16）](https://civitai.com/models/118009?modelVersionId=199325) | — | ⚠️ 注意许可 | — |
-| [Manhwa Artstyle / Webtoon（SDXL v1.0）](https://civitai.com/models/257995?modelVersionId=290917) | — | ⚠️ 注意许可 | — |
-| [LineAniRedmond 线稿漫画（v2.0 SDXL）](https://civitai.com/models/127018?modelVersionId=177544) | — | ⚠️ 注意许可 | — |
+| [ProtoVision XL（v6.6.0 BakedVAE）](https://civitai.com/models/125703?modelVersionId=265938) | CreativeML Open RAIL++-M | ⚠️ 注意许可 | 允许出售生成的图片；但不允许把模型部署成收费的生图服务（对外按次 / 按量收费），本地自用做短剧不受影响 |
+| [Samaritan 3D Cartoon SDXL](https://civitai.com/models/121932?modelVersionId=132727) | CreativeML Open RAIL++-M | ⚠️ 注意许可 | 允许出售生成的图片；但不允许把模型部署成收费的生图服务（对外按次 / 按量收费），本地自用做短剧不受影响 |
+| [Animagine XL 4.0（v4 Opt）](https://civitai.com/models/1188071?modelVersionId=1408658) | Animagine XL 4.0 License（CreativeML Open RAIL++-M，明确允许商用） | ✅ 可商用 | — |
+| [SD XL 1.0（VAE fix，官方底模）](https://civitai.com/models/101055?modelVersionId=128078) | CreativeML Open RAIL++-M | ✅ 可商用 | — |
+| [Studio Ghibli （Art Style Capture） LoRA XL（v2）](https://civitai.com/models/187938?modelVersionId=216231) | CreativeML Open RAIL++-M | ✅ 可商用 | — |
+| [Picture-Story Book For Children XL 儿童绘本](https://civitai.com/models/119288?modelVersionId=129548) | CreativeML Open RAIL++-M | ⚠️ 注意许可 | 允许出售生成的图片；但不允许把模型部署成收费的生图服务（对外按次 / 按量收费），本地自用做短剧不受影响 |
+| [Comic realism（SDXL）](https://civitai.com/models/219089?modelVersionId=247021) | CreativeML Open RAIL++-M | ✅ 可商用 | — |
+| [Chinese style illustration design（ChineseMyth）](https://civitai.com/models/526483?modelVersionId=584967) | CreativeML Open RAIL++-M | ✅ 可商用 | — |
+| [Manhwa Artstyle / Webtoon（SDXL v1.0）](https://civitai.com/models/257995?modelVersionId=290917) | CreativeML Open RAIL++-M | ⚠️ 注意许可 | 允许出售生成的图片；但不允许把模型部署成收费的生图服务（对外按次 / 按量收费），本地自用做短剧不受影响 |
+| [LineAniRedmond 线稿漫画（v2.0 SDXL）](https://civitai.com/models/127018?modelVersionId=177544) | CreativeML Open RAIL++-M | ✅ 可商用 | — |
+
+**可选替代**（不在默认推荐和下载命令里；需要时在设置页「覆盖」里填文件名，⚠️ / ⛔ 的请先确认授权）：
+
+| 风格 | 模型 | 许可等级 | 说明 |
+| --- | --- | --- | --- |
+| 吉卜力手绘 | [AlbedoBase XL（v3.1 Large）](https://civitai.com/models/140737?modelVersionId=1041855)<br>`albedobaseXL_v31Large.safetensors` | ⚠️ 注意许可 | 可出售图片、可做付费服务，但要求署名（注明使用 AlbedoBase XL 并附许可链接） |
+| 美式漫画 | [GraphicNovel_LineArt（SDXL）](https://civitai.com/models/1111750?modelVersionId=1249232)<br>`GraphicNovel_LineArt.safetensors` | ✅ 可商用 | 更强调漫画 / 图像小说的描线，无触发词 |
+| 美式漫画 | [Comic style SDXL - Jhyd](https://civitai.com/models/134144?modelVersionId=147719)<br>`jhyd-step00001000.smaller.safetensors` | ⛔ 需授权 / 非商用 | 禁止出售生成的图片、禁止做付费服务，并要求署名 CowKing；商用需联系作者授权 |
+| 国风 2.5D | [Starlight XL 星光 Animated（v3，2.5D）](https://civitai.com/models/143043?modelVersionId=182077)<br>`starlightXLAnimated_v3.safetensors` | ⚠️ 注意许可 | 可出售图片、可做付费服务，但要求署名 chillpixel，且不允许分享融合模型 |
+| 国风 2.5D | [国风4 GuoFeng4 XL（v1.2 fp16）](https://civitai.com/models/118009?modelVersionId=199325)<br>`GuoFeng4.2Fp16.safetensors` | ⛔ 需授权 / 非商用 | 附加条款禁止出售或授权生成的图片（含游戏、书籍等），也禁止付费服务；商用需联系作者授权 |
 
 
 **接口调用**（UU889-Drama 实际发送的请求，以「韩系网漫」为例）：
@@ -96,11 +107,11 @@ mkdir -p "$SD_DIR/models/Stable-diffusion" "$SD_DIR/models/Lora"
 curl -L -C - -o "$SD_DIR/models/Stable-diffusion/ProtoVisionXL_0.6.6.0.fp16.safetensors" "https://civitai.com/api/download/models/265938${CIVITAI_TOKEN:+?token=$CIVITAI_TOKEN}"
 curl -L -C - -o "$SD_DIR/models/Lora/samaritan_3d_cartoon_sdxl.safetensors" "https://civitai.com/api/download/models/132727${CIVITAI_TOKEN:+?token=$CIVITAI_TOKEN}"
 curl -L -C - -o "$SD_DIR/models/Stable-diffusion/animagine-xl-4.0-opt.safetensors" "https://civitai.com/api/download/models/1408658${CIVITAI_TOKEN:+?token=$CIVITAI_TOKEN}"
-curl -L -C - -o "$SD_DIR/models/Stable-diffusion/albedobaseXL_v31Large.safetensors" "https://civitai.com/api/download/models/1041855${CIVITAI_TOKEN:+?token=$CIVITAI_TOKEN}"
+curl -L -C - -o "$SD_DIR/models/Stable-diffusion/sd_xl_base_1.0_0.9vae.safetensors" "https://civitai.com/api/download/models/128078${CIVITAI_TOKEN:+?token=$CIVITAI_TOKEN}"
 curl -L -C - -o "$SD_DIR/models/Lora/studio_ghibli_xl_v2.safetensors" "https://civitai.com/api/download/models/216231${CIVITAI_TOKEN:+?token=$CIVITAI_TOKEN}"
 curl -L -C - -o "$SD_DIR/models/Lora/picbookXLloraV1.safetensors" "https://civitai.com/api/download/models/129548${CIVITAI_TOKEN:+?token=$CIVITAI_TOKEN}"
-curl -L -C - -o "$SD_DIR/models/Lora/jhyd-step00001000.smaller.safetensors" "https://civitai.com/api/download/models/147719${CIVITAI_TOKEN:+?token=$CIVITAI_TOKEN}"
-curl -L -C - -o "$SD_DIR/models/Stable-diffusion/GuoFeng4.2Fp16.safetensors" "https://civitai.com/api/download/models/199325${CIVITAI_TOKEN:+?token=$CIVITAI_TOKEN}"
+curl -L -C - -o "$SD_DIR/models/Lora/Comic_realism.safetensors" "https://civitai.com/api/download/models/247021${CIVITAI_TOKEN:+?token=$CIVITAI_TOKEN}"
+curl -L -C - -o "$SD_DIR/models/Lora/Chinese_myth_animagineXLV31.safetensors" "https://civitai.com/api/download/models/584967${CIVITAI_TOKEN:+?token=$CIVITAI_TOKEN}"
 curl -L -C - -o "$SD_DIR/models/Lora/manhwa-artstyle-000018.safetensors" "https://civitai.com/api/download/models/290917${CIVITAI_TOKEN:+?token=$CIVITAI_TOKEN}"
 curl -L -C - -o "$SD_DIR/models/Lora/LineAniRedmondV2-Lineart-LineAniAF.safetensors" "https://civitai.com/api/download/models/177544${CIVITAI_TOKEN:+?token=$CIVITAI_TOKEN}"
 ```
@@ -120,11 +131,11 @@ New-Item -ItemType Directory -Force -Path "$env:SD_DIR\models\Lora" | Out-Null
 curl.exe -L -C - -o "$env:SD_DIR\models\Stable-diffusion\ProtoVisionXL_0.6.6.0.fp16.safetensors" "https://civitai.com/api/download/models/265938$tk"
 curl.exe -L -C - -o "$env:SD_DIR\models\Lora\samaritan_3d_cartoon_sdxl.safetensors" "https://civitai.com/api/download/models/132727$tk"
 curl.exe -L -C - -o "$env:SD_DIR\models\Stable-diffusion\animagine-xl-4.0-opt.safetensors" "https://civitai.com/api/download/models/1408658$tk"
-curl.exe -L -C - -o "$env:SD_DIR\models\Stable-diffusion\albedobaseXL_v31Large.safetensors" "https://civitai.com/api/download/models/1041855$tk"
+curl.exe -L -C - -o "$env:SD_DIR\models\Stable-diffusion\sd_xl_base_1.0_0.9vae.safetensors" "https://civitai.com/api/download/models/128078$tk"
 curl.exe -L -C - -o "$env:SD_DIR\models\Lora\studio_ghibli_xl_v2.safetensors" "https://civitai.com/api/download/models/216231$tk"
 curl.exe -L -C - -o "$env:SD_DIR\models\Lora\picbookXLloraV1.safetensors" "https://civitai.com/api/download/models/129548$tk"
-curl.exe -L -C - -o "$env:SD_DIR\models\Lora\jhyd-step00001000.smaller.safetensors" "https://civitai.com/api/download/models/147719$tk"
-curl.exe -L -C - -o "$env:SD_DIR\models\Stable-diffusion\GuoFeng4.2Fp16.safetensors" "https://civitai.com/api/download/models/199325$tk"
+curl.exe -L -C - -o "$env:SD_DIR\models\Lora\Comic_realism.safetensors" "https://civitai.com/api/download/models/247021$tk"
+curl.exe -L -C - -o "$env:SD_DIR\models\Lora\Chinese_myth_animagineXLV31.safetensors" "https://civitai.com/api/download/models/584967$tk"
 curl.exe -L -C - -o "$env:SD_DIR\models\Lora\manhwa-artstyle-000018.safetensors" "https://civitai.com/api/download/models/290917$tk"
 curl.exe -L -C - -o "$env:SD_DIR\models\Lora\LineAniRedmondV2-Lineart-LineAniAF.safetensors" "https://civitai.com/api/download/models/177544$tk"
 ```
@@ -138,29 +149,38 @@ Fooocus-API：Checkpoint 放 `repositories/Fooocus/models/checkpoints/`，LoRA �
 
 | 风格 | Checkpoint（底模） | 风格 LoRA | 权重 | 触发词（自动加） | 推荐参数 / Fooocus 风格 | 许可 |
 | --- | --- | --- | --- | --- | --- | --- |
-| 3D 漫剧 | [Juggernaut XL v9](https://huggingface.co/RunDiffusion/Juggernaut-XL-v9)<br>`Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors` | [3D Render Style XL](https://huggingface.co/goofyai/3d_render_style_xl)<br>`3d_render_style_xl.safetensors` | 0.8 | 3d style, 3d render | DPM++ 2M Karras，30 步，CFG 5，风格 Fooocus V2 + SAI 3D Model | ⚠️ 注意许可 |
-| 日漫赛璐璐 | [Animagine XL 4.0 Opt](https://huggingface.co/cagliostrolab/animagine-xl-4.0)<br>`animagine-xl-4.0-opt.safetensors` | 不需要 | — | masterpiece, high score, great score, absurdres | Euler a，28 步，CFG 5，风格 Fooocus V2 + SAI Anime | ⚠️ 注意许可 |
-| 吉卜力手绘 | [Stable Diffusion XL Base 1.0](https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0)<br>`sd_xl_base_1.0.safetensors` | [Studio Ghibli Style（KappaNeuro）](https://huggingface.co/KappaNeuro/studio-ghibli-style)<br>`studio_ghibli_style_sdxl.safetensors` | 0.9 | Studio Ghibli Style | DPM++ 2M Karras，30 步，CFG 6，风格 Fooocus V2 | ⚠️ 注意许可 |
-| 水彩绘本 | [Stable Diffusion XL Base 1.0](https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0)<br>`sd_xl_base_1.0.safetensors` | [Watercolor Style LoRA SDXL（ostris）](https://huggingface.co/ostris/watercolor_style_lora_sdxl)<br>`watercolor_v1_sdxl.safetensors` | 1 | watercolor, picture book illustration | DPM++ 2M Karras，30 步，CFG 6，风格 Fooocus V2 + Artstyle Watercolor | ⚠️ 注意许可 |
-| 美式漫画 | [Stable Diffusion XL Base 1.0](https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0)<br>`sd_xl_base_1.0.safetensors` | [Graphic Novel Illustration](https://huggingface.co/blink7630/graphic-novel-illustration)<br>`Graphic_Novel_Illustration-000007.safetensors` | 0.9 | graphic novel illustration, comic book | DPM++ 2M Karras，30 步，CFG 6，风格 Fooocus V2 + SAI Comic Book | ⚠️ 注意许可 |
-| 国风 2.5D | [国风4 GuoFeng4.1 2.5D XL](https://huggingface.co/xiaolxl/GuoFeng4_XL)<br>`GuoFeng4.1_2.5D.safetensors` | 不需要 | — | — | DPM++ 2M SDE Karras，30 步，CFG 8，风格 Fooocus V2 | ⚠️ 注意许可 |
-| 韩系网漫 | [Animagine XL 4.0 Opt](https://huggingface.co/cagliostrolab/animagine-xl-4.0)<br>`animagine-xl-4.0-opt.safetensors` | [Manhwa Artstyle Webtoon LoRA](https://huggingface.co/Muapi/manhwa-artstyle-webtoon-lora)<br>`manhwa-artstyle-webtoon-lora.safetensors` | 0.7 | manhwa-artstyle, korean webtoon | Euler a，28 步，CFG 6，风格 Fooocus V2 + SAI Anime | ⚠️ 注意许可 |
-| 黑白漫画 | [Animagine XL 4.0 Opt](https://huggingface.co/cagliostrolab/animagine-xl-4.0)<br>`animagine-xl-4.0-opt.safetensors` | [Manga Ink Screentone](https://huggingface.co/strkyyy/manga-ink-screentone)<br>`manga-ink-screentone.safetensors` | 0.85 | m4ng41nk, monochrome, greyscale, manga, screentone | Euler a，28 步，CFG 5，风格 Fooocus V2 + MRE Manga | ⚠️ 注意许可 |
+| 3D 漫剧 | [Stable Diffusion XL Base 1.0](https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0)<br>`sd_xl_base_1.0.safetensors` | [3D Render Style XL](https://huggingface.co/goofyai/3d_render_style_xl)<br>`3d_render_style_xl.safetensors` | 0.8 | 3d style, 3d render | DPM++ 2M Karras，30 步，CFG 6，风格 Fooocus V2 + SAI 3D Model | ✅ 可商用 |
+| 日漫赛璐璐 | [Animagine XL 4.0 Opt](https://huggingface.co/cagliostrolab/animagine-xl-4.0)<br>`animagine-xl-4.0-opt.safetensors` | 不需要 | — | masterpiece, high score, great score, absurdres | Euler a，28 步，CFG 5，风格 Fooocus V2 + SAI Anime | ✅ 可商用 |
+| 吉卜力手绘 | [Stable Diffusion XL Base 1.0](https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0)<br>`sd_xl_base_1.0.safetensors` | [Anime Ghibli Soft](https://huggingface.co/strkyyy/anime-ghibli-soft)<br>`anime-ghibli-soft.safetensors` | 0.85 | gh1bl1st, hand-drawn anime film, soft watercolor background | DPM++ 2M Karras，30 步，CFG 6，风格 Fooocus V2 | ✅ 可商用 |
+| 水彩绘本 | [Stable Diffusion XL Base 1.0](https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0)<br>`sd_xl_base_1.0.safetensors` | [Watercolor Style LoRA SDXL（ostris）](https://huggingface.co/ostris/watercolor_style_lora_sdxl)<br>`watercolor_v1_sdxl.safetensors` | 1 | watercolor, picture book illustration | DPM++ 2M Karras，30 步，CFG 6，风格 Fooocus V2 + Artstyle Watercolor | ✅ 可商用 |
+| 美式漫画 | [Stable Diffusion XL Base 1.0](https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0)<br>`sd_xl_base_1.0.safetensors` | [Comic Ink Halftone](https://huggingface.co/strkyyy/comic-ink-halftone)<br>`comic-ink-halftone.safetensors` | 0.85 | c0m1cink, comic book, bold ink outlines, halftone | DPM++ 2M Karras，30 步，CFG 6，风格 Fooocus V2 + SAI Comic Book | ✅ 可商用 |
+| 国风 2.5D | [Animagine XL 4.0 Opt](https://huggingface.co/cagliostrolab/animagine-xl-4.0)<br>`animagine-xl-4.0-opt.safetensors` | [Chinese Ink Painting LoRA SDXL](https://huggingface.co/ming-yang/sdxl_chinese_ink_lora)<br>`Chinese_Ink_Painting_Lora_SDXL.safetensors` | 0.6 | Chinese Ink, chinese style, hanfu, xianxia | Euler a，28 步，CFG 5，风格 Fooocus V2 | ✅ 可商用 |
+| 韩系网漫 | [Animagine XL 4.0 Opt](https://huggingface.co/cagliostrolab/animagine-xl-4.0)<br>`animagine-xl-4.0-opt.safetensors` | 不需要 | — | korean webtoon, manhwa, semi-realistic, soft cel shading, clean lineart | Euler a，28 步，CFG 6，风格 Fooocus V2 + SAI Anime | ✅ 可商用 |
+| 黑白漫画 | [Animagine XL 4.0 Opt](https://huggingface.co/cagliostrolab/animagine-xl-4.0)<br>`animagine-xl-4.0-opt.safetensors` | [Manga Ink Screentone](https://huggingface.co/strkyyy/manga-ink-screentone)<br>`manga-ink-screentone.safetensors` | 0.85 | m4ng41nk, monochrome, greyscale, manga, screentone | Euler a，28 步，CFG 5，风格 Fooocus V2 + MRE Manga | ✅ 可商用 |
 
 **许可**（以「用生成的图 / 视频做商业短剧」为准；✅ 可商用无需授权，⚠️ 可以用但有条件或来源不清，⛔ 非商用或需作者授权）：
 
 | 模型 | 许可 | 等级 | 说明 |
 | --- | --- | --- | --- |
-| [Juggernaut XL v9](https://huggingface.co/RunDiffusion/Juggernaut-XL-v9) | creativeml-openrail-m（作者声明：做付费 API 服务需 RunDiffusion 授权） | ⚠️ 注意许可 | — |
-| [3D Render Style XL](https://huggingface.co/goofyai/3d_render_style_xl) | apache-2.0 | ⚠️ 注意许可 | — |
-| [Animagine XL 4.0 Opt](https://huggingface.co/cagliostrolab/animagine-xl-4.0) | openrail++ | ⚠️ 注意许可 | — |
-| [Stable Diffusion XL Base 1.0](https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0) | openrail++ | ⚠️ 注意许可 | — |
-| [Studio Ghibli Style（KappaNeuro）](https://huggingface.co/KappaNeuro/studio-ghibli-style) | other（作者未写明条款） | ⚠️ 注意许可 | — |
-| [Watercolor Style LoRA SDXL（ostris）](https://huggingface.co/ostris/watercolor_style_lora_sdxl) | apache-2.0 | ⚠️ 注意许可 | — |
-| [Graphic Novel Illustration](https://huggingface.co/blink7630/graphic-novel-illustration) | other（作者未写明条款） | ⚠️ 注意许可 | — |
-| [国风4 GuoFeng4.1 2.5D XL](https://huggingface.co/xiaolxl/GuoFeng4_XL) | cc-by-nc-sa-4.0（非商用） | ⚠️ 注意许可 | — |
-| [Manhwa Artstyle Webtoon LoRA](https://huggingface.co/Muapi/manhwa-artstyle-webtoon-lora) | openrail++ | ⚠️ 注意许可 | — |
-| [Manga Ink Screentone](https://huggingface.co/strkyyy/manga-ink-screentone) | openrail++ | ⚠️ 注意许可 | — |
+| [Stable Diffusion XL Base 1.0](https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0) | openrail++ | ✅ 可商用 | — |
+| [3D Render Style XL](https://huggingface.co/goofyai/3d_render_style_xl) | apache-2.0 | ✅ 可商用 | — |
+| [Animagine XL 4.0 Opt](https://huggingface.co/cagliostrolab/animagine-xl-4.0) | openrail++（明确允许商用） | ✅ 可商用 | — |
+| [Anime Ghibli Soft](https://huggingface.co/strkyyy/anime-ghibli-soft) | openrail++ | ✅ 可商用 | — |
+| [Watercolor Style LoRA SDXL（ostris）](https://huggingface.co/ostris/watercolor_style_lora_sdxl) | apache-2.0 | ✅ 可商用 | — |
+| [Comic Ink Halftone](https://huggingface.co/strkyyy/comic-ink-halftone) | openrail++ | ✅ 可商用 | — |
+| [Chinese Ink Painting LoRA SDXL](https://huggingface.co/ming-yang/sdxl_chinese_ink_lora) | creativeml-openrail-m | ✅ 可商用 | — |
+| [Manga Ink Screentone](https://huggingface.co/strkyyy/manga-ink-screentone) | openrail++ | ✅ 可商用 | — |
+
+**可选替代**（不在默认推荐和下载命令里；需要时在设置页「覆盖」里填文件名，⚠️ / ⛔ 的请先确认授权）：
+
+| 风格 | 模型 | 许可等级 | 说明 |
+| --- | --- | --- | --- |
+| 3D 漫剧 | [Juggernaut XL v9](https://huggingface.co/RunDiffusion/Juggernaut-XL-v9)<br>`Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors` | ⛔ 需授权 / 非商用 | 作者声明：部署成付费 API / 收费生成服务需要 RunDiffusion 单独授权（juggernaut@rundiffusion.com） |
+| 吉卜力手绘 | [Studio Ghibli Style（KappaNeuro）](https://huggingface.co/KappaNeuro/studio-ghibli-style)<br>`studio_ghibli_style_sdxl.safetensors` | ⛔ 需授权 / 非商用 | 许可写的是 other 但没有任何条款，转自 Civitai 106712；商用前需联系作者确认 |
+| 美式漫画 | [Graphic Novel Illustration](https://huggingface.co/blink7630/graphic-novel-illustration)<br>`Graphic_Novel_Illustration-000007.safetensors` | ⛔ 需授权 / 非商用 | 许可写的是 other 但没有任何条款，商用前需联系作者确认 |
+| 国风 2.5D | [国风4 GuoFeng4.1 2.5D XL](https://huggingface.co/xiaolxl/GuoFeng4_XL)<br>`GuoFeng4.1_2.5D.safetensors` | ⛔ 需授权 / 非商用 | 非商用许可（CC BY-NC-SA 4.0）：生成的图不能用于商业用途，商用需联系作者授权；其他网站标成 openrail 的转载版本同样不能当作可商用 |
+| 韩系网漫 | [Anime Cel Shaded](https://huggingface.co/strkyyy/anime-cel-shaded)<br>`anime-cel-shaded.safetensors` | ✅ 可商用 | 赛璐璐上色，接近网漫但不是韩漫专用。作者卡片未说明训练数据，效果请先出几张图确认 |
+| 韩系网漫 | [Manhwa Artstyle Webtoon LoRA（Muapi 转载）](https://huggingface.co/Muapi/manhwa-artstyle-webtoon-lora)<br>`manhwa-artstyle-webtoon-lora.safetensors` | ⛔ 需授权 / 非商用 | 转载账号，未注明原作者和原许可，无法确认是否允许商用 |
 
 
 **ComfyUI 接口调用**：用内置 SDXL 模板（开启后固定用 SDXL 模板；自定义工作流也可以，风格 Checkpoint 会写进 `CheckpointLoaderSimple`），
@@ -186,16 +206,16 @@ Fooocus-API：Checkpoint 放 `repositories/Fooocus/models/checkpoints/`，LoRA �
   "6": {
     "class_type": "CLIPTextEncode",
     "inputs": {
-      "text": "Studio Ghibli Style, a forest spirit beside a girl",
+      "text": "gh1bl1st, hand-drawn anime film, soft watercolor background, a forest spirit beside a girl",
       "clip": ["1001", 1]
     }
   },
   "1001": {
     "class_type": "LoraLoader",
     "inputs": {
-      "lora_name": "studio_ghibli_style_sdxl.safetensors",
-      "strength_model": 0.9,
-      "strength_clip": 0.9,
+      "lora_name": "anime-ghibli-soft.safetensors",
+      "strength_model": 0.85,
+      "strength_clip": 0.85,
       "model": ["4", 0],
       "clip": ["4", 1]
     },
@@ -251,15 +271,13 @@ export COMFY_DIR=~/ComfyUI
 # 国内网络可改用镜像：export HF_ENDPOINT=https://hf-mirror.com
 export HF_ENDPOINT=${HF_ENDPOINT:-https://huggingface.co}
 mkdir -p "$COMFY_DIR/models/checkpoints" "$COMFY_DIR/models/loras"
-curl -L -C - -o "$COMFY_DIR/models/checkpoints/Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/RunDiffusion/Juggernaut-XL-v9/resolve/main/Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors"
+curl -L -C - -o "$COMFY_DIR/models/checkpoints/sd_xl_base_1.0.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors"
 curl -L -C - -o "$COMFY_DIR/models/loras/3d_render_style_xl.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/goofyai/3d_render_style_xl/resolve/main/3d_render_style_xl.safetensors"
 curl -L -C - -o "$COMFY_DIR/models/checkpoints/animagine-xl-4.0-opt.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/cagliostrolab/animagine-xl-4.0/resolve/main/animagine-xl-4.0-opt.safetensors"
-curl -L -C - -o "$COMFY_DIR/models/checkpoints/sd_xl_base_1.0.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors"
-curl -L -C - -o "$COMFY_DIR/models/loras/studio_ghibli_style_sdxl.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/KappaNeuro/studio-ghibli-style/resolve/main/Studio%20Ghibli%20Style.safetensors"
+curl -L -C - -o "$COMFY_DIR/models/loras/anime-ghibli-soft.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/strkyyy/anime-ghibli-soft/resolve/main/anime-ghibli-soft.safetensors"
 curl -L -C - -o "$COMFY_DIR/models/loras/watercolor_v1_sdxl.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/ostris/watercolor_style_lora_sdxl/resolve/main/watercolor_v1_sdxl.safetensors"
-curl -L -C - -o "$COMFY_DIR/models/loras/Graphic_Novel_Illustration-000007.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/blink7630/graphic-novel-illustration/resolve/main/Graphic_Novel_Illustration-000007.safetensors"
-curl -L -C - -o "$COMFY_DIR/models/checkpoints/GuoFeng4.1_2.5D.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/xiaolxl/GuoFeng4_XL/resolve/main/GuoFeng4.1_2.5D.safetensors"
-curl -L -C - -o "$COMFY_DIR/models/loras/manhwa-artstyle-webtoon-lora.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/Muapi/manhwa-artstyle-webtoon-lora/resolve/main/manhwa-artstyle-webtoon-lora.safetensors"
+curl -L -C - -o "$COMFY_DIR/models/loras/comic-ink-halftone.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/strkyyy/comic-ink-halftone/resolve/main/comic-ink-halftone.safetensors"
+curl -L -C - -o "$COMFY_DIR/models/loras/Chinese_Ink_Painting_Lora_SDXL.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/ming-yang/sdxl_chinese_ink_lora/resolve/main/Chinese_Ink_Painting_Lora_SDXL.safetensors"
 curl -L -C - -o "$COMFY_DIR/models/loras/manga-ink-screentone.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/strkyyy/manga-ink-screentone/resolve/main/manga-ink-screentone.safetensors"
 ```
 
@@ -274,15 +292,13 @@ $env:COMFY_DIR = "D:\ComfyUI"
 $hf = if ($env:HF_ENDPOINT) { $env:HF_ENDPOINT } else { "https://huggingface.co" }
 New-Item -ItemType Directory -Force -Path "$env:COMFY_DIR\models\checkpoints" | Out-Null
 New-Item -ItemType Directory -Force -Path "$env:COMFY_DIR\models\loras" | Out-Null
-curl.exe -L -C - -o "$env:COMFY_DIR\models\checkpoints\Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors" "$hf/RunDiffusion/Juggernaut-XL-v9/resolve/main/Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors"
+curl.exe -L -C - -o "$env:COMFY_DIR\models\checkpoints\sd_xl_base_1.0.safetensors" "$hf/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors"
 curl.exe -L -C - -o "$env:COMFY_DIR\models\loras\3d_render_style_xl.safetensors" "$hf/goofyai/3d_render_style_xl/resolve/main/3d_render_style_xl.safetensors"
 curl.exe -L -C - -o "$env:COMFY_DIR\models\checkpoints\animagine-xl-4.0-opt.safetensors" "$hf/cagliostrolab/animagine-xl-4.0/resolve/main/animagine-xl-4.0-opt.safetensors"
-curl.exe -L -C - -o "$env:COMFY_DIR\models\checkpoints\sd_xl_base_1.0.safetensors" "$hf/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors"
-curl.exe -L -C - -o "$env:COMFY_DIR\models\loras\studio_ghibli_style_sdxl.safetensors" "$hf/KappaNeuro/studio-ghibli-style/resolve/main/Studio%20Ghibli%20Style.safetensors"
+curl.exe -L -C - -o "$env:COMFY_DIR\models\loras\anime-ghibli-soft.safetensors" "$hf/strkyyy/anime-ghibli-soft/resolve/main/anime-ghibli-soft.safetensors"
 curl.exe -L -C - -o "$env:COMFY_DIR\models\loras\watercolor_v1_sdxl.safetensors" "$hf/ostris/watercolor_style_lora_sdxl/resolve/main/watercolor_v1_sdxl.safetensors"
-curl.exe -L -C - -o "$env:COMFY_DIR\models\loras\Graphic_Novel_Illustration-000007.safetensors" "$hf/blink7630/graphic-novel-illustration/resolve/main/Graphic_Novel_Illustration-000007.safetensors"
-curl.exe -L -C - -o "$env:COMFY_DIR\models\checkpoints\GuoFeng4.1_2.5D.safetensors" "$hf/xiaolxl/GuoFeng4_XL/resolve/main/GuoFeng4.1_2.5D.safetensors"
-curl.exe -L -C - -o "$env:COMFY_DIR\models\loras\manhwa-artstyle-webtoon-lora.safetensors" "$hf/Muapi/manhwa-artstyle-webtoon-lora/resolve/main/manhwa-artstyle-webtoon-lora.safetensors"
+curl.exe -L -C - -o "$env:COMFY_DIR\models\loras\comic-ink-halftone.safetensors" "$hf/strkyyy/comic-ink-halftone/resolve/main/comic-ink-halftone.safetensors"
+curl.exe -L -C - -o "$env:COMFY_DIR\models\loras\Chinese_Ink_Painting_Lora_SDXL.safetensors" "$hf/ming-yang/sdxl_chinese_ink_lora/resolve/main/Chinese_Ink_Painting_Lora_SDXL.safetensors"
 curl.exe -L -C - -o "$env:COMFY_DIR\models\loras\manga-ink-screentone.safetensors" "$hf/strkyyy/manga-ink-screentone/resolve/main/manga-ink-screentone.safetensors"
 ```
 
@@ -298,15 +314,13 @@ export FOOOCUS_DIR=~/Fooocus-API
 # 国内网络可改用镜像：export HF_ENDPOINT=https://hf-mirror.com
 export HF_ENDPOINT=${HF_ENDPOINT:-https://huggingface.co}
 mkdir -p "$FOOOCUS_DIR/repositories/Fooocus/models/checkpoints" "$FOOOCUS_DIR/repositories/Fooocus/models/loras"
-curl -L -C - -o "$FOOOCUS_DIR/repositories/Fooocus/models/checkpoints/Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/RunDiffusion/Juggernaut-XL-v9/resolve/main/Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors"
+curl -L -C - -o "$FOOOCUS_DIR/repositories/Fooocus/models/checkpoints/sd_xl_base_1.0.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors"
 curl -L -C - -o "$FOOOCUS_DIR/repositories/Fooocus/models/loras/3d_render_style_xl.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/goofyai/3d_render_style_xl/resolve/main/3d_render_style_xl.safetensors"
 curl -L -C - -o "$FOOOCUS_DIR/repositories/Fooocus/models/checkpoints/animagine-xl-4.0-opt.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/cagliostrolab/animagine-xl-4.0/resolve/main/animagine-xl-4.0-opt.safetensors"
-curl -L -C - -o "$FOOOCUS_DIR/repositories/Fooocus/models/checkpoints/sd_xl_base_1.0.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors"
-curl -L -C - -o "$FOOOCUS_DIR/repositories/Fooocus/models/loras/studio_ghibli_style_sdxl.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/KappaNeuro/studio-ghibli-style/resolve/main/Studio%20Ghibli%20Style.safetensors"
+curl -L -C - -o "$FOOOCUS_DIR/repositories/Fooocus/models/loras/anime-ghibli-soft.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/strkyyy/anime-ghibli-soft/resolve/main/anime-ghibli-soft.safetensors"
 curl -L -C - -o "$FOOOCUS_DIR/repositories/Fooocus/models/loras/watercolor_v1_sdxl.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/ostris/watercolor_style_lora_sdxl/resolve/main/watercolor_v1_sdxl.safetensors"
-curl -L -C - -o "$FOOOCUS_DIR/repositories/Fooocus/models/loras/Graphic_Novel_Illustration-000007.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/blink7630/graphic-novel-illustration/resolve/main/Graphic_Novel_Illustration-000007.safetensors"
-curl -L -C - -o "$FOOOCUS_DIR/repositories/Fooocus/models/checkpoints/GuoFeng4.1_2.5D.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/xiaolxl/GuoFeng4_XL/resolve/main/GuoFeng4.1_2.5D.safetensors"
-curl -L -C - -o "$FOOOCUS_DIR/repositories/Fooocus/models/loras/manhwa-artstyle-webtoon-lora.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/Muapi/manhwa-artstyle-webtoon-lora/resolve/main/manhwa-artstyle-webtoon-lora.safetensors"
+curl -L -C - -o "$FOOOCUS_DIR/repositories/Fooocus/models/loras/comic-ink-halftone.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/strkyyy/comic-ink-halftone/resolve/main/comic-ink-halftone.safetensors"
+curl -L -C - -o "$FOOOCUS_DIR/repositories/Fooocus/models/loras/Chinese_Ink_Painting_Lora_SDXL.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/ming-yang/sdxl_chinese_ink_lora/resolve/main/Chinese_Ink_Painting_Lora_SDXL.safetensors"
 curl -L -C - -o "$FOOOCUS_DIR/repositories/Fooocus/models/loras/manga-ink-screentone.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/strkyyy/manga-ink-screentone/resolve/main/manga-ink-screentone.safetensors"
 ```
 
@@ -321,15 +335,13 @@ $env:FOOOCUS_DIR = "D:\Fooocus-API"
 $hf = if ($env:HF_ENDPOINT) { $env:HF_ENDPOINT } else { "https://huggingface.co" }
 New-Item -ItemType Directory -Force -Path "$env:FOOOCUS_DIR\repositories\Fooocus\models\checkpoints" | Out-Null
 New-Item -ItemType Directory -Force -Path "$env:FOOOCUS_DIR\repositories\Fooocus\models\loras" | Out-Null
-curl.exe -L -C - -o "$env:FOOOCUS_DIR\repositories\Fooocus\models\checkpoints\Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors" "$hf/RunDiffusion/Juggernaut-XL-v9/resolve/main/Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors"
+curl.exe -L -C - -o "$env:FOOOCUS_DIR\repositories\Fooocus\models\checkpoints\sd_xl_base_1.0.safetensors" "$hf/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors"
 curl.exe -L -C - -o "$env:FOOOCUS_DIR\repositories\Fooocus\models\loras\3d_render_style_xl.safetensors" "$hf/goofyai/3d_render_style_xl/resolve/main/3d_render_style_xl.safetensors"
 curl.exe -L -C - -o "$env:FOOOCUS_DIR\repositories\Fooocus\models\checkpoints\animagine-xl-4.0-opt.safetensors" "$hf/cagliostrolab/animagine-xl-4.0/resolve/main/animagine-xl-4.0-opt.safetensors"
-curl.exe -L -C - -o "$env:FOOOCUS_DIR\repositories\Fooocus\models\checkpoints\sd_xl_base_1.0.safetensors" "$hf/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors"
-curl.exe -L -C - -o "$env:FOOOCUS_DIR\repositories\Fooocus\models\loras\studio_ghibli_style_sdxl.safetensors" "$hf/KappaNeuro/studio-ghibli-style/resolve/main/Studio%20Ghibli%20Style.safetensors"
+curl.exe -L -C - -o "$env:FOOOCUS_DIR\repositories\Fooocus\models\loras\anime-ghibli-soft.safetensors" "$hf/strkyyy/anime-ghibli-soft/resolve/main/anime-ghibli-soft.safetensors"
 curl.exe -L -C - -o "$env:FOOOCUS_DIR\repositories\Fooocus\models\loras\watercolor_v1_sdxl.safetensors" "$hf/ostris/watercolor_style_lora_sdxl/resolve/main/watercolor_v1_sdxl.safetensors"
-curl.exe -L -C - -o "$env:FOOOCUS_DIR\repositories\Fooocus\models\loras\Graphic_Novel_Illustration-000007.safetensors" "$hf/blink7630/graphic-novel-illustration/resolve/main/Graphic_Novel_Illustration-000007.safetensors"
-curl.exe -L -C - -o "$env:FOOOCUS_DIR\repositories\Fooocus\models\checkpoints\GuoFeng4.1_2.5D.safetensors" "$hf/xiaolxl/GuoFeng4_XL/resolve/main/GuoFeng4.1_2.5D.safetensors"
-curl.exe -L -C - -o "$env:FOOOCUS_DIR\repositories\Fooocus\models\loras\manhwa-artstyle-webtoon-lora.safetensors" "$hf/Muapi/manhwa-artstyle-webtoon-lora/resolve/main/manhwa-artstyle-webtoon-lora.safetensors"
+curl.exe -L -C - -o "$env:FOOOCUS_DIR\repositories\Fooocus\models\loras\comic-ink-halftone.safetensors" "$hf/strkyyy/comic-ink-halftone/resolve/main/comic-ink-halftone.safetensors"
+curl.exe -L -C - -o "$env:FOOOCUS_DIR\repositories\Fooocus\models\loras\Chinese_Ink_Painting_Lora_SDXL.safetensors" "$hf/ming-yang/sdxl_chinese_ink_lora/resolve/main/Chinese_Ink_Painting_Lora_SDXL.safetensors"
 curl.exe -L -C - -o "$env:FOOOCUS_DIR\repositories\Fooocus\models\loras\manga-ink-screentone.safetensors" "$hf/strkyyy/manga-ink-screentone/resolve/main/manga-ink-screentone.safetensors"
 ```
 
@@ -352,11 +364,11 @@ Wan 2.2 TI2V 5B 与 MiniMax H3 结构不同，不能挂这些 LoRA，选这些�
 
 | 风格 | 推荐模板 | 风格 LoRA（挂低噪声模型） | 权重 | 触发词（自动加） | 说明 | 许可 |
 | --- | --- | --- | --- | --- | --- | --- |
-| 3D 漫剧 | `wan2.2-i2v-14b` | [Pixar 动画风（Remade-AI）](https://huggingface.co/Remade-AI/Pixar)<br>`pixar_10_epochs.safetensors` | 0.8 | p1x4r_5ty13 Pixar animation style | 作者推荐权重 1.0（Wan 2.1 上）；挂在 2.2 低噪声模型上 0.8 起调，触发词放在提示词最前 | ⚠️ 注意许可 |
-| 日漫赛璐璐 | `wan2.2-i2v-14b` | [Flat Color 赛璐璐平涂 v2（motimalu）](https://huggingface.co/motimalu/wan-flat-color-v2)<br>`wan_flat_color_v2.safetensors` | 0.8 | flat color, no lineart | 平涂动画质感；想要新海诚式背景可换 Cseti/wan-14b-shinkai-anime-style-lora-v1（触发词 sh1nka1 style） | ⚠️ 注意许可 |
-| 吉卜力手绘 | `wan2.2-i2v-14b` | [Studio Ghibli Wan2.1（Muapi）](https://huggingface.co/Muapi/studio-ghibli-wan2.1-t2v-14b)<br>`studio-ghibli-wan2.1-t2v-14b.safetensors` | 0.8 | Studio Ghibli style |  | ⚠️ 注意许可 |
-| 水彩绘本 | `wan2.2-i2v-14b` | 无合适 LoRA | — | — | Hugging Face 上没有合适的水彩绘本 Wan LoRA | ✅ 可商用 |
-| 美式漫画 | `wan2.2-i2v-14b` | [Comic Book Wan2.1（Muapi）](https://huggingface.co/Muapi/comicbook-wan2.1-t2v-14b)<br>`comicbook-wan2.1-t2v-14b.safetensors` | 0.8 | comic style |  | ⚠️ 注意许可 |
+| 3D 漫剧 | `wan2.2-i2v-14b` | [3D 动画电影风（Remade-AI）](https://huggingface.co/Remade-AI/Pixar)<br>`pixar_10_epochs.safetensors` | 0.8 | p1x4r_5ty13 Pixar animation style | 作者推荐权重 1.0（Wan 2.1 上），挂在 2.2 低噪声模型上 0.8 起调；触发词里的 Pixar 是商标，只作触发用，不要写进片名 / 宣传文案 | ✅ 可商用 |
+| 日漫赛璐璐 | `wan2.2-i2v-14b` | [Flat Color 赛璐璐平涂 v2（motimalu）](https://huggingface.co/motimalu/wan-flat-color-v2)<br>`wan_flat_color_v2.safetensors` | 0.8 | flat color, no lineart | 平涂动画质感 | ⚠️ 注意许可 |
+| 吉卜力手绘 | `wan2.2-i2v-14b` | 无合适 LoRA | — | — | 没有原作者发布、许可清楚的吉卜力风 Wan LoRA | ✅ 可商用 |
+| 水彩绘本 | `wan2.2-i2v-14b` | 无合适 LoRA | — | — | 没有合适的水彩绘本 Wan LoRA | ✅ 可商用 |
+| 美式漫画 | `wan2.2-i2v-14b` | 无合适 LoRA | — | — | 没有原作者发布、许可清楚且适配文生 / 图生 14B 的美漫 Wan LoRA | ✅ 可商用 |
 | 国风 2.5D | `wan2.2-i2v-14b` | 无合适 LoRA | — | — | 没有国风 2.5D 动画的 Wan LoRA | ✅ 可商用 |
 | 韩系网漫 | `wan2.2-i2v-14b` | 无合适 LoRA | — | — | 没有韩漫 / 网漫的 Wan LoRA | ✅ 可商用 |
 | 黑白漫画 | `wan2.2-i2v-14b` | 无合适 LoRA | — | — | 没有黑白漫画线稿的 Wan LoRA | ✅ 可商用 |
@@ -367,10 +379,20 @@ Wan 2.2 / 2.1 基础模型（Comfy-Org 重打包）为 apache-2.0，✅ 可商�
 
 | 模型 | 许可 | 等级 | 说明 |
 | --- | --- | --- | --- |
-| [Pixar 动画风（Remade-AI）](https://huggingface.co/Remade-AI/Pixar) | apache-2.0 | ⚠️ 注意许可 | — |
-| [Flat Color 赛璐璐平涂 v2（motimalu）](https://huggingface.co/motimalu/wan-flat-color-v2) | apache-2.0 | ⚠️ 注意许可 | — |
-| [Studio Ghibli Wan2.1（Muapi）](https://huggingface.co/Muapi/studio-ghibli-wan2.1-t2v-14b) | openrail++（Civitai 转载，原作者未注明） | ⚠️ 注意许可 | — |
-| [Comic Book Wan2.1（Muapi）](https://huggingface.co/Muapi/comicbook-wan2.1-t2v-14b) | openrail++（Civitai 转载，原作者未注明） | ⚠️ 注意许可 | — |
+| [3D 动画电影风（Remade-AI）](https://huggingface.co/Remade-AI/Pixar) | apache-2.0 | ✅ 可商用 | — |
+| [Flat Color 赛璐璐平涂 v2（motimalu）](https://huggingface.co/motimalu/wan-flat-color-v2) | apache-2.0 | ⚠️ 注意许可 | 标注 apache-2.0（可商用），但卡片写明「应请求转载自 Civitai」，无法核实上传者就是原作者 |
+
+**可选替代**（不在默认推荐和下载命令里；需要时在设置页「覆盖」里填文件名，⚠️ / ⛔ 的请先确认授权）：
+
+| 风格 | 模型 | 许可等级 | 说明 |
+| --- | --- | --- | --- |
+| 吉卜力手绘 | [90s Anime M8T（mushroomfleet）](https://huggingface.co/mushroomfleet/wanmagic-M8T-90s-anime)<br>`wan-m8t-style-img-v0p.safetensors` | ⚠️ 注意许可 | 许可可商用，但作者没说明挂高噪声还是低噪声模型、推荐权重，需自己试 |
+| 吉卜力手绘 | [Studio Ghibli Wan2.1（Muapi 转载）](https://huggingface.co/Muapi/studio-ghibli-wan2.1-t2v-14b)<br>`studio-ghibli-wan2.1-t2v-14b.safetensors` | ⛔ 需授权 / 非商用 | 转载账号，未注明原作者和原许可，无法确认是否允许商用 |
+| 水彩绘本 | [Old Book Illustrations（AdamLucek）](https://huggingface.co/AdamLucek/Wan2.1-T2V-14B-OldBookIllustrations)<br>`oldbookillustrations_adapter.safetensors` | ✅ 可商用 | 复古书籍插画风，不是水彩，但同属绘本质感 |
+| 美式漫画 | [Realistic Comicbook Style（maDcaDDie，I2V 480p）](https://huggingface.co/maDcaDDie/realistic_comicbook_style_wan_2_2_i2v_480p-lora)<br>`realistic_comicbook_style_wan_2_2_i2v_480p.safetensors` | ⚠️ 注意许可 | 许可可商用，但按 480p 图生视频训练、没给权重和触发词，挂在 2.2 低噪声模型上的效果未经验证 |
+| 美式漫画 | [Comic Book Wan2.1（Muapi 转载）](https://huggingface.co/Muapi/comicbook-wan2.1-t2v-14b)<br>`comicbook-wan2.1-t2v-14b.safetensors` | ⛔ 需授权 / 非商用 | 转载账号，未注明原作者和原许可，无法确认是否允许商用 |
+| 国风 2.5D | [Traditional Chinese Paintings（Muapi 转载）](https://huggingface.co/Muapi/wan2.1-traditional-chinese-paintings-style)<br>`wan2.1-traditional-chinese-paintings-style.safetensors` | ⛔ 需授权 / 非商用 | 转载账号，未注明原作者和原许可，无法确认是否允许商用 |
+| 黑白漫画 | [Film Noir（Remade-AI）](https://huggingface.co/Remade-AI/Film-Noir)<br>`film_noir_10_epochs.safetensors` | ✅ 可商用 | 真人电影式黑白，不是漫画线稿；想要黑白电影感时可用 |
 
 
 **Wan 2.2 I2V 14B（图生视频，高质量）** 需要的基础模型（所有风格共用）：
@@ -399,7 +421,7 @@ Wan 2.2 / 2.1 基础模型（Comfy-Org 重打包）为 apache-2.0，✅ 可商�
   "1001": {
     "class_type": "LoraLoaderModelOnly",
     "inputs": {
-      "lora_name": "studio-ghibli-wan2.1-t2v-14b.safetensors",
+      "lora_name": "pixar_10_epochs.safetensors",
       "strength_model": 0.8,
       "model": ["38", 0]
     },
@@ -427,8 +449,6 @@ curl -L -C - -o "$COMFY_DIR/models/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safe
 curl -L -C - -o "$COMFY_DIR/models/vae/wan_2.1_vae.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors"
 curl -L -C - -o "$COMFY_DIR/models/loras/pixar_10_epochs.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/Remade-AI/Pixar/resolve/main/pixar_10_epochs.safetensors"
 curl -L -C - -o "$COMFY_DIR/models/loras/wan_flat_color_v2.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/motimalu/wan-flat-color-v2/resolve/main/wan_flat_color_v2.safetensors"
-curl -L -C - -o "$COMFY_DIR/models/loras/studio-ghibli-wan2.1-t2v-14b.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/Muapi/studio-ghibli-wan2.1-t2v-14b/resolve/main/studio-ghibli-wan2.1-t2v-14b.safetensors"
-curl -L -C - -o "$COMFY_DIR/models/loras/comicbook-wan2.1-t2v-14b.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/Muapi/comicbook-wan2.1-t2v-14b/resolve/main/comicbook-wan2.1-t2v-14b.safetensors"
 ```
 
 </details>
@@ -450,8 +470,6 @@ curl.exe -L -C - -o "$env:COMFY_DIR\models\text_encoders\umt5_xxl_fp8_e4m3fn_sca
 curl.exe -L -C - -o "$env:COMFY_DIR\models\vae\wan_2.1_vae.safetensors" "$hf/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors"
 curl.exe -L -C - -o "$env:COMFY_DIR\models\loras\pixar_10_epochs.safetensors" "$hf/Remade-AI/Pixar/resolve/main/pixar_10_epochs.safetensors"
 curl.exe -L -C - -o "$env:COMFY_DIR\models\loras\wan_flat_color_v2.safetensors" "$hf/motimalu/wan-flat-color-v2/resolve/main/wan_flat_color_v2.safetensors"
-curl.exe -L -C - -o "$env:COMFY_DIR\models\loras\studio-ghibli-wan2.1-t2v-14b.safetensors" "$hf/Muapi/studio-ghibli-wan2.1-t2v-14b/resolve/main/studio-ghibli-wan2.1-t2v-14b.safetensors"
-curl.exe -L -C - -o "$env:COMFY_DIR\models\loras\comicbook-wan2.1-t2v-14b.safetensors" "$hf/Muapi/comicbook-wan2.1-t2v-14b/resolve/main/comicbook-wan2.1-t2v-14b.safetensors"
 ```
 
 </details>

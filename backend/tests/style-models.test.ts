@@ -160,9 +160,9 @@ test('ComfyUI image: style checkpoint + LoRA injected into SDXL template', async
 
 test('ComfyUI video: style LoRA on the Wan 14B low-noise model, skipped on 5B, style template only when user picked none', async () => {
   const adapter = new ComfyUIVideoAdapter()
-  const preset = STYLE_MODEL_CATALOG.comfyui_video.ghibli
+  const preset = STYLE_MODEL_CATALOG.comfyui_video['3d']
   const cfg = (settings: Record<string, any>, model = '') => ({ provider: 'comfyui', baseUrl: 'http://127.0.0.1:8188', apiKey: '', model, settings: { ...ON, ...settings } })
-  const rec = { id: 1, prompt: 'a cat walks', duration: 5, aspectRatio: '16:9', style: 'ghibli' }
+  const rec = { id: 1, prompt: 'a cat walks', duration: 5, aspectRatio: '16:9', style: '3d' }
   const t2v = await adapter.buildGenerateRequest(cfg({ comfyui_template: 'wan2.2-t2v-14b' }), rec)
   const nodes = Object.values<any>(t2v.body.prompt)
   const lora = nodes.find((n) => n.class_type === 'LoraLoaderModelOnly' && n.inputs.lora_name === preset.lora!.file)
@@ -204,7 +204,7 @@ test('download scripts: Civitai token, HF mirror, folders per provider', () => {
   assert.equal(dedup.bash.split('\n').filter((l) => l.startsWith('curl')).length, 1)
 })
 
-test('license: every recommended file is classified, defaults are never restricted, non-ok files explain why', { todo: '许可数据核对中，填好后去掉 todo' }, () => {
+test('license: every recommended file is classified, defaults are never restricted, non-ok files explain why', () => {
   for (const kind of ['sdwebui', 'hf_image', 'comfyui_video'] as const) {
     for (const style of STYLE_KEYS) {
       const p: any = (STYLE_MODEL_CATALOG[kind] as any)[style]
@@ -221,4 +221,10 @@ test('license: every recommended file is classified, defaults are never restrict
   }
   const d = describeStyleModelCatalog('fooocus', 'image')!
   for (const s of d.styles as any[]) assert.ok(['ok', 'attention', 'restricted'].includes(s.license_status))
+})
+
+test('style keywords apply when a style has no LoRA', () => {
+  const r = resolveStyleModels('fooocus', 'image', ON, 'webtoon')!
+  assert.equal(r.lora, undefined)
+  assert.equal(r.trigger, STYLE_MODEL_CATALOG.hf_image.webtoon.trigger)
 })

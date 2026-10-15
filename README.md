@@ -227,7 +227,7 @@ The project's visual style (3D, anime cel, Ghibli, watercolor, American comic, g
 - **ComfyUI image / Fooocus** (models from Hugging Face): checkpoint written into `CheckpointLoaderSimple` + an injected `LoraLoader`; Fooocus gets `base_model_name` + `loras` + matching Fooocus styles
 - **ComfyUI video**: Wan 2.2 I2V 14B from the styled first frame, with a Wan 14B style LoRA on the low-noise model (skipped on TI2V 5B / MiniMax H3)
 
-Per-style overrides, an installed-file check and copy-ready download commands (bash / PowerShell, Civitai token, hf-mirror) are on the settings page. Full mapping tables, API examples and download scripts: [docs/style-models.md](docs/style-models.md).
+Per-style overrides, an installed-file check and copy-ready download commands (bash / PowerShell, Civitai token, hf-mirror) are on the settings page. Every model carries a license level — ✅ commercial OK, ⚠️ conditions (e.g. no paid generation service, credit required, re-upload of unclear origin), ⛔ non-commercial / author permission needed. Defaults never use ⛔ models; GuoFeng4, Juggernaut and similar are listed only as flagged alternatives. Full mapping tables, license notes, API examples and download scripts: [docs/style-models.md](docs/style-models.md).
 
 ---
 

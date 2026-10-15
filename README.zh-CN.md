@@ -258,7 +258,7 @@ AI 视频常见的三个问题和对应处理：
 - **ComfyUI 生图 / Fooocus**（模型来自 Hugging Face）：Checkpoint 写入 `CheckpointLoaderSimple`，自动插入 `LoraLoader`；Fooocus 传 `base_model_name` + `loras` + 对应的 Fooocus 风格
 - **ComfyUI 生视频**：风格首帧 + Wan 2.2 I2V 14B，Wan 14B 风格 LoRA 挂在低噪声模型上（TI2V 5B / MiniMax H3 自动跳过）
 
-设置页可逐个风格覆盖文件名 / 权重 / 触发词，「检查本机是否已下载」标出缺失文件，每个风格都有可复制的下载命令（bash / PowerShell，支持 Civitai Token 与 hf-mirror 镜像）。完整对应表、接口调用示例与下载脚本见 [docs/style-models.md](docs/style-models.md)。
+设置页可逐个风格覆盖文件名 / 权重 / 触发词，「检查本机是否已下载」标出缺失文件，每个风格都有可复制的下载命令（bash / PowerShell，支持 Civitai Token 与 hf-mirror 镜像）。每个模型都标了许可等级：✅ 可商用、⚠️ 有条件（如不能做收费生图服务、需署名、转载来源不清）、⛔ 非商用 / 需作者授权；默认推荐不含 ⛔ 模型，GuoFeng4、Juggernaut 等只作为可选替代并单独标注。完整对应表、许可说明、接口调用示例与下载脚本见 [docs/style-models.md](docs/style-models.md)。
 
 ---
 

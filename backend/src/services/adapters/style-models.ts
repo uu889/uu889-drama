@@ -103,7 +103,7 @@ export function resolveStyleModels(
     lora: overrides.lora || lora?.file || undefined,
     loraWeight: Number(overrides.lora_weight ?? lora?.weight ?? 0.8),
     loraApplyTo: lora?.applyTo,
-    trigger: overrides.trigger ?? lora?.trigger ?? (preset as any)?.checkpoint?.trigger,
+    trigger: overrides.trigger ?? lora?.trigger ?? (preset as any)?.trigger ?? (preset as any)?.checkpoint?.trigger,
     template: overrides.template || (preset as StyleVideoPreset | undefined)?.template,
     templateOverride: !!overrides.template,
   }

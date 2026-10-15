@@ -80,6 +80,7 @@ w(
   '- 你在配置里明确填写的步数、CFG、采样器、基准尺寸、负向提示词、Fooocus 风格优先于推荐值；没填才用推荐值。',
   '- 触发词自动加在提示词最前面（已包含就不重复）。',
   '- LoRA 填 `none` 表示该风格不用 LoRA；覆盖里的文件名必须与服务模型目录里的文件名一致（ComfyUI 子目录写成 `子目录/文件名`）。',
+  '- **许可**：默认推荐只用 ✅ 可商用 或 ⚠️ 有条件可用的模型（条件写在每张表下面，最常见的是「可以卖图，但不能把模型做成收费生图服务」）；⛔ 非商用 / 需作者授权的模型（如 GuoFeng4、Juggernaut、Jhyd）只放在「可选替代」，不在下载命令里。许可按 2026-10 的模型页面核对，作者可能修改条款，商用前请以模型页为准，本文不构成法律意见。',
   '- 所有生图底模都是 SDXL 1.0 生态（显存 8GB 起，推荐 12GB）。风格 LoRA 都是按 SDXL 1.0 训练的，换别的 SDXL 底模也能用，但效果需要自己试。',
   '',
 )
@@ -94,7 +95,7 @@ w(
 )
 for (const k of STYLE_KEYS) {
   const p = STYLE_MODEL_CATALOG.sdwebui[k]
-  w(`| ${STYLE_LABELS[k]} | ${link(p.checkpoint)}<br>${code(p.checkpoint.file)} | ${p.lora ? `${link(p.lora)}<br>${code(p.lora.file)}` : '不需要'} | ${p.lora?.weight ?? '—'} | ${esc(p.lora?.trigger || p.checkpoint.trigger) || '—'} | ${paramText(p.params)} | ${lic(worstLicense([p.checkpoint, p.lora]))} |`)
+  w(`| ${STYLE_LABELS[k]} | ${link(p.checkpoint)}<br>${code(p.checkpoint.file)} | ${p.lora ? `${link(p.lora)}<br>${code(p.lora.file)}` : '不需要'} | ${p.lora?.weight ?? '—'} | ${esc(p.lora?.trigger || p.trigger || p.checkpoint.trigger) || '—'} | ${paramText(p.params)} | ${lic(worstLicense([p.checkpoint, p.lora]))} |`)
 }
 w('')
 licenseNotes('sdwebui')
@@ -133,7 +134,7 @@ w(
 )
 for (const k of STYLE_KEYS) {
   const p = STYLE_MODEL_CATALOG.hf_image[k]
-  w(`| ${STYLE_LABELS[k]} | ${link(p.checkpoint)}<br>${code(p.checkpoint.file)} | ${p.lora ? `${link(p.lora)}<br>${code(p.lora.file)}` : '不需要'} | ${p.lora?.weight ?? '—'} | ${esc(p.lora?.trigger || p.checkpoint.trigger) || '—'} | ${paramText(p.params, true)} | ${lic(worstLicense([p.checkpoint, p.lora]))} |`)
+  w(`| ${STYLE_LABELS[k]} | ${link(p.checkpoint)}<br>${code(p.checkpoint.file)} | ${p.lora ? `${link(p.lora)}<br>${code(p.lora.file)}` : '不需要'} | ${p.lora?.weight ?? '—'} | ${esc(p.lora?.trigger || p.trigger || p.checkpoint.trigger) || '—'} | ${paramText(p.params, true)} | ${lic(worstLicense([p.checkpoint, p.lora]))} |`)
 }
 w('')
 licenseNotes('hf_image')
@@ -232,7 +233,7 @@ w(
   '```json',
   json({
     '38': { class_type: 'UNETLoader', inputs: { unet_name: 'wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors', weight_dtype: 'default' } },
-    '1001': { class_type: 'LoraLoaderModelOnly', inputs: { lora_name: STYLE_MODEL_CATALOG.comfyui_video.ghibli.lora!.file, strength_model: 0.8, model: ['38', 0] }, _meta: { title: '风格 LoRA' } },
+    '1001': { class_type: 'LoraLoaderModelOnly', inputs: { lora_name: STYLE_MODEL_CATALOG.comfyui_video['3d'].lora!.file, strength_model: 0.8, model: ['38', 0] }, _meta: { title: '风格 LoRA' } },
     '…': '原来接 ["38", 0] 的 ModelSamplingSD3 改接 ["1001", 0]',
   }),
   '```',

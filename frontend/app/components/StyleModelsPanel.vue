@@ -64,9 +64,9 @@
               <p v-if="item.f.license_status !== 'ok' && item.f.license_note" :class="['sm-lic-note', `lic-${item.f.license_status}`]">{{ licIcon(item.f.license_status) }} {{ item.f.license_note }}</p>
             </template>
             <div v-if="!row.lora && row.available" class="sm-file sm-dim">LoRA：{{ t('settings.cfg.styleModels.noLora') }}</div>
-            <div v-if="row.lora?.trigger || row.checkpoint?.trigger" class="sm-file">
+            <div v-if="row.trigger" class="sm-file">
               <span class="sm-role">{{ t('settings.cfg.styleModels.trigger') }}</span>
-              <code class="sm-code">{{ row.lora?.trigger || row.checkpoint?.trigger }}</code>
+              <code class="sm-code">{{ row.trigger }}</code>
             </div>
             <div v-if="paramText(row)" class="sm-file">
               <span class="sm-role">{{ t('settings.cfg.styleModels.params') }}</span>
@@ -90,7 +90,7 @@
             <input v-else :value="ov(row.style).checkpoint" class="input mono sm-in" :placeholder="row.checkpoint?.file || 'Checkpoint'" @input="setOv(row.style, 'checkpoint', $event.target.value)" />
             <input :value="ov(row.style).lora" class="input mono sm-in" :placeholder="row.lora?.file || t('settings.cfg.styleModels.loraPlaceholder')" @input="setOv(row.style, 'lora', $event.target.value)" />
             <input :value="ov(row.style).lora_weight" class="input mono sm-num" type="number" step="0.05" min="-2" max="2" :placeholder="String(row.lora?.weight ?? 0.8)" @input="setOv(row.style, 'lora_weight', $event.target.value)" />
-            <input :value="ov(row.style).trigger" class="input sm-in" :placeholder="row.lora?.trigger || row.checkpoint?.trigger || t('settings.cfg.styleModels.trigger')" @input="setOv(row.style, 'trigger', $event.target.value)" />
+            <input :value="ov(row.style).trigger" class="input sm-in" :placeholder="row.trigger || t('settings.cfg.styleModels.trigger')" @input="setOv(row.style, 'trigger', $event.target.value)" />
             <button v-if="hasOv(row.style)" type="button" class="btn btn-ghost btn-sm" @click="clearOv(row.style)">{{ t('settings.cfg.styleModels.reset') }}</button>
           </div>
 
