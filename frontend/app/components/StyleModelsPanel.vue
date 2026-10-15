@@ -24,6 +24,15 @@
       <div v-if="loading" class="sm-hint"><Loader2 :size="12" class="animate-spin" /> {{ t('common.loading') }}</div>
       <template v-else-if="catalog">
         <p class="sm-hint">{{ catalog.usage }}</p>
+        <div class="sm-lic-box">
+          <b>{{ t('settings.cfg.styleModels.licenseTitle') }}</b>
+          <span><span class="sm-lic lic-ok">{{ licLabel('ok') }}</span> {{ t('settings.cfg.styleModels.licenseOk') }}</span>
+          <span><span class="sm-lic lic-attention">{{ licLabel('attention') }}</span> {{ t('settings.cfg.styleModels.licenseAttention') }}</span>
+          <span><span class="sm-lic lic-restricted">{{ licLabel('restricted') }}</span> {{ t('settings.cfg.styleModels.licenseRestricted') }}</span>
+          <span v-if="flaggedLabels.length" class="sm-lic-warn">⚠ {{ t('settings.cfg.styleModels.licenseFlagged', { styles: flaggedLabels.join('、') }) }}</span>
+          <span v-else class="sm-dim">{{ t('settings.cfg.styleModels.licenseAllOk') }}</span>
+          <span class="sm-dim">{{ t('settings.cfg.styleModels.licenseDisclaimer') }}</span>
+        </div>
         <p class="sm-hint">
           {{ t('settings.cfg.styleModels.folders') }}
           <code v-for="(f, k) in catalog.folders" :key="k" class="sm-code">{{ k }} → {{ f }}</code>
@@ -34,28 +43,27 @@
             <strong>{{ row.label }}</strong>
             <span class="sm-key mono">{{ row.style }}</span>
             <span v-if="row.template" class="sm-tag">{{ row.template_label || row.template }}</span>
+            <span v-if="row.available" :class="['sm-lic', `lic-${row.license_status}`]">{{ licIcon(row.license_status) }} {{ licLabel(row.license_status) }}</span>
             <span v-if="localSet && row.downloads.length" :class="['sm-tag', missingOf(row).length ? 'is-warn' : 'is-ok']">
               {{ missingOf(row).length ? t('settings.cfg.styleModels.missing', { n: missingOf(row).length }) : t('settings.cfg.styleModels.ready') }}
             </span>
           </div>
 
           <div class="sm-files">
-            <div v-if="row.checkpoint" class="sm-file">
-              <span class="sm-role">Checkpoint</span>
-              <a :href="row.checkpoint.page" target="_blank" rel="noopener">{{ row.checkpoint.name }}</a>
-              <code class="sm-code">{{ row.checkpoint.file }}</code>
-              <span v-if="row.checkpoint.size" class="sm-dim">{{ row.checkpoint.size }}</span>
-              <span v-if="row.checkpoint.license" class="sm-dim">· {{ row.checkpoint.license }}</span>
-            </div>
-            <div v-if="row.lora" class="sm-file">
-              <span class="sm-role">LoRA</span>
-              <a :href="row.lora.page" target="_blank" rel="noopener">{{ row.lora.name }}</a>
-              <code class="sm-code">{{ row.lora.file }}</code>
-              <span class="sm-dim">{{ t('settings.cfg.styleModels.weight') }} {{ row.lora.weight ?? 0.8 }}</span>
-              <span v-if="row.lora.apply_to && row.lora.apply_to !== 'all'" class="sm-dim">· {{ row.lora.apply_to === 'low' ? t('settings.cfg.styleModels.lowNoise') : t('settings.cfg.styleModels.highNoise') }}</span>
-              <span v-if="row.lora.size" class="sm-dim">· {{ row.lora.size }}</span>
-            </div>
-            <div v-else-if="row.available" class="sm-file sm-dim">LoRA：{{ t('settings.cfg.styleModels.noLora') }}</div>
+            <template v-for="item in filesOf(row)" :key="item.role">
+              <div class="sm-file">
+                <span class="sm-role">{{ item.role }}</span>
+                <a :href="item.f.page" target="_blank" rel="noopener">{{ item.f.name }}</a>
+                <code class="sm-code">{{ item.f.file }}</code>
+                <span v-if="item.role === 'LoRA'" class="sm-dim">{{ t('settings.cfg.styleModels.weight') }} {{ item.f.weight ?? 0.8 }}</span>
+                <span v-if="item.f.apply_to && item.f.apply_to !== 'all'" class="sm-dim">· {{ item.f.apply_to === 'low' ? t('settings.cfg.styleModels.lowNoise') : t('settings.cfg.styleModels.highNoise') }}</span>
+                <span v-if="item.f.size" class="sm-dim">· {{ item.f.size }}</span>
+                <span :class="['sm-lic', `lic-${item.f.license_status}`]" :title="item.f.license || ''">{{ licLabel(item.f.license_status) }}</span>
+                <span v-if="item.f.license" class="sm-dim">{{ item.f.license }}</span>
+              </div>
+              <p v-if="item.f.license_status !== 'ok' && item.f.license_note" :class="['sm-lic-note', `lic-${item.f.license_status}`]">{{ licIcon(item.f.license_status) }} {{ item.f.license_note }}</p>
+            </template>
+            <div v-if="!row.lora && row.available" class="sm-file sm-dim">LoRA：{{ t('settings.cfg.styleModels.noLora') }}</div>
             <div v-if="row.lora?.trigger || row.checkpoint?.trigger" class="sm-file">
               <span class="sm-role">{{ t('settings.cfg.styleModels.trigger') }}</span>
               <code class="sm-code">{{ row.lora?.trigger || row.checkpoint?.trigger }}</code>
@@ -65,6 +73,15 @@
               <span class="sm-dim">{{ paramText(row) }}</span>
             </div>
             <p v-for="(n, i) in notesOf(row)" :key="i" class="sm-hint">{{ n }}</p>
+            <div v-if="row.alternatives?.length" class="sm-alts">
+              <span class="sm-role">{{ t('settings.cfg.styleModels.alternatives') }}</span>
+              <div v-for="a in row.alternatives" :key="a.file" class="sm-file">
+                <a :href="a.page" target="_blank" rel="noopener">{{ a.name }}</a>
+                <code class="sm-code">{{ a.file }}</code>
+                <span :class="['sm-lic', `lic-${a.license_status}`]">{{ licLabel(a.license_status) }}</span>
+                <span v-if="a.license_note" class="sm-dim">{{ a.license_note }}</span>
+              </div>
+            </div>
           </div>
 
           <div class="sm-override">
@@ -174,6 +191,10 @@ function paramText(row) {
   if (props.provider === 'fooocus' && p.fooocusStyles?.length) parts.push(`Fooocus: ${p.fooocusStyles.join(', ')}`)
   return parts.join(' · ')
 }
+const filesOf = row => [['Checkpoint', row.checkpoint], ['LoRA', row.lora]].filter(([, f]) => f).map(([role, f]) => ({ role, f }))
+const licLabel = st => t(`settings.cfg.styleModels.lic.${st || 'attention'}`)
+const licIcon = st => (st === 'ok' ? '✓' : st === 'restricted' ? '⛔' : '⚠')
+const flaggedLabels = computed(() => (catalog.value?.styles || []).filter(s => s.available && s.license_status !== 'ok').map(s => s.label))
 const notesOf = row => [row.note, row.checkpoint?.note, row.lora?.note].filter(Boolean)
 
 // ===== 检查本机是否已下载 =====
@@ -238,6 +259,14 @@ const ScriptBox = defineComponent({
 .sm-role { font-size: 10.5px; color: var(--text-3); min-width: 64px; }
 .sm-dim { color: var(--text-3); font-size: 11px; }
 .sm-code { font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px; background: var(--bg-1); padding: 0 4px; border-radius: 4px; word-break: break-all; margin-right: 4px; }
+.sm-lic { font-size: 10.5px; padding: 0 6px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+.lic-ok { color: var(--success, #30a46c); }
+.lic-attention { color: var(--warning, #d97706); }
+.lic-restricted { color: var(--danger, #e5484d); }
+.sm-lic-note { margin: 0 0 0 70px; font-size: 11px; line-height: 1.5; }
+.sm-lic-box { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: var(--text-2); border: 1px dashed var(--border); border-radius: 8px; padding: 8px 10px; }
+.sm-lic-warn { color: var(--warning, #d97706); font-weight: 600; }
+.sm-alts { display: flex; flex-direction: column; gap: 3px; margin-top: 2px; }
 .sm-override { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .sm-in { flex: 1 1 160px; min-width: 0; font-size: 11.5px; padding: 4px 8px; }
 .sm-num { width: 72px; font-size: 11.5px; padding: 4px 8px; }

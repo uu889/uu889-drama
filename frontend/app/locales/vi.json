@@ -542,7 +542,20 @@
         "downloadAll": "Tải tất cả phong cách",
         "downloadHint": "Lệnh dùng curl -o để giữ đúng tên tệp. Mô hình Civitai cần đăng nhập thì đặt CIVITAI_TOKEN. Sau khi tải, làm mới danh sách mô hình trong dịch vụ.",
         "copy": "Sao chép",
-        "copied": "Đã sao chép lệnh tải"
+        "copied": "Đã sao chép lệnh tải",
+        "alternatives": "Lựa chọn thay thế",
+        "licenseTitle": "Giấy phép (đánh giá cho việc bán phim làm từ ảnh / video đã tạo)",
+        "licenseOk": "được dùng thương mại, không cần xin phép thêm",
+        "licenseAttention": "dùng được nhưng có điều kiện hoặc nguồn không rõ (không làm dịch vụ tạo ảnh trả phí, cần ghi công, bản đăng lại không rõ tác giả) — đọc ghi chú trước khi dùng thương mại",
+        "licenseRestricted": "phi thương mại hoặc cần tác giả cho phép; không dùng làm mặc định, chỉ liệt kê làm lựa chọn thay thế",
+        "licenseFlagged": "Mặc định cần chú ý giấy phép: {styles}",
+        "licenseAllOk": "Tất cả mặc định đều cho phép thương mại",
+        "licenseDisclaimer": "Kiểm tra theo trang mô hình 2026-10; tác giả có thể đổi điều khoản, hãy xác nhận trước khi dùng thương mại. Không phải tư vấn pháp lý.",
+        "lic": {
+          "ok": "Thương mại OK",
+          "attention": "Xem giấy phép",
+          "restricted": "Cần phép / NC"
+        }
       }
     },
     "styleDialog": {

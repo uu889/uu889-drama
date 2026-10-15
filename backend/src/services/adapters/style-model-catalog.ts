@@ -6,6 +6,14 @@ import type { StyleKey } from './style-models'
 
 export type CatalogKind = 'sdwebui' | 'hf_image' | 'comfyui_video'
 
+/**
+ * 许可等级（以「用生成的图 / 视频做商业短剧」为准）：
+ * - ok：可商用，无需额外授权（apache-2.0 / MIT / OpenRAIL 系列的使用限制条款除外）
+ * - attention：可以用，但有附加条件或来源不清（如不得做付费生成服务、需署名、转载账号未注明原作者）
+ * - restricted：非商用，或商用需联系作者授权
+ */
+export type LicenseStatus = 'ok' | 'attention' | 'restricted'
+
 export interface CatalogFile {
   /** 显示名 */
   name: string
@@ -19,6 +27,10 @@ export interface CatalogFile {
   size?: string
   baseModel?: string
   license?: string
+  /** 许可等级（见 LicenseStatus） */
+  licenseStatus?: LicenseStatus
+  /** 许可的具体限制（attention / restricted 时必须写清楚） */
+  licenseNote?: string
   /** 触发词（LoRA） */
   trigger?: string
   /** 推荐 LoRA 权重 */
@@ -45,6 +57,8 @@ export interface StyleImagePreset {
     fooocusStyles?: string[]
   }
   note?: string
+  /** 可选替代（通常效果更好但需要注意许可，不在下载命令里，设置页 / 文档单独标注） */
+  alternatives?: CatalogFile[]
 }
 
 export interface StyleVideoPreset {
@@ -52,6 +66,29 @@ export interface StyleVideoPreset {
   template: string
   lora?: CatalogFile | null
   note: string
+  alternatives?: CatalogFile[]
+}
+
+/** 内置视频模板用到的基础模型（Wan 2.2 / 2.1 Comfy-Org 重打包）的许可 */
+export const WAN_BASE_LICENSE = { license: 'apache-2.0', licenseStatus: 'ok' as LicenseStatus }
+
+const LICENSE_RANK: Record<LicenseStatus, number> = { ok: 0, attention: 1, restricted: 2 }
+
+/** 一组文件里最严格的许可等级（未标注按 attention 处理） */
+export function worstLicense(files: Array<CatalogFile | null | undefined>): LicenseStatus {
+  let worst: LicenseStatus = 'ok'
+  for (const f of files) {
+    if (!f) continue
+    const st = f.licenseStatus || 'attention'
+    if (LICENSE_RANK[st] > LICENSE_RANK[worst]) worst = st
+  }
+  return worst
+}
+
+export const LICENSE_LABELS: Record<LicenseStatus, string> = {
+  ok: '可商用',
+  attention: '注意许可',
+  restricted: '需授权 / 非商用',
 }
 
 /** 各服务商的模型目录（相对安装根目录） */

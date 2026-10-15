@@ -542,7 +542,20 @@
         "downloadAll": "全スタイルを一括ダウンロード",
         "downloadHint": "curl -o でファイル名を固定します。ログインが必要な Civitai モデルは CIVITAI_TOKEN を設定してください。ダウンロード後、各サービスでモデル一覧を更新してください。",
         "copy": "コピー",
-        "copied": "コマンドをコピーしました"
+        "copied": "コマンドをコピーしました",
+        "alternatives": "代替候補",
+        "licenseTitle": "ライセンス（生成画像・動画で商用ドラマを作る前提で判定）",
+        "licenseOk": "商用可、追加の許可は不要",
+        "licenseAttention": "条件付きまたは出所不明（有料生成サービス不可、クレジット必須、転載で原作者不明など）。商用前に注記を確認",
+        "licenseRestricted": "非商用、または商用には作者の許可が必要。既定では使わず代替候補としてのみ表示",
+        "licenseFlagged": "注意が必要な既定モデル：{styles}",
+        "licenseAllOk": "すべての既定モデルが商用可能です",
+        "licenseDisclaimer": "2026-10 時点のモデルページで確認。作者が変更する場合があるため、商用前にモデルページで確認してください。法的助言ではありません。",
+        "lic": {
+          "ok": "商用可",
+          "attention": "要確認",
+          "restricted": "要許可 / 非商用"
+        }
       }
     },
     "styleDialog": {

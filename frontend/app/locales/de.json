@@ -542,7 +542,20 @@
         "downloadAll": "Alle Stile herunterladen",
         "downloadHint": "Befehle nutzen curl -o, damit Dateinamen passen. Für Civitai-Modelle mit Login CIVITAI_TOKEN setzen. Danach die Modellliste im Dienst aktualisieren.",
         "copy": "Kopieren",
-        "copied": "Befehle kopiert"
+        "copied": "Befehle kopiert",
+        "alternatives": "Alternativen",
+        "licenseTitle": "Lizenzen (bewertet für den Verkauf von Dramen aus den generierten Bildern / Videos)",
+        "licenseOk": "kommerzielle Nutzung erlaubt, keine Zusatzgenehmigung",
+        "licenseAttention": "nutzbar mit Bedingungen oder unklarer Herkunft (z. B. kein bezahlter Generierungsdienst, Namensnennung, Re-Upload ohne Originalautor) – Hinweis vor kommerzieller Nutzung lesen",
+        "licenseRestricted": "nicht kommerziell oder Genehmigung des Autors nötig; nie Standard, nur als Alternative gelistet",
+        "licenseFlagged": "Standards mit Lizenzhinweis: {styles}",
+        "licenseAllOk": "Alle Standardmodelle erlauben kommerzielle Nutzung",
+        "licenseDisclaimer": "Stand der Modellseiten 2026-10; Autoren können Bedingungen ändern, vor kommerzieller Nutzung auf der Modellseite prüfen. Keine Rechtsberatung.",
+        "lic": {
+          "ok": "Kommerziell OK",
+          "attention": "Lizenz prüfen",
+          "restricted": "Genehmigung / NC"
+        }
       }
     },
     "styleDialog": {

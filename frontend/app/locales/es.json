@@ -542,7 +542,20 @@
         "downloadAll": "Descargar todos los estilos",
         "downloadHint": "Los comandos usan curl -o para mantener los nombres. Define CIVITAI_TOKEN para modelos de Civitai que requieren inicio de sesión. Después actualiza la lista de modelos del servicio.",
         "copy": "Copiar",
-        "copied": "Comandos copiados"
+        "copied": "Comandos copiados",
+        "alternatives": "Alternativas",
+        "licenseTitle": "Licencias (evaluadas para vender series hechas con las imágenes / vídeos generados)",
+        "licenseOk": "uso comercial permitido, sin permiso adicional",
+        "licenseAttention": "utilizable con condiciones u origen incierto (sin servicio de generación de pago, atribución obligatoria, resubida sin autor original) — lee la nota antes de un uso comercial",
+        "licenseRestricted": "no comercial o requiere permiso del autor; nunca por defecto, solo como alternativa",
+        "licenseFlagged": "Valores por defecto que requieren atención: {styles}",
+        "licenseAllOk": "Todos los valores por defecto permiten uso comercial",
+        "licenseDisclaimer": "Comprobado en las páginas de los modelos en 2026-10; los autores pueden cambiar los términos, confírmalo antes de un uso comercial. No es asesoramiento legal.",
+        "lic": {
+          "ok": "Uso comercial OK",
+          "attention": "Revisar licencia",
+          "restricted": "Permiso / NC"
+        }
       }
     },
     "styleDialog": {

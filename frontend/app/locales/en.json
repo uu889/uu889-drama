@@ -542,7 +542,20 @@
         "downloadAll": "Download all styles at once",
         "downloadHint": "Commands use curl -o so file names match the table. Set CIVITAI_TOKEN for Civitai models that require login (civitai.com → Account settings → API Keys). In China set HF_ENDPOINT=https://hf-mirror.com for Hugging Face. Refresh the model list afterwards (ComfyUI: R, SD WebUI: refresh, Fooocus: restart).",
         "copy": "Copy",
-        "copied": "Download commands copied"
+        "copied": "Download commands copied",
+        "alternatives": "Alternatives",
+        "licenseTitle": "Licenses (judged for selling dramas made with the generated images / videos)",
+        "licenseOk": "commercial use allowed, no extra permission needed",
+        "licenseAttention": "usable with conditions or unclear origin (e.g. no paid generation service, credit required, re-upload without the original author) — read the note before commercial use",
+        "licenseRestricted": "non-commercial or needs the author's permission; never a default, only listed as an alternative",
+        "licenseFlagged": "Defaults that need attention: {styles}",
+        "licenseAllOk": "All default picks allow commercial use",
+        "licenseDisclaimer": "Checked against model pages in 2026-10; authors may change terms, so confirm on the model page before commercial use. Not legal advice.",
+        "lic": {
+          "ok": "Commercial OK",
+          "attention": "Check license",
+          "restricted": "Permission / NC"
+        }
       }
     },
     "styleDialog": {

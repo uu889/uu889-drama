@@ -4,7 +4,7 @@
  */
 import { writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { MODEL_FOLDERS, STYLE_MODEL_CATALOG, type CatalogFile } from '../src/services/adapters/style-model-catalog'
+import { LICENSE_LABELS, MODEL_FOLDERS, STYLE_MODEL_CATALOG, worstLicense, type CatalogFile, type LicenseStatus } from '../src/services/adapters/style-model-catalog'
 import { STYLE_KEYS } from '../src/services/adapters/style-models'
 import { STYLE_LABELS, describeStyleModelCatalog } from '../src/services/adapters/style-model-guide'
 import { getComfyTemplate } from '../src/services/adapters/comfyui-templates'
@@ -16,6 +16,33 @@ const code = (s?: string | number | null) => (s === undefined || s === null || s
 /** 格式化 JSON，ComfyUI 连线 ["节点", 槽位] 保持一行 */
 const json = (v: unknown) => JSON.stringify(v, null, 2).replace(/\[\s+("[^"]*"),\s+(\d+)\s+\]/g, '[$1, $2]')
 const esc = (s?: string) => (s || '').replace(/\|/g, '\\|')
+const LIC_ICON: Record<LicenseStatus, string> = { ok: '✅', attention: '⚠️', restricted: '⛔' }
+const lic = (st: LicenseStatus) => `${LIC_ICON[st]} ${LICENSE_LABELS[st]}`
+
+/** 表格下方：非 ok 文件的许可说明 + 可选替代 */
+function licenseNotes(kind: 'sdwebui' | 'hf_image' | 'comfyui_video') {
+  const lines: string[] = []
+  const seen = new Set<string>()
+  for (const k of STYLE_KEYS) {
+    const p = (STYLE_MODEL_CATALOG[kind] as any)[k]
+    for (const f of [p.checkpoint, p.lora] as Array<CatalogFile | null | undefined>) {
+      if (!f || seen.has(f.file)) continue
+      seen.add(f.file)
+      const st = f.licenseStatus || 'attention'
+      lines.push(`| ${link(f)} | ${esc(f.license) || '—'} | ${lic(st)} | ${esc(f.licenseNote) || '—'} |`)
+    }
+  }
+  w('**许可**（以「用生成的图 / 视频做商业短剧」为准；✅ 可商用无需授权，⚠️ 可以用但有条件或来源不清，⛔ 非商用或需作者授权）：', '', '| 模型 | 许可 | 等级 | 说明 |', '| --- | --- | --- | --- |', ...lines, '')
+  const alts: string[] = []
+  for (const k of STYLE_KEYS) {
+    for (const a of ((STYLE_MODEL_CATALOG[kind] as any)[k].alternatives || []) as CatalogFile[]) {
+      alts.push(`| ${STYLE_LABELS[k]} | ${link(a)}<br>${code(a.file)} | ${lic(a.licenseStatus || 'attention')} | ${esc(a.licenseNote || a.note) || '—'} |`)
+    }
+  }
+  if (alts.length) {
+    w('**可选替代**（不在默认推荐和下载命令里；需要时在设置页「覆盖」里填文件名，⚠️ / ⛔ 的请先确认授权）：', '', '| 风格 | 模型 | 许可等级 | 说明 |', '| --- | --- | --- | --- |', ...alts, '')
+  }
+}
 
 function paramText(p: Record<string, any> = {}, fooocus = false) {
   const parts: string[] = []
@@ -62,13 +89,15 @@ w('## 一、Stable Diffusion WebUI（模型来自 Civitai）', '')
 w(
   '适用 AUTOMATIC1111 / Forge（启动参数加 `--api`）。Checkpoint 放 `models/Stable-diffusion/`，LoRA 放 `models/Lora/`。',
   '',
-  '| 风格 | Checkpoint（底模） | 风格 LoRA | 权重 | 触发词（自动加） | 推荐参数 |',
-  '| --- | --- | --- | --- | --- | --- |',
+  '| 风格 | Checkpoint（底模） | 风格 LoRA | 权重 | 触发词（自动加） | 推荐参数 | 许可 |',
+  '| --- | --- | --- | --- | --- | --- | --- |',
 )
 for (const k of STYLE_KEYS) {
   const p = STYLE_MODEL_CATALOG.sdwebui[k]
-  w(`| ${STYLE_LABELS[k]} | ${link(p.checkpoint)}<br>${code(p.checkpoint.file)} | ${p.lora ? `${link(p.lora)}<br>${code(p.lora.file)}` : '不需要'} | ${p.lora?.weight ?? '—'} | ${esc(p.lora?.trigger || p.checkpoint.trigger) || '—'} | ${paramText(p.params)} |`)
+  w(`| ${STYLE_LABELS[k]} | ${link(p.checkpoint)}<br>${code(p.checkpoint.file)} | ${p.lora ? `${link(p.lora)}<br>${code(p.lora.file)}` : '不需要'} | ${p.lora?.weight ?? '—'} | ${esc(p.lora?.trigger || p.checkpoint.trigger) || '—'} | ${paramText(p.params)} | ${lic(worstLicense([p.checkpoint, p.lora]))} |`)
 }
+w('')
+licenseNotes('sdwebui')
 w('', '**接口调用**（UU889-Drama 实际发送的请求，以「韩系网漫」为例）：', '', '```http')
 const wt = STYLE_MODEL_CATALOG.sdwebui.webtoon
 w(
@@ -99,20 +128,15 @@ w(
   `ComfyUI：Checkpoint 放 \`${MODEL_FOLDERS.comfyui.checkpoint}/\`，LoRA 放 \`${MODEL_FOLDERS.comfyui.lora}/\`。`,
   `Fooocus-API：Checkpoint 放 \`${MODEL_FOLDERS.fooocus.checkpoint}/\`，LoRA 放 \`${MODEL_FOLDERS.fooocus.lora}/\`（单独安装的 Fooocus 是 \`models/checkpoints\` 与 \`models/loras\`）。`,
   '',
-  '| 风格 | Checkpoint（底模） | 风格 LoRA | 权重 | 触发词（自动加） | 推荐参数 / Fooocus 风格 |',
-  '| --- | --- | --- | --- | --- | --- |',
+  '| 风格 | Checkpoint（底模） | 风格 LoRA | 权重 | 触发词（自动加） | 推荐参数 / Fooocus 风格 | 许可 |',
+  '| --- | --- | --- | --- | --- | --- | --- |',
 )
 for (const k of STYLE_KEYS) {
   const p = STYLE_MODEL_CATALOG.hf_image[k]
-  w(`| ${STYLE_LABELS[k]} | ${link(p.checkpoint)}<br>${code(p.checkpoint.file)} | ${p.lora ? `${link(p.lora)}<br>${code(p.lora.file)}` : '不需要'} | ${p.lora?.weight ?? '—'} | ${esc(p.lora?.trigger || p.checkpoint.trigger) || '—'} | ${paramText(p.params, true)} |`)
+  w(`| ${STYLE_LABELS[k]} | ${link(p.checkpoint)}<br>${code(p.checkpoint.file)} | ${p.lora ? `${link(p.lora)}<br>${code(p.lora.file)}` : '不需要'} | ${p.lora?.weight ?? '—'} | ${esc(p.lora?.trigger || p.checkpoint.trigger) || '—'} | ${paramText(p.params, true)} | ${lic(worstLicense([p.checkpoint, p.lora]))} |`)
 }
-w('', '**许可**：', '')
-const licenses = new Map<string, string>()
-for (const k of STYLE_KEYS) {
-  const p = STYLE_MODEL_CATALOG.hf_image[k]
-  for (const f of [p.checkpoint, p.lora]) if (f?.license) licenses.set(f.name, f.license)
-}
-for (const [n, l] of licenses) w(`- ${n}：${l}`)
+w('')
+licenseNotes('hf_image')
 const gh = STYLE_MODEL_CATALOG.hf_image.ghibli
 w(
   '',
@@ -182,13 +206,15 @@ w(
   '',
   '模板选择：风格覆盖里填的模板 > 配置里选的模板 > 「模型」指向的模板 > 下表推荐模板。',
   '',
-  '| 风格 | 推荐模板 | 风格 LoRA（挂低噪声模型） | 权重 | 触发词（自动加） | 说明 |',
-  '| --- | --- | --- | --- | --- | --- |',
+  '| 风格 | 推荐模板 | 风格 LoRA（挂低噪声模型） | 权重 | 触发词（自动加） | 说明 | 许可 |',
+  '| --- | --- | --- | --- | --- | --- | --- |',
 )
 for (const k of STYLE_KEYS) {
   const p = STYLE_MODEL_CATALOG.comfyui_video[k]
-  w(`| ${STYLE_LABELS[k]} | ${code(p.template)} | ${p.lora ? `${link(p.lora)}<br>${code(p.lora.file)}` : '无合适 LoRA'} | ${p.lora?.weight ?? '—'} | ${esc(p.lora?.trigger) || '—'} | ${esc(p.lora?.note || (p.lora ? '' : p.note.split('：')[0]))} |`)
+  w(`| ${STYLE_LABELS[k]} | ${code(p.template)} | ${p.lora ? `${link(p.lora)}<br>${code(p.lora.file)}` : '无合适 LoRA'} | ${p.lora?.weight ?? '—'} | ${esc(p.lora?.trigger) || '—'} | ${esc(p.lora?.note || (p.lora ? '' : p.note.split('：')[0]))} | ${lic(worstLicense([p.lora]))} |`)
 }
+w('', 'Wan 2.2 / 2.1 基础模型（Comfy-Org 重打包）为 apache-2.0，✅ 可商用。', '')
+licenseNotes('comfyui_video')
 const tpl = getComfyTemplate('video', 'wan2.2-i2v-14b')!
 w(
   '',

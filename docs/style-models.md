@@ -30,16 +30,32 @@ Checkpoint、风格 LoRA、触发词和推荐参数。设置页里可以逐个�
 
 适用 AUTOMATIC1111 / Forge（启动参数加 `--api`）。Checkpoint 放 `models/Stable-diffusion/`，LoRA 放 `models/Lora/`。
 
-| 风格 | Checkpoint（底模） | 风格 LoRA | 权重 | 触发词（自动加） | 推荐参数 |
-| --- | --- | --- | --- | --- | --- |
-| 3D 漫剧 | [ProtoVision XL（v6.6.0 BakedVAE）](https://civitai.com/models/125703?modelVersionId=265938)<br>`ProtoVisionXL_0.6.6.0.fp16.safetensors` | [Samaritan 3D Cartoon SDXL](https://civitai.com/models/121932?modelVersionId=132727)<br>`samaritan_3d_cartoon_sdxl.safetensors` | 0.8 | 3d cartoon | DPM++ 2M Karras，30 步，CFG 6 |
-| 日漫赛璐璐 | [Animagine XL 4.0（v4 Opt）](https://civitai.com/models/1188071?modelVersionId=1408658)<br>`animagine-xl-4.0-opt.safetensors` | 不需要 | — | masterpiece, high score, great score, absurdres | Euler a，28 步，CFG 5 |
-| 吉卜力手绘 | [AlbedoBase XL（v3.1 Large）](https://civitai.com/models/140737?modelVersionId=1041855)<br>`albedobaseXL_v31Large.safetensors` | [Studio Ghibli （Art Style Capture） LoRA XL（v2）](https://civitai.com/models/187938?modelVersionId=216231)<br>`studio_ghibli_xl_v2.safetensors` | 0.8 | Studio Ghibli | DPM++ 2M Karras，30 步，CFG 6 |
-| 水彩绘本 | [AlbedoBase XL（v3.1 Large）](https://civitai.com/models/140737?modelVersionId=1041855)<br>`albedobaseXL_v31Large.safetensors` | [Picture-Story Book For Children XL 儿童绘本](https://civitai.com/models/119288?modelVersionId=129548)<br>`picbookXLloraV1.safetensors` | 0.8 | watercolor, picture book, paper texture | DPM++ 2M Karras，30 步，CFG 6，Clip skip 2 |
-| 美式漫画 | [AlbedoBase XL（v3.1 Large）](https://civitai.com/models/140737?modelVersionId=1041855)<br>`albedobaseXL_v31Large.safetensors` | [Comic style SDXL - Jhyd（BF16 精简版）](https://civitai.com/models/134144?modelVersionId=147719)<br>`jhyd-step00001000.smaller.safetensors` | 0.8 | jhyd style, comic book, bold ink outlines, high saturation | DPM++ 2M Karras，30 步，CFG 6 |
-| 国风 2.5D | [国风4 GuoFeng4 XL（v1.2 fp16）](https://civitai.com/models/118009?modelVersionId=199325)<br>`GuoFeng4.2Fp16.safetensors` | 不需要 | — | — | DPM++ 2M SDE Karras，30 步，CFG 8，Clip skip 2 |
-| 韩系网漫 | [Animagine XL 4.0（v4 Opt）](https://civitai.com/models/1188071?modelVersionId=1408658)<br>`animagine-xl-4.0-opt.safetensors` | [Manhwa Artstyle / Webtoon（SDXL v1.0）](https://civitai.com/models/257995?modelVersionId=290917)<br>`manhwa-artstyle-000018.safetensors` | 0.6 | manhwa-artstyle | DPM++ 2M Karras，28 步，CFG 7 |
-| 黑白漫画 | [Animagine XL 4.0（v4 Opt）](https://civitai.com/models/1188071?modelVersionId=1408658)<br>`animagine-xl-4.0-opt.safetensors` | [LineAniRedmond 线稿漫画（v2.0 SDXL）](https://civitai.com/models/127018?modelVersionId=177544)<br>`LineAniRedmondV2-Lineart-LineAniAF.safetensors` | 0.8 | lineart, LineAniAF, monochrome, greyscale, manga, screentone | Euler a，28 步，CFG 5 |
+| 风格 | Checkpoint（底模） | 风格 LoRA | 权重 | 触发词（自动加） | 推荐参数 | 许可 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 3D 漫剧 | [ProtoVision XL（v6.6.0 BakedVAE）](https://civitai.com/models/125703?modelVersionId=265938)<br>`ProtoVisionXL_0.6.6.0.fp16.safetensors` | [Samaritan 3D Cartoon SDXL](https://civitai.com/models/121932?modelVersionId=132727)<br>`samaritan_3d_cartoon_sdxl.safetensors` | 0.8 | 3d cartoon | DPM++ 2M Karras，30 步，CFG 6 | ⚠️ 注意许可 |
+| 日漫赛璐璐 | [Animagine XL 4.0（v4 Opt）](https://civitai.com/models/1188071?modelVersionId=1408658)<br>`animagine-xl-4.0-opt.safetensors` | 不需要 | — | masterpiece, high score, great score, absurdres | Euler a，28 步，CFG 5 | ⚠️ 注意许可 |
+| 吉卜力手绘 | [AlbedoBase XL（v3.1 Large）](https://civitai.com/models/140737?modelVersionId=1041855)<br>`albedobaseXL_v31Large.safetensors` | [Studio Ghibli （Art Style Capture） LoRA XL（v2）](https://civitai.com/models/187938?modelVersionId=216231)<br>`studio_ghibli_xl_v2.safetensors` | 0.8 | Studio Ghibli | DPM++ 2M Karras，30 步，CFG 6 | ⚠️ 注意许可 |
+| 水彩绘本 | [AlbedoBase XL（v3.1 Large）](https://civitai.com/models/140737?modelVersionId=1041855)<br>`albedobaseXL_v31Large.safetensors` | [Picture-Story Book For Children XL 儿童绘本](https://civitai.com/models/119288?modelVersionId=129548)<br>`picbookXLloraV1.safetensors` | 0.8 | watercolor, picture book, paper texture | DPM++ 2M Karras，30 步，CFG 6，Clip skip 2 | ⚠️ 注意许可 |
+| 美式漫画 | [AlbedoBase XL（v3.1 Large）](https://civitai.com/models/140737?modelVersionId=1041855)<br>`albedobaseXL_v31Large.safetensors` | [Comic style SDXL - Jhyd（BF16 精简版）](https://civitai.com/models/134144?modelVersionId=147719)<br>`jhyd-step00001000.smaller.safetensors` | 0.8 | jhyd style, comic book, bold ink outlines, high saturation | DPM++ 2M Karras，30 步，CFG 6 | ⚠️ 注意许可 |
+| 国风 2.5D | [国风4 GuoFeng4 XL（v1.2 fp16）](https://civitai.com/models/118009?modelVersionId=199325)<br>`GuoFeng4.2Fp16.safetensors` | 不需要 | — | — | DPM++ 2M SDE Karras，30 步，CFG 8，Clip skip 2 | ⚠️ 注意许可 |
+| 韩系网漫 | [Animagine XL 4.0（v4 Opt）](https://civitai.com/models/1188071?modelVersionId=1408658)<br>`animagine-xl-4.0-opt.safetensors` | [Manhwa Artstyle / Webtoon（SDXL v1.0）](https://civitai.com/models/257995?modelVersionId=290917)<br>`manhwa-artstyle-000018.safetensors` | 0.6 | manhwa-artstyle | DPM++ 2M Karras，28 步，CFG 7 | ⚠️ 注意许可 |
+| 黑白漫画 | [Animagine XL 4.0（v4 Opt）](https://civitai.com/models/1188071?modelVersionId=1408658)<br>`animagine-xl-4.0-opt.safetensors` | [LineAniRedmond 线稿漫画（v2.0 SDXL）](https://civitai.com/models/127018?modelVersionId=177544)<br>`LineAniRedmondV2-Lineart-LineAniAF.safetensors` | 0.8 | lineart, LineAniAF, monochrome, greyscale, manga, screentone | Euler a，28 步，CFG 5 | ⚠️ 注意许可 |
+
+**许可**（以「用生成的图 / 视频做商业短剧」为准；✅ 可商用无需授权，⚠️ 可以用但有条件或来源不清，⛔ 非商用或需作者授权）：
+
+| 模型 | 许可 | 等级 | 说明 |
+| --- | --- | --- | --- |
+| [ProtoVision XL（v6.6.0 BakedVAE）](https://civitai.com/models/125703?modelVersionId=265938) | — | ⚠️ 注意许可 | — |
+| [Samaritan 3D Cartoon SDXL](https://civitai.com/models/121932?modelVersionId=132727) | — | ⚠️ 注意许可 | — |
+| [Animagine XL 4.0（v4 Opt）](https://civitai.com/models/1188071?modelVersionId=1408658) | — | ⚠️ 注意许可 | — |
+| [AlbedoBase XL（v3.1 Large）](https://civitai.com/models/140737?modelVersionId=1041855) | — | ⚠️ 注意许可 | — |
+| [Studio Ghibli （Art Style Capture） LoRA XL（v2）](https://civitai.com/models/187938?modelVersionId=216231) | — | ⚠️ 注意许可 | — |
+| [Picture-Story Book For Children XL 儿童绘本](https://civitai.com/models/119288?modelVersionId=129548) | — | ⚠️ 注意许可 | — |
+| [Comic style SDXL - Jhyd（BF16 精简版）](https://civitai.com/models/134144?modelVersionId=147719) | — | ⚠️ 注意许可 | — |
+| [国风4 GuoFeng4 XL（v1.2 fp16）](https://civitai.com/models/118009?modelVersionId=199325) | — | ⚠️ 注意许可 | — |
+| [Manhwa Artstyle / Webtoon（SDXL v1.0）](https://civitai.com/models/257995?modelVersionId=290917) | — | ⚠️ 注意许可 | — |
+| [LineAniRedmond 线稿漫画（v2.0 SDXL）](https://civitai.com/models/127018?modelVersionId=177544) | — | ⚠️ 注意许可 | — |
+
 
 **接口调用**（UU889-Drama 实际发送的请求，以「韩系网漫」为例）：
 
@@ -120,29 +136,32 @@ curl.exe -L -C - -o "$env:SD_DIR\models\Lora\LineAniRedmondV2-Lineart-LineAniAF.
 ComfyUI：Checkpoint 放 `models/checkpoints/`，LoRA 放 `models/loras/`。
 Fooocus-API：Checkpoint 放 `repositories/Fooocus/models/checkpoints/`，LoRA 放 `repositories/Fooocus/models/loras/`（单独安装的 Fooocus 是 `models/checkpoints` 与 `models/loras`）。
 
-| 风格 | Checkpoint（底模） | 风格 LoRA | 权重 | 触发词（自动加） | 推荐参数 / Fooocus 风格 |
-| --- | --- | --- | --- | --- | --- |
-| 3D 漫剧 | [Juggernaut XL v9](https://huggingface.co/RunDiffusion/Juggernaut-XL-v9)<br>`Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors` | [3D Render Style XL](https://huggingface.co/goofyai/3d_render_style_xl)<br>`3d_render_style_xl.safetensors` | 0.8 | 3d style, 3d render | DPM++ 2M Karras，30 步，CFG 5，风格 Fooocus V2 + SAI 3D Model |
-| 日漫赛璐璐 | [Animagine XL 4.0 Opt](https://huggingface.co/cagliostrolab/animagine-xl-4.0)<br>`animagine-xl-4.0-opt.safetensors` | 不需要 | — | masterpiece, high score, great score, absurdres | Euler a，28 步，CFG 5，风格 Fooocus V2 + SAI Anime |
-| 吉卜力手绘 | [Stable Diffusion XL Base 1.0](https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0)<br>`sd_xl_base_1.0.safetensors` | [Studio Ghibli Style（KappaNeuro）](https://huggingface.co/KappaNeuro/studio-ghibli-style)<br>`studio_ghibli_style_sdxl.safetensors` | 0.9 | Studio Ghibli Style | DPM++ 2M Karras，30 步，CFG 6，风格 Fooocus V2 |
-| 水彩绘本 | [Stable Diffusion XL Base 1.0](https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0)<br>`sd_xl_base_1.0.safetensors` | [Watercolor Style LoRA SDXL（ostris）](https://huggingface.co/ostris/watercolor_style_lora_sdxl)<br>`watercolor_v1_sdxl.safetensors` | 1 | watercolor, picture book illustration | DPM++ 2M Karras，30 步，CFG 6，风格 Fooocus V2 + Artstyle Watercolor |
-| 美式漫画 | [Stable Diffusion XL Base 1.0](https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0)<br>`sd_xl_base_1.0.safetensors` | [Graphic Novel Illustration](https://huggingface.co/blink7630/graphic-novel-illustration)<br>`Graphic_Novel_Illustration-000007.safetensors` | 0.9 | graphic novel illustration, comic book | DPM++ 2M Karras，30 步，CFG 6，风格 Fooocus V2 + SAI Comic Book |
-| 国风 2.5D | [国风4 GuoFeng4.1 2.5D XL](https://huggingface.co/xiaolxl/GuoFeng4_XL)<br>`GuoFeng4.1_2.5D.safetensors` | 不需要 | — | — | DPM++ 2M SDE Karras，30 步，CFG 8，风格 Fooocus V2 |
-| 韩系网漫 | [Animagine XL 4.0 Opt](https://huggingface.co/cagliostrolab/animagine-xl-4.0)<br>`animagine-xl-4.0-opt.safetensors` | [Manhwa Artstyle Webtoon LoRA](https://huggingface.co/Muapi/manhwa-artstyle-webtoon-lora)<br>`manhwa-artstyle-webtoon-lora.safetensors` | 0.7 | manhwa-artstyle, korean webtoon | Euler a，28 步，CFG 6，风格 Fooocus V2 + SAI Anime |
-| 黑白漫画 | [Animagine XL 4.0 Opt](https://huggingface.co/cagliostrolab/animagine-xl-4.0)<br>`animagine-xl-4.0-opt.safetensors` | [Manga Ink Screentone](https://huggingface.co/strkyyy/manga-ink-screentone)<br>`manga-ink-screentone.safetensors` | 0.85 | m4ng41nk, monochrome, greyscale, manga, screentone | Euler a，28 步，CFG 5，风格 Fooocus V2 + MRE Manga |
+| 风格 | Checkpoint（底模） | 风格 LoRA | 权重 | 触发词（自动加） | 推荐参数 / Fooocus 风格 | 许可 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 3D 漫剧 | [Juggernaut XL v9](https://huggingface.co/RunDiffusion/Juggernaut-XL-v9)<br>`Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors` | [3D Render Style XL](https://huggingface.co/goofyai/3d_render_style_xl)<br>`3d_render_style_xl.safetensors` | 0.8 | 3d style, 3d render | DPM++ 2M Karras，30 步，CFG 5，风格 Fooocus V2 + SAI 3D Model | ⚠️ 注意许可 |
+| 日漫赛璐璐 | [Animagine XL 4.0 Opt](https://huggingface.co/cagliostrolab/animagine-xl-4.0)<br>`animagine-xl-4.0-opt.safetensors` | 不需要 | — | masterpiece, high score, great score, absurdres | Euler a，28 步，CFG 5，风格 Fooocus V2 + SAI Anime | ⚠️ 注意许可 |
+| 吉卜力手绘 | [Stable Diffusion XL Base 1.0](https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0)<br>`sd_xl_base_1.0.safetensors` | [Studio Ghibli Style（KappaNeuro）](https://huggingface.co/KappaNeuro/studio-ghibli-style)<br>`studio_ghibli_style_sdxl.safetensors` | 0.9 | Studio Ghibli Style | DPM++ 2M Karras，30 步，CFG 6，风格 Fooocus V2 | ⚠️ 注意许可 |
+| 水彩绘本 | [Stable Diffusion XL Base 1.0](https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0)<br>`sd_xl_base_1.0.safetensors` | [Watercolor Style LoRA SDXL（ostris）](https://huggingface.co/ostris/watercolor_style_lora_sdxl)<br>`watercolor_v1_sdxl.safetensors` | 1 | watercolor, picture book illustration | DPM++ 2M Karras，30 步，CFG 6，风格 Fooocus V2 + Artstyle Watercolor | ⚠️ 注意许可 |
+| 美式漫画 | [Stable Diffusion XL Base 1.0](https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0)<br>`sd_xl_base_1.0.safetensors` | [Graphic Novel Illustration](https://huggingface.co/blink7630/graphic-novel-illustration)<br>`Graphic_Novel_Illustration-000007.safetensors` | 0.9 | graphic novel illustration, comic book | DPM++ 2M Karras，30 步，CFG 6，风格 Fooocus V2 + SAI Comic Book | ⚠️ 注意许可 |
+| 国风 2.5D | [国风4 GuoFeng4.1 2.5D XL](https://huggingface.co/xiaolxl/GuoFeng4_XL)<br>`GuoFeng4.1_2.5D.safetensors` | 不需要 | — | — | DPM++ 2M SDE Karras，30 步，CFG 8，风格 Fooocus V2 | ⚠️ 注意许可 |
+| 韩系网漫 | [Animagine XL 4.0 Opt](https://huggingface.co/cagliostrolab/animagine-xl-4.0)<br>`animagine-xl-4.0-opt.safetensors` | [Manhwa Artstyle Webtoon LoRA](https://huggingface.co/Muapi/manhwa-artstyle-webtoon-lora)<br>`manhwa-artstyle-webtoon-lora.safetensors` | 0.7 | manhwa-artstyle, korean webtoon | Euler a，28 步，CFG 6，风格 Fooocus V2 + SAI Anime | ⚠️ 注意许可 |
+| 黑白漫画 | [Animagine XL 4.0 Opt](https://huggingface.co/cagliostrolab/animagine-xl-4.0)<br>`animagine-xl-4.0-opt.safetensors` | [Manga Ink Screentone](https://huggingface.co/strkyyy/manga-ink-screentone)<br>`manga-ink-screentone.safetensors` | 0.85 | m4ng41nk, monochrome, greyscale, manga, screentone | Euler a，28 步，CFG 5，风格 Fooocus V2 + MRE Manga | ⚠️ 注意许可 |
 
-**许可**：
+**许可**（以「用生成的图 / 视频做商业短剧」为准；✅ 可商用无需授权，⚠️ 可以用但有条件或来源不清，⛔ 非商用或需作者授权）：
 
-- Juggernaut XL v9：creativeml-openrail-m（作者声明：做付费 API 服务需 RunDiffusion 授权）
-- 3D Render Style XL：apache-2.0
-- Animagine XL 4.0 Opt：openrail++
-- Stable Diffusion XL Base 1.0：openrail++
-- Studio Ghibli Style（KappaNeuro）：other（作者未写明条款）
-- Watercolor Style LoRA SDXL（ostris）：apache-2.0
-- Graphic Novel Illustration：other（作者未写明条款）
-- 国风4 GuoFeng4.1 2.5D XL：cc-by-nc-sa-4.0（非商用）
-- Manhwa Artstyle Webtoon LoRA：openrail++
-- Manga Ink Screentone：openrail++
+| 模型 | 许可 | 等级 | 说明 |
+| --- | --- | --- | --- |
+| [Juggernaut XL v9](https://huggingface.co/RunDiffusion/Juggernaut-XL-v9) | creativeml-openrail-m（作者声明：做付费 API 服务需 RunDiffusion 授权） | ⚠️ 注意许可 | — |
+| [3D Render Style XL](https://huggingface.co/goofyai/3d_render_style_xl) | apache-2.0 | ⚠️ 注意许可 | — |
+| [Animagine XL 4.0 Opt](https://huggingface.co/cagliostrolab/animagine-xl-4.0) | openrail++ | ⚠️ 注意许可 | — |
+| [Stable Diffusion XL Base 1.0](https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0) | openrail++ | ⚠️ 注意许可 | — |
+| [Studio Ghibli Style（KappaNeuro）](https://huggingface.co/KappaNeuro/studio-ghibli-style) | other（作者未写明条款） | ⚠️ 注意许可 | — |
+| [Watercolor Style LoRA SDXL（ostris）](https://huggingface.co/ostris/watercolor_style_lora_sdxl) | apache-2.0 | ⚠️ 注意许可 | — |
+| [Graphic Novel Illustration](https://huggingface.co/blink7630/graphic-novel-illustration) | other（作者未写明条款） | ⚠️ 注意许可 | — |
+| [国风4 GuoFeng4.1 2.5D XL](https://huggingface.co/xiaolxl/GuoFeng4_XL) | cc-by-nc-sa-4.0（非商用） | ⚠️ 注意许可 | — |
+| [Manhwa Artstyle Webtoon LoRA](https://huggingface.co/Muapi/manhwa-artstyle-webtoon-lora) | openrail++ | ⚠️ 注意许可 | — |
+| [Manga Ink Screentone](https://huggingface.co/strkyyy/manga-ink-screentone) | openrail++ | ⚠️ 注意许可 | — |
+
 
 **ComfyUI 接口调用**：用内置 SDXL 模板（开启后固定用 SDXL 模板；自定义工作流也可以，风格 Checkpoint 会写进 `CheckpointLoaderSimple`），
 在 Checkpoint 后插入 `LoraLoader`，原来接 Checkpoint 的 MODEL / CLIP 连线改接 LoRA：
@@ -331,16 +350,28 @@ Wan 2.2 TI2V 5B 与 MiniMax H3 结构不同，不能挂这些 LoRA，选这些�
 
 模板选择：风格覆盖里填的模板 > 配置里选的模板 > 「模型」指向的模板 > 下表推荐模板。
 
-| 风格 | 推荐模板 | 风格 LoRA（挂低噪声模型） | 权重 | 触发词（自动加） | 说明 |
-| --- | --- | --- | --- | --- | --- |
-| 3D 漫剧 | `wan2.2-i2v-14b` | [Pixar 动画风（Remade-AI）](https://huggingface.co/Remade-AI/Pixar)<br>`pixar_10_epochs.safetensors` | 0.8 | p1x4r_5ty13 Pixar animation style | 作者推荐权重 1.0（Wan 2.1 上）；挂在 2.2 低噪声模型上 0.8 起调，触发词放在提示词最前 |
-| 日漫赛璐璐 | `wan2.2-i2v-14b` | [Flat Color 赛璐璐平涂 v2（motimalu）](https://huggingface.co/motimalu/wan-flat-color-v2)<br>`wan_flat_color_v2.safetensors` | 0.8 | flat color, no lineart | 平涂动画质感；想要新海诚式背景可换 Cseti/wan-14b-shinkai-anime-style-lora-v1（触发词 sh1nka1 style） |
-| 吉卜力手绘 | `wan2.2-i2v-14b` | [Studio Ghibli Wan2.1（Muapi）](https://huggingface.co/Muapi/studio-ghibli-wan2.1-t2v-14b)<br>`studio-ghibli-wan2.1-t2v-14b.safetensors` | 0.8 | Studio Ghibli style |  |
-| 水彩绘本 | `wan2.2-i2v-14b` | 无合适 LoRA | — | — | Hugging Face 上没有合适的水彩绘本 Wan LoRA |
-| 美式漫画 | `wan2.2-i2v-14b` | [Comic Book Wan2.1（Muapi）](https://huggingface.co/Muapi/comicbook-wan2.1-t2v-14b)<br>`comicbook-wan2.1-t2v-14b.safetensors` | 0.8 | comic style |  |
-| 国风 2.5D | `wan2.2-i2v-14b` | 无合适 LoRA | — | — | 没有国风 2.5D 动画的 Wan LoRA |
-| 韩系网漫 | `wan2.2-i2v-14b` | 无合适 LoRA | — | — | 没有韩漫 / 网漫的 Wan LoRA |
-| 黑白漫画 | `wan2.2-i2v-14b` | 无合适 LoRA | — | — | 没有黑白漫画线稿的 Wan LoRA |
+| 风格 | 推荐模板 | 风格 LoRA（挂低噪声模型） | 权重 | 触发词（自动加） | 说明 | 许可 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 3D 漫剧 | `wan2.2-i2v-14b` | [Pixar 动画风（Remade-AI）](https://huggingface.co/Remade-AI/Pixar)<br>`pixar_10_epochs.safetensors` | 0.8 | p1x4r_5ty13 Pixar animation style | 作者推荐权重 1.0（Wan 2.1 上）；挂在 2.2 低噪声模型上 0.8 起调，触发词放在提示词最前 | ⚠️ 注意许可 |
+| 日漫赛璐璐 | `wan2.2-i2v-14b` | [Flat Color 赛璐璐平涂 v2（motimalu）](https://huggingface.co/motimalu/wan-flat-color-v2)<br>`wan_flat_color_v2.safetensors` | 0.8 | flat color, no lineart | 平涂动画质感；想要新海诚式背景可换 Cseti/wan-14b-shinkai-anime-style-lora-v1（触发词 sh1nka1 style） | ⚠️ 注意许可 |
+| 吉卜力手绘 | `wan2.2-i2v-14b` | [Studio Ghibli Wan2.1（Muapi）](https://huggingface.co/Muapi/studio-ghibli-wan2.1-t2v-14b)<br>`studio-ghibli-wan2.1-t2v-14b.safetensors` | 0.8 | Studio Ghibli style |  | ⚠️ 注意许可 |
+| 水彩绘本 | `wan2.2-i2v-14b` | 无合适 LoRA | — | — | Hugging Face 上没有合适的水彩绘本 Wan LoRA | ✅ 可商用 |
+| 美式漫画 | `wan2.2-i2v-14b` | [Comic Book Wan2.1（Muapi）](https://huggingface.co/Muapi/comicbook-wan2.1-t2v-14b)<br>`comicbook-wan2.1-t2v-14b.safetensors` | 0.8 | comic style |  | ⚠️ 注意许可 |
+| 国风 2.5D | `wan2.2-i2v-14b` | 无合适 LoRA | — | — | 没有国风 2.5D 动画的 Wan LoRA | ✅ 可商用 |
+| 韩系网漫 | `wan2.2-i2v-14b` | 无合适 LoRA | — | — | 没有韩漫 / 网漫的 Wan LoRA | ✅ 可商用 |
+| 黑白漫画 | `wan2.2-i2v-14b` | 无合适 LoRA | — | — | 没有黑白漫画线稿的 Wan LoRA | ✅ 可商用 |
+
+Wan 2.2 / 2.1 基础模型（Comfy-Org 重打包）为 apache-2.0，✅ 可商用。
+
+**许可**（以「用生成的图 / 视频做商业短剧」为准；✅ 可商用无需授权，⚠️ 可以用但有条件或来源不清，⛔ 非商用或需作者授权）：
+
+| 模型 | 许可 | 等级 | 说明 |
+| --- | --- | --- | --- |
+| [Pixar 动画风（Remade-AI）](https://huggingface.co/Remade-AI/Pixar) | apache-2.0 | ⚠️ 注意许可 | — |
+| [Flat Color 赛璐璐平涂 v2（motimalu）](https://huggingface.co/motimalu/wan-flat-color-v2) | apache-2.0 | ⚠️ 注意许可 | — |
+| [Studio Ghibli Wan2.1（Muapi）](https://huggingface.co/Muapi/studio-ghibli-wan2.1-t2v-14b) | openrail++（Civitai 转载，原作者未注明） | ⚠️ 注意许可 | — |
+| [Comic Book Wan2.1（Muapi）](https://huggingface.co/Muapi/comicbook-wan2.1-t2v-14b) | openrail++（Civitai 转载，原作者未注明） | ⚠️ 注意许可 | — |
+
 
 **Wan 2.2 I2V 14B（图生视频，高质量）** 需要的基础模型（所有风格共用）：
 

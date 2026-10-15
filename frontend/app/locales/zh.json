@@ -542,7 +542,20 @@
         "downloadAll": "一次下载全部风格",
         "downloadHint": "命令用 curl -o 指定文件名，保证与上表一致；Civitai 需要登录的模型先设置 CIVITAI_TOKEN（civitai.com → Account settings → API Keys）；国内下载 Hugging Face 可设 HF_ENDPOINT=https://hf-mirror.com。下载后在服务里刷新模型列表（ComfyUI 按 R / SD WebUI 点刷新 / Fooocus 重启）。",
         "copy": "复制",
-        "copied": "已复制下载命令"
+        "copied": "已复制下载命令",
+        "alternatives": "可选替代",
+        "licenseTitle": "许可说明（以「用生成的图 / 视频做商业短剧」为准）",
+        "licenseOk": "允许商用，无需额外授权",
+        "licenseAttention": "可以用，但有附加条件或来源不清（如不得做付费生成服务、需署名、转载未注明原作者），商用前请看说明",
+        "licenseRestricted": "非商用，或商用需联系作者授权；默认推荐不使用，只作为可选替代列出",
+        "licenseFlagged": "以下风格的默认推荐需要注意许可：{styles}",
+        "licenseAllOk": "所有风格的默认推荐都允许商用",
+        "licenseDisclaimer": "许可信息按 2026-10 模型页面核对，作者可能修改，商用前请以模型页为准；不构成法律意见。",
+        "lic": {
+          "ok": "可商用",
+          "attention": "注意许可",
+          "restricted": "需授权 / 非商用"
+        }
       }
     },
     "styleDialog": {

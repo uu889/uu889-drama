@@ -203,3 +203,22 @@ test('download scripts: Civitai token, HF mirror, folders per provider', () => {
   ])
   assert.equal(dedup.bash.split('\n').filter((l) => l.startsWith('curl')).length, 1)
 })
+
+test('license: every recommended file is classified, defaults are never restricted, non-ok files explain why', { todo: '许可数据核对中，填好后去掉 todo' }, () => {
+  for (const kind of ['sdwebui', 'hf_image', 'comfyui_video'] as const) {
+    for (const style of STYLE_KEYS) {
+      const p: any = (STYLE_MODEL_CATALOG[kind] as any)[style]
+      for (const f of [p.checkpoint, p.lora].filter(Boolean)) {
+        assert.ok(f.licenseStatus, `${kind}.${style} ${f.file} has no licenseStatus`)
+        assert.notEqual(f.licenseStatus, 'restricted', `${kind}.${style} default ${f.file} is restricted`)
+        if (f.licenseStatus !== 'ok') assert.ok(f.licenseNote, `${kind}.${style} ${f.file} needs licenseNote`)
+      }
+      for (const a of p.alternatives || []) {
+        assert.ok(a.licenseStatus, `${kind}.${style} alternative ${a.file}`)
+        if (a.licenseStatus !== 'ok') assert.ok(a.licenseNote, `${kind}.${style} alternative ${a.file} needs licenseNote`)
+      }
+    }
+  }
+  const d = describeStyleModelCatalog('fooocus', 'image')!
+  for (const s of d.styles as any[]) assert.ok(['ok', 'attention', 'restricted'].includes(s.license_status))
+})

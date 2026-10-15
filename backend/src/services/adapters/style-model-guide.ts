@@ -7,7 +7,7 @@
  * - Hugging Face：环境变量 HF_ENDPOINT 可切到镜像（如 https://hf-mirror.com），HF_TOKEN 用于需要同意协议的仓库
  */
 import { getComfyTemplate } from './comfyui-templates'
-import { MODEL_FOLDERS, STYLE_MODEL_CATALOG, type CatalogFile, type CatalogKind, type StyleImagePreset, type StyleVideoPreset } from './style-model-catalog'
+import { LICENSE_LABELS, MODEL_FOLDERS, STYLE_MODEL_CATALOG, WAN_BASE_LICENSE, worstLicense, type CatalogFile, type CatalogKind, type LicenseStatus, type StyleImagePreset, type StyleVideoPreset } from './style-model-catalog'
 import { STYLE_KEYS, catalogKindFor, type StyleKey } from './style-models'
 
 export const STYLE_LABELS: Record<StyleKey, string> = {
@@ -100,7 +100,8 @@ function fileView(f: CatalogFile | null | undefined) {
   if (!f) return null
   return {
     name: f.name, file: f.file, source: f.source, page: f.page, url: f.url, size: f.size, base_model: f.baseModel,
-    license: f.license, trigger: f.trigger, weight: f.weight, apply_to: f.applyTo, login_required: !!f.loginRequired, note: f.note,
+    license: f.license, license_status: (f.licenseStatus || 'attention') as LicenseStatus, license_label: LICENSE_LABELS[f.licenseStatus || 'attention'],
+    license_note: f.licenseNote, trigger: f.trigger, weight: f.weight, apply_to: f.applyTo, login_required: !!f.loginRequired, note: f.note,
   }
 }
 
@@ -128,7 +129,10 @@ export function describeStyleModelCatalog(provider: string, serviceType: 'image'
         available: true,
         template: v.template,
         template_label: tpl?.label,
+        template_license: WAN_BASE_LICENSE.license,
         lora: fileView(v.lora),
+        license_status: worstLicense([v.lora]),
+        alternatives: (v.alternatives || []).map(fileView),
         note: v.note,
         downloads: items,
         scripts: buildDownloadScripts(p, items),
@@ -143,6 +147,8 @@ export function describeStyleModelCatalog(provider: string, serviceType: 'image'
       available: true,
       checkpoint: fileView(img.checkpoint),
       lora: fileView(img.lora),
+      license_status: worstLicense([img.checkpoint, img.lora]),
+      alternatives: (img.alternatives || []).map(fileView),
       params: img.params || {},
       note: img.note,
       downloads: items,
@@ -150,7 +156,11 @@ export function describeStyleModelCatalog(provider: string, serviceType: 'image'
     }
   })
   const all = styles.flatMap((s) => s.downloads)
+  const flagged = styles.filter((s) => (s as any).license_status && (s as any).license_status !== 'ok').map((s) => s.style)
   return {
+    license_labels: LICENSE_LABELS,
+    /** 默认推荐里需要注意许可的风格（ok 以外） */
+    license_flagged: flagged,
     provider,
     service_type: serviceType,
     catalog: kind as CatalogKind,
