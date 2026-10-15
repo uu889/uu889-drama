@@ -101,19 +101,21 @@ Content-Type: application/json
 ```bash
 # 安装目录（按实际路径修改）
 export SD_DIR=~/stable-diffusion-webui
-# Civitai API Key（civitai.com → 头像 → Account settings → API Keys）；需要登录的模型必须填
+# Civitai API Key（civitai.com → 头像 → Account settings → API Keys）：Civitai 现在下载任何模型都要 Key
 export CIVITAI_TOKEN=
+# 国内网络可改用镜像：export HF_ENDPOINT=https://hf-mirror.com
+export HF_ENDPOINT=${HF_ENDPOINT:-https://huggingface.co}
 mkdir -p "$SD_DIR/models/Stable-diffusion" "$SD_DIR/models/Lora"
-curl -L -C - -o "$SD_DIR/models/Stable-diffusion/ProtoVisionXL_0.6.6.0.fp16.safetensors" "https://civitai.com/api/download/models/265938${CIVITAI_TOKEN:+?token=$CIVITAI_TOKEN}"
-curl -L -C - -o "$SD_DIR/models/Lora/samaritan_3d_cartoon_sdxl.safetensors" "https://civitai.com/api/download/models/132727${CIVITAI_TOKEN:+?token=$CIVITAI_TOKEN}"
-curl -L -C - -o "$SD_DIR/models/Stable-diffusion/animagine-xl-4.0-opt.safetensors" "https://civitai.com/api/download/models/1408658${CIVITAI_TOKEN:+?token=$CIVITAI_TOKEN}"
-curl -L -C - -o "$SD_DIR/models/Stable-diffusion/sd_xl_base_1.0_0.9vae.safetensors" "https://civitai.com/api/download/models/128078${CIVITAI_TOKEN:+?token=$CIVITAI_TOKEN}"
-curl -L -C - -o "$SD_DIR/models/Lora/studio_ghibli_xl_v2.safetensors" "https://civitai.com/api/download/models/216231${CIVITAI_TOKEN:+?token=$CIVITAI_TOKEN}"
-curl -L -C - -o "$SD_DIR/models/Lora/picbookXLloraV1.safetensors" "https://civitai.com/api/download/models/129548${CIVITAI_TOKEN:+?token=$CIVITAI_TOKEN}"
-curl -L -C - -o "$SD_DIR/models/Lora/Comic_realism.safetensors" "https://civitai.com/api/download/models/247021${CIVITAI_TOKEN:+?token=$CIVITAI_TOKEN}"
-curl -L -C - -o "$SD_DIR/models/Lora/Chinese_myth_animagineXLV31.safetensors" "https://civitai.com/api/download/models/584967${CIVITAI_TOKEN:+?token=$CIVITAI_TOKEN}"
-curl -L -C - -o "$SD_DIR/models/Lora/manhwa-artstyle-000018.safetensors" "https://civitai.com/api/download/models/290917${CIVITAI_TOKEN:+?token=$CIVITAI_TOKEN}"
-curl -L -C - -o "$SD_DIR/models/Lora/LineAniRedmondV2-Lineart-LineAniAF.safetensors" "https://civitai.com/api/download/models/177544${CIVITAI_TOKEN:+?token=$CIVITAI_TOKEN}"
+curl -L -C - -o "$SD_DIR/models/Stable-diffusion/ProtoVisionXL_0.6.6.0.fp16.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/JoshuaChak/SD-WebUI-Safetensors/resolve/main/protovisionXLHighFidelity3D_releaseV660Bakedvae.safetensors"
+curl -L -C - -o "$SD_DIR/models/Lora/samaritan_3d_cartoon_sdxl.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/openartai/model_hub_loras/resolve/main/Samaritan%203d%20Cartoon%20SDXL.safetensors"
+curl -L -C - -o "$SD_DIR/models/Stable-diffusion/animagine-xl-4.0-opt.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/cagliostrolab/animagine-xl-4.0/resolve/main/animagine-xl-4.0-opt.safetensors"
+curl -L -C - -o "$SD_DIR/models/Stable-diffusion/sd_xl_base_1.0_0.9vae.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0_0.9vae.safetensors"
+curl -L -C - -H "Authorization: Bearer $CIVITAI_TOKEN" -o "$SD_DIR/models/Lora/studio_ghibli_xl_v2.safetensors" "https://civitai.com/api/download/models/216231"
+curl -L -C - -o "$SD_DIR/models/Lora/picbookXLloraV1.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/Muapi/picture-story-book-for-children-xl-xl/resolve/main/picture-story-book-for-children-xl-xl.safetensors"
+curl -L -C - -H "Authorization: Bearer $CIVITAI_TOKEN" -o "$SD_DIR/models/Lora/Comic_realism.safetensors" "https://civitai.com/api/download/models/247021"
+curl -L -C - -H "Authorization: Bearer $CIVITAI_TOKEN" -o "$SD_DIR/models/Lora/Chinese_myth_animagineXLV31.safetensors" "https://civitai.com/api/download/models/584967"
+curl -L -C - -o "$SD_DIR/models/Lora/manhwa-artstyle-000018.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/Muapi/manhwa-artstyle-webtoon-lora/resolve/main/manhwa-artstyle-webtoon-lora.safetensors"
+curl -L -C - -o "$SD_DIR/models/Lora/LineAniRedmondV2-Lineart-LineAniAF.safetensors" "${HF_ENDPOINT:-https://huggingface.co}/artificialguybr/LineAniRedmond-LinearMangaSDXL-V2/resolve/main/LineAniRedmondV2-Lineart-LineAniAF.safetensors"
 ```
 
 </details>
@@ -123,21 +125,22 @@ curl -L -C - -o "$SD_DIR/models/Lora/LineAniRedmondV2-Lineart-LineAniAF.safetens
 ```powershell
 # 安装目录（按实际路径修改）
 $env:SD_DIR = "D:\stable-diffusion-webui"
-# Civitai API Key；需要登录的模型必须填
+# Civitai API Key：Civitai 现在下载任何模型都要 Key
 $env:CIVITAI_TOKEN = ""
-$tk = if ($env:CIVITAI_TOKEN) { "?token=$env:CIVITAI_TOKEN" } else { "" }
+# 国内网络可改用镜像："https://hf-mirror.com"
+$hf = if ($env:HF_ENDPOINT) { $env:HF_ENDPOINT } else { "https://huggingface.co" }
 New-Item -ItemType Directory -Force -Path "$env:SD_DIR\models\Stable-diffusion" | Out-Null
 New-Item -ItemType Directory -Force -Path "$env:SD_DIR\models\Lora" | Out-Null
-curl.exe -L -C - -o "$env:SD_DIR\models\Stable-diffusion\ProtoVisionXL_0.6.6.0.fp16.safetensors" "https://civitai.com/api/download/models/265938$tk"
-curl.exe -L -C - -o "$env:SD_DIR\models\Lora\samaritan_3d_cartoon_sdxl.safetensors" "https://civitai.com/api/download/models/132727$tk"
-curl.exe -L -C - -o "$env:SD_DIR\models\Stable-diffusion\animagine-xl-4.0-opt.safetensors" "https://civitai.com/api/download/models/1408658$tk"
-curl.exe -L -C - -o "$env:SD_DIR\models\Stable-diffusion\sd_xl_base_1.0_0.9vae.safetensors" "https://civitai.com/api/download/models/128078$tk"
-curl.exe -L -C - -o "$env:SD_DIR\models\Lora\studio_ghibli_xl_v2.safetensors" "https://civitai.com/api/download/models/216231$tk"
-curl.exe -L -C - -o "$env:SD_DIR\models\Lora\picbookXLloraV1.safetensors" "https://civitai.com/api/download/models/129548$tk"
-curl.exe -L -C - -o "$env:SD_DIR\models\Lora\Comic_realism.safetensors" "https://civitai.com/api/download/models/247021$tk"
-curl.exe -L -C - -o "$env:SD_DIR\models\Lora\Chinese_myth_animagineXLV31.safetensors" "https://civitai.com/api/download/models/584967$tk"
-curl.exe -L -C - -o "$env:SD_DIR\models\Lora\manhwa-artstyle-000018.safetensors" "https://civitai.com/api/download/models/290917$tk"
-curl.exe -L -C - -o "$env:SD_DIR\models\Lora\LineAniRedmondV2-Lineart-LineAniAF.safetensors" "https://civitai.com/api/download/models/177544$tk"
+curl.exe -L -C - -o "$env:SD_DIR\models\Stable-diffusion\ProtoVisionXL_0.6.6.0.fp16.safetensors" "$hf/JoshuaChak/SD-WebUI-Safetensors/resolve/main/protovisionXLHighFidelity3D_releaseV660Bakedvae.safetensors"
+curl.exe -L -C - -o "$env:SD_DIR\models\Lora\samaritan_3d_cartoon_sdxl.safetensors" "$hf/openartai/model_hub_loras/resolve/main/Samaritan%203d%20Cartoon%20SDXL.safetensors"
+curl.exe -L -C - -o "$env:SD_DIR\models\Stable-diffusion\animagine-xl-4.0-opt.safetensors" "$hf/cagliostrolab/animagine-xl-4.0/resolve/main/animagine-xl-4.0-opt.safetensors"
+curl.exe -L -C - -o "$env:SD_DIR\models\Stable-diffusion\sd_xl_base_1.0_0.9vae.safetensors" "$hf/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0_0.9vae.safetensors"
+curl.exe -L -C - -H "Authorization: Bearer $env:CIVITAI_TOKEN" -o "$env:SD_DIR\models\Lora\studio_ghibli_xl_v2.safetensors" "https://civitai.com/api/download/models/216231"
+curl.exe -L -C - -o "$env:SD_DIR\models\Lora\picbookXLloraV1.safetensors" "$hf/Muapi/picture-story-book-for-children-xl-xl/resolve/main/picture-story-book-for-children-xl-xl.safetensors"
+curl.exe -L -C - -H "Authorization: Bearer $env:CIVITAI_TOKEN" -o "$env:SD_DIR\models\Lora\Comic_realism.safetensors" "https://civitai.com/api/download/models/247021"
+curl.exe -L -C - -H "Authorization: Bearer $env:CIVITAI_TOKEN" -o "$env:SD_DIR\models\Lora\Chinese_myth_animagineXLV31.safetensors" "https://civitai.com/api/download/models/584967"
+curl.exe -L -C - -o "$env:SD_DIR\models\Lora\manhwa-artstyle-000018.safetensors" "$hf/Muapi/manhwa-artstyle-webtoon-lora/resolve/main/manhwa-artstyle-webtoon-lora.safetensors"
+curl.exe -L -C - -o "$env:SD_DIR\models\Lora\LineAniRedmondV2-Lineart-LineAniAF.safetensors" "$hf/artificialguybr/LineAniRedmond-LinearMangaSDXL-V2/resolve/main/LineAniRedmondV2-Lineart-LineAniAF.safetensors"
 ```
 
 </details>
@@ -473,3 +476,28 @@ curl.exe -L -C - -o "$env:COMFY_DIR\models\loras\wan_flat_color_v2.safetensors" 
 ```
 
 </details>
+
+## 四、一键 / 自动下载（本机与远程）
+
+不想手动敲命令时，在 **设置 → AI 服务 → 编辑 ComfyUI / SD WebUI / Fooocus 配置 → 一键下载模型** 里完成：
+
+1. **工作方式**：
+   - **本机**：运行 UU889-Drama 的这台电脑（Windows / macOS / Linux）。下载由 UU889-Drama 后台完成，关掉设置窗口 / 浏览器页面也会继续；程序重启后自动接着下。
+   - **远程（SSH）**：填主机、端口、用户名和密码或私钥。支持 Windows（需安装「OpenSSH 服务器」，Windows 10 1803+ 自带 curl.exe）、macOS（「系统设置 → 通用 → 共享 → 远程登录」）、Linux（openssh-server）。UU889-Drama 把下载脚本放到远程机器后台运行（macOS / Linux 用 nohup + curl，Windows 用 WMI 启动 PowerShell + curl.exe），**关掉 UU889-Drama、断网也会在远程继续下完**，再打开时自动接上进度。
+2. **安装根目录**：点「自动识别」——先问正在运行的服务（ComfyUI `/internal/folder_paths`、SD WebUI `/sdapi/v1/cmd-flags`），再在常见位置按特征文件扫描（ComfyUI 的 main.py + comfy/、ComfyUI Desktop 的 models + custom_nodes + user、SD WebUI / Forge 的 webui.py + modules/、Fooocus-API 的 fooocusapi/、Fooocus 的 entry_with_update.py）；找不到就点「选择目录…」（桌面版本机用系统对话框，其余用目录浏览）。
+3. **风格**：默认选中项目正在用的视觉风格，也可以全选。点「检查缺少的模型」列出每个文件的目标位置、来源顺序和状态（已有 / 缺少 / 下了一半 / 文件不完整），并检查磁盘剩余空间。
+4. **下载**：只下缺少的文件，显示总进度条和每个文件的进度、速度、剩余时间、当前来源；可暂停 / 继续 / 取消。
+5. **生成时自动下载**（可选）：开启后，生成图片 / 视频前先检查当前项目风格需要的模型，缺了就自动下载（任务进度里显示「正在下载风格模型 xx%」），下完自动开始生成。
+
+**下载来源与顺序**（每个来源重试 3 次，失败换下一个；所有来源内容相同，换来源时接着已下载的部分续传）：
+
+1. Hugging Face 原站 `https://huggingface.co/<仓库>/resolve/main/<文件>`
+2. Hugging Face 镜像 `https://hf-mirror.com/<仓库>/resolve/main/<文件>`（勾选「优先使用国内镜像」时排在第 1）
+3. Civitai `https://civitai.com/api/download/models/<版本 ID>`（**Civitai 现在下载任何模型都需要 API Key**，用 `Authorization: Bearer` 发送，不会发给镜像）
+4. Civitai 镜像 CivArchive `https://civarchive.com/api/download/models/<版本 ID>`（跳转到它收录的同哈希镜像）
+
+Civitai 上的模型如果在 Hugging Face 有 **SHA256 完全相同** 的副本（如 Animagine XL 4.0、SDXL 官方底模、ProtoVision XL、LineAniRedmond、Manhwa Artstyle、儿童绘本 LoRA、Samaritan 3D），会先从 Hugging Face / hf-mirror 下载，不需要 Civitai Key。
+
+**校验**：先下载到 `<文件>.uu889part`，用 HTTP Range 断点续传（90 秒没数据自动重连），下完核对字节数和 SHA256，一致才改名为正式文件；不一致删除后换下一个来源。已存在且大小正确的文件直接跳过。下载完成后自动让 SD WebUI / Fooocus 刷新模型列表（ComfyUI 会自动重新扫描）。
+
+**安全**：远程登录信息和 Token 只保存在本机数据目录（配置表 + `model-downloads/jobs.json`），不会发给任何下载站。服务器部署时如不希望网页操作服务器本机文件，设环境变量 `MODEL_INSTALLER_LOCAL=0`（只保留远程模式）。

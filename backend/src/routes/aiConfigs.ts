@@ -10,6 +10,7 @@ import { autoBindComfyWorkflow } from '../services/adapters/comfyui-bind.js'
 import { describeComfyTemplates, modelOverrideFiles, resolveComfyTemplate, splitModelFiles, type ComfyTemplateKind } from '../services/adapters/comfyui-templates.js'
 import { explicitNumberSetting, localAuthHeaders, localUrl } from '../services/adapters/local-image.js'
 import { normalizeStyleOverrides } from '../services/adapters/style-models.js'
+import { normalizeModelInstall } from '../services/model-installer/index.js'
 import { describeStyleModelCatalog } from '../services/adapters/style-model-guide.js'
 import { redactUrl, logTaskError, logTaskProgress, logTaskSuccess } from '../utils/task-logger.js'
 
@@ -35,6 +36,8 @@ type SettingRule =
   | { kind: 'boolean'; default: boolean | null }
   /** 视觉风格 → 模型覆盖表（JSON 对象），按 normalizeStyleOverrides 校验 */
   | { kind: 'style_models' }
+  /** 模型安装位置（本机 / 远程 SSH + 根目录），按 normalizeModelInstall 校验 */
+  | { kind: 'model_install' }
 
 const IMAGE_PARAM_RULES: Record<string, SettingRule> = {
   image_base_size: { kind: 'number', min: 256, max: 2048, integer: true },
@@ -46,6 +49,11 @@ const IMAGE_PARAM_RULES: Record<string, SettingRule> = {
 const STYLE_MODEL_RULES: Record<string, SettingRule> = {
   style_models_enabled: { kind: 'boolean', default: false },
   style_models: { kind: 'style_models' },
+  style_models_auto_download: { kind: 'boolean', default: false },
+  download_prefer_mirror: { kind: 'boolean', default: false },
+  model_install: { kind: 'model_install' },
+  civitai_token: { kind: 'text', max: 200 },
+  hf_token: { kind: 'text', max: 200 },
 }
 
 const PROVIDER_SETTING_RULES: Record<string, Record<string, SettingRule>> = {
@@ -102,6 +110,8 @@ function pickProviderSettings(provider: string, body: any): Record<string, any> 
       out[key] = value === rule.default || value === null ? null : value
     } else if (rule.kind === 'style_models') {
       out[key] = normalizeStyleOverrides(raw)
+    } else if (rule.kind === 'model_install') {
+      out[key] = normalizeModelInstall(raw)
     } else if (rule.kind === 'text') {
       const text = String(raw ?? '').trim()
       out[key] = text ? text.slice(0, rule.max ?? 4000) : null

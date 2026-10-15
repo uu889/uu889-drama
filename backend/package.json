@@ -1,6 +1,6 @@
 {
   "name": "server",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "",
   "main": "src/index.ts",
   "scripts": {
@@ -29,6 +29,7 @@
     "hono": "^4.12.9",
     "pino": "^10.3.1",
     "sharp": "^0.34.5",
+    "ssh2": "^1.16.0",
     "uuid": "^13.0.0",
     "zod": "^4.3.6"
   },
@@ -36,6 +37,7 @@
     "@types/better-sqlite3": "^7.6.13",
     "@types/fluent-ffmpeg": "^2.1.28",
     "@types/node": "^25.5.0",
+    "@types/ssh2": "^1.15.6",
     "@types/uuid": "^10.0.0",
     "drizzle-kit": "^0.31.10",
     "mysql2": "^3.22.5",

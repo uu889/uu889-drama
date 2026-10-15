@@ -3,10 +3,12 @@
  *
  * 下载命令统一用 curl（Windows 10+ 自带 curl.exe），-o 指定文件名，保证与推荐清单里的文件名一致
  * （SD WebUI 的 <lora:名字:权重>、ComfyUI 的 lora_name、Fooocus 的 model_name 都按文件名引用）。
- * - Civitai：环境变量 CIVITAI_TOKEN 有值时自动带 ?token=（需要登录的模型必须带）
+ * - Civitai：用 Authorization: Bearer $CIVITAI_TOKEN（Civitai 现在下载任何模型都要 API Key）；
+ *   在 Hugging Face 有同哈希副本的 Civitai 文件直接从 HF 下载，不需要 Key
  * - Hugging Face：环境变量 HF_ENDPOINT 可切到镜像（如 https://hf-mirror.com），HF_TOKEN 用于需要同意协议的仓库
  */
 import { getComfyTemplate } from './comfyui-templates'
+import { sourcesFor } from '../model-installer/sources'
 import { LICENSE_LABELS, MODEL_FOLDERS, STYLE_MODEL_CATALOG, WAN_BASE_LICENSE, worstLicense, type CatalogFile, type CatalogKind, type LicenseStatus, type StyleImagePreset, type StyleVideoPreset } from './style-model-catalog'
 import { STYLE_KEYS, catalogKindFor, type StyleKey } from './style-models'
 
@@ -41,7 +43,7 @@ const HF_PREFIX = 'https://huggingface.co/'
 function bashLine(provider: ProviderKey, item: DownloadItem): string {
   const target = `"$${DIR_VAR[provider]}/${item.folder}/${item.file}"`
   if (item.source === 'civitai') {
-    return `curl -L -C - -o ${target} "${item.url}\${CIVITAI_TOKEN:+?token=$CIVITAI_TOKEN}"`
+    return `curl -L -C - -H "Authorization: Bearer $CIVITAI_TOKEN" -o ${target} "${item.url}"`
   }
   const url = item.url.startsWith(HF_PREFIX) ? `\${HF_ENDPOINT:-https://huggingface.co}/${item.url.slice(HF_PREFIX.length)}` : item.url
   const auth = item.login_required ? ' -H "Authorization: Bearer $HF_TOKEN"' : ''
@@ -50,7 +52,7 @@ function bashLine(provider: ProviderKey, item: DownloadItem): string {
 
 function psLine(provider: ProviderKey, item: DownloadItem): string {
   const target = `"$env:${DIR_VAR[provider]}\\${item.folder.replace(/\//g, '\\')}\\${item.file}"`
-  if (item.source === 'civitai') return `curl.exe -L -C - -o ${target} "${item.url}$tk"`
+  if (item.source === 'civitai') return `curl.exe -L -C - -H "Authorization: Bearer $env:CIVITAI_TOKEN" -o ${target} "${item.url}"`
   const url = item.url.startsWith(HF_PREFIX) ? `$hf/${item.url.slice(HF_PREFIX.length)}` : item.url
   const auth = item.login_required ? ' -H "Authorization: Bearer $env:HF_TOKEN"' : ''
   return `curl.exe -L -C -${auth} -o ${target} "${url}"`
@@ -75,7 +77,7 @@ export function buildDownloadScripts(provider: ProviderKey, items: DownloadItem[
   const bash = [
     `# 安装目录（按实际路径修改）`,
     `export ${dir}=${example}`,
-    ...(hasCivitai ? ['# Civitai API Key（civitai.com → 头像 → Account settings → API Keys）；需要登录的模型必须填', 'export CIVITAI_TOKEN='] : []),
+    ...(hasCivitai ? ['# Civitai API Key（civitai.com → 头像 → Account settings → API Keys）：Civitai 现在下载任何模型都要 Key', 'export CIVITAI_TOKEN='] : []),
     ...(hasHf ? ['# 国内网络可改用镜像：export HF_ENDPOINT=https://hf-mirror.com', 'export HF_ENDPOINT=${HF_ENDPOINT:-https://huggingface.co}'] : []),
     `mkdir -p ${folders.map((f) => `"$${dir}/${f}"`).join(' ')}`,
     ...list.map((i) => bashLine(provider, i)),
@@ -84,7 +86,7 @@ export function buildDownloadScripts(provider: ProviderKey, items: DownloadItem[
   const powershell = [
     `# 安装目录（按实际路径修改）`,
     `$env:${dir} = "${exampleWin}"`,
-    ...(hasCivitai ? ['# Civitai API Key；需要登录的模型必须填', '$env:CIVITAI_TOKEN = ""', '$tk = if ($env:CIVITAI_TOKEN) { "?token=$env:CIVITAI_TOKEN" } else { "" }'] : []),
+    ...(hasCivitai ? ['# Civitai API Key：Civitai 现在下载任何模型都要 Key', '$env:CIVITAI_TOKEN = ""'] : []),
     ...(hasHf ? ['# 国内网络可改用镜像："https://hf-mirror.com"', '$hf = if ($env:HF_ENDPOINT) { $env:HF_ENDPOINT } else { "https://huggingface.co" }'] : []),
     ...folders.map((f) => `New-Item -ItemType Directory -Force -Path "$env:${dir}\\${f.replace(/\//g, '\\')}" | Out-Null`),
     ...list.map((i) => psLine(provider, i)),
@@ -92,8 +94,11 @@ export function buildDownloadScripts(provider: ProviderKey, items: DownloadItem[
   return { bash, powershell }
 }
 
+/** 手动下载命令用首选来源：Civitai 文件在 Hugging Face 有同哈希副本时直接用 HF（不需要 Civitai Key） */
 function toItem(f: CatalogFile, folder: string): DownloadItem {
-  return { file: f.file, folder, url: f.url, source: f.source, page: f.page, size: f.size, login_required: f.loginRequired || undefined }
+  const first = sourcesFor(f)[0]
+  const source = first.label === 'civitai' || first.label === 'civitai-mirror' ? 'civitai' : 'huggingface'
+  return { file: f.file, folder, url: first.url, source, page: f.page, size: f.size, login_required: f.loginRequired || undefined }
 }
 
 function fileView(f: CatalogFile | null | undefined) {

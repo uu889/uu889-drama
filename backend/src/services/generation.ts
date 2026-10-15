@@ -2,6 +2,7 @@
  * 统一生成任务服务 — 图片/视频生成共用 sys_task 表与同一条生命周期：
  * 创建(processing) → 适配器构建请求 → 同步完成或异步轮询 → 下载落盘 → 回写业务表
  */
+import { ensureStyleModelsForTask } from './model-installer/index.js'
 import { db, getInsertId, schema } from '../db/index.js'
 import { eq } from 'drizzle-orm'
 import { getActiveConfig, getConfigById } from './ai.js'
@@ -214,6 +215,8 @@ async function processTask(id: number, config: AIConfig) {
 
     // 项目视觉风格：本地服务据此切换风格模型（Checkpoint / LoRA）
     const dramaStyle = await getDramaStyleKey(record.dramaId)
+    // 开启「自动下载缺少的风格模型」时：缺文件先下载（进度显示在任务里），下完再生成
+    await ensureStyleModelsForTask(config, type === 'image' ? 'image' : 'video', dramaStyle, (patch) => { setTaskProgress(id, patch) })
 
     // 本地 SD 系模型只认英文：按设置把中文提示词先翻译成英文（只影响发给上游的提示词）
     let prompt = record.prompt

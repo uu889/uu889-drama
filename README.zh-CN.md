@@ -100,6 +100,7 @@ cd ../backend && npm start                                      # 访问 http://
 | `FRONTEND_DIST` | `frontend/dist` | 前端静态产物目录 |
 | `FFMPEG_BIN` / `FFPROBE_BIN` | npm 内置二进制 | 自定义 ffmpeg/ffprobe 路径 |
 | `PUBLIC_BASE_URL` | — | Seedance 引用本地参考视频/音频时所需的公网地址 |
+| `MODEL_INSTALLER_LOCAL` | `1` | 设为 `0` 时关闭「一键下载模型」的本机模式（服务器部署不想让网页操作服务器本机文件时使用，远程 SSH 模式不受影响） |
 | `UU889_UPDATE_FEED` | GitHub Releases 的 `latest.json` | 自定义更新清单地址 |
 
 > AI 服务的 API Key、Base URL 与模型全部在「设置」页配置并入库，不在配置文件中维护。
@@ -259,6 +260,13 @@ AI 视频常见的三个问题和对应处理：
 - **ComfyUI 生视频**：风格首帧 + Wan 2.2 I2V 14B，Wan 14B 风格 LoRA 挂在低噪声模型上（TI2V 5B / MiniMax H3 自动跳过）
 
 设置页可逐个风格覆盖文件名 / 权重 / 触发词，「检查本机是否已下载」标出缺失文件，每个风格都有可复制的下载命令（bash / PowerShell，支持 Civitai Token 与 hf-mirror 镜像）。每个模型都标了许可等级：✅ 可商用、⚠️ 有条件（如不能做收费生图服务、需署名、转载来源不清）、⛔ 非商用 / 需作者授权；默认推荐不含 ⛔ 模型，GuoFeng4、Juggernaut 等只作为可选替代并单独标注。完整对应表、许可说明、接口调用示例与下载脚本见 [docs/style-models.md](docs/style-models.md)。
+
+**一键 / 自动下载模型**：同一个设置弹窗里的「一键下载模型」按风格检查缺少的文件并自动下载到程序的模型目录——
+- **本机**（Windows / macOS / Linux）或 **远程 SSH**（Windows / macOS / Linux）；自动识别 SD WebUI / ComfyUI / Fooocus 安装根目录，也可手动选择
+- 来源顺序：Hugging Face → hf-mirror.com 镜像 → Civitai → Civitai 镜像（CivArchive）；Civitai 模型有 HF 同哈希副本时直接走 HF，不需要 Civitai Key
+- 进度条（总进度 + 每个文件的速度 / 剩余时间 / 当前来源）、断点续传、SHA256 校验、暂停 / 继续 / 取消
+- 后台离线下载：本机关掉页面继续下、程序重启接着下；远程在对方后台运行，关掉 UU889-Drama 也会下完
+- 可选「生成时自动下载缺少的模型」：生成前缺什么下什么，下完自动开始生成
 
 ---
 

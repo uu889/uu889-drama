@@ -87,6 +87,7 @@ cd ../backend && npm start                                      # open http://lo
 | `FRONTEND_DIST` | `frontend/dist` | Frontend build directory |
 | `FFMPEG_BIN` / `FFPROBE_BIN` | bundled binaries | Custom ffmpeg / ffprobe paths |
 | `PUBLIC_BASE_URL` | — | Public URL needed when Seedance references local video/audio |
+| `MODEL_INSTALLER_LOCAL` | `1` | `0` disables "this computer" mode of the one-click model download on server deployments (remote SSH mode stays available) |
 | `UU889_UPDATE_FEED` | GitHub Releases `latest.json` | Custom update feed |
 
 API keys, base URLs and models are configured in **Settings** and stored in the database.
@@ -228,6 +229,13 @@ The project's visual style (3D, anime cel, Ghibli, watercolor, American comic, g
 - **ComfyUI video**: Wan 2.2 I2V 14B from the styled first frame, with a Wan 14B style LoRA on the low-noise model (skipped on TI2V 5B / MiniMax H3)
 
 Per-style overrides, an installed-file check and copy-ready download commands (bash / PowerShell, Civitai token, hf-mirror) are on the settings page. Every model carries a license level — ✅ commercial OK, ⚠️ conditions (e.g. no paid generation service, credit required, re-upload of unclear origin), ⛔ non-commercial / author permission needed. Defaults never use ⛔ models; GuoFeng4, Juggernaut and similar are listed only as flagged alternatives. Full mapping tables, license notes, API examples and download scripts: [docs/style-models.md](docs/style-models.md).
+
+**One-click / automatic model download**: the "One-click model download" section in the same dialog checks which files each style needs and downloads the missing ones into the program's model folders —
+- **this computer** (Windows / macOS / Linux) or **remote over SSH** (Windows / macOS / Linux); detects SD WebUI / ComfyUI / Fooocus install folders or lets you pick one
+- sources in order: Hugging Face → hf-mirror.com → Civitai → Civitai mirror (CivArchive); Civitai models with an identical (same SHA256) copy on Hugging Face come from HF without a Civitai key
+- progress bars (overall + per file speed / ETA / source), resume, SHA256 verification, pause / resume / cancel
+- background ("offline") downloads: local downloads continue with the page closed and resume after restart; remote downloads run on the remote machine and finish even if UU889-Drama is closed
+- optional "download missing models when generating": generation waits for the missing files, then starts
 
 ---
 

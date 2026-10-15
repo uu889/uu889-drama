@@ -23,6 +23,8 @@ import props from './routes/props.js'
 import settings from './routes/settings.js'
 import storage from './routes/storage.js'
 import serverUpdate from './routes/serverUpdate.js'
+import modelInstaller from './routes/modelInstaller.js'
+import { resumeJobsOnStartup } from './services/model-installer/jobs.js'
 import { requestLogger, errorHandler } from './middleware/logger.js'
 import { db, schema } from './db/index.js'
 import { eq } from 'drizzle-orm'
@@ -69,6 +71,7 @@ api.route('/props', props)
 api.route('/storage', storage)
 api.route('/settings', settings)
 api.route('/server-update', serverUpdate)
+api.route('/model-installer', modelInstaller)
 
 app.route('/api/v1', api)
 
@@ -98,5 +101,8 @@ db.update(schema.sysTask)
     if (affected > 0) console.log(`🔁 已清理 ${affected} 个中断的生成任务`)
   })
   .catch(err => console.error('清理中断任务失败:', err?.message))
+
+// 模型下载任务：本机任务接着下，远程任务恢复读取进度（远程在后端停止期间一直在下）
+try { resumeJobsOnStartup() } catch (err: any) { console.error('恢复模型下载任务失败:', err?.message) }
 
 serve({ fetch: app.fetch, port })

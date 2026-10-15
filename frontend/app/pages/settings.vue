@@ -735,6 +735,20 @@
                 :api-key="cfgForm.api_key"
               />
             </div>
+            <ModelInstallerPanel
+              v-model:install="cfgForm.model_install"
+              v-model:auto-download="cfgForm.style_models_auto_download"
+              v-model:prefer-mirror="cfgForm.download_prefer_mirror"
+              v-model:civitai-token="cfgForm.civitai_token"
+              v-model:hf-token="cfgForm.hf_token"
+              :provider="cfgForm.provider"
+              :service-type="cfgForm.service_type"
+              :base-url="cfgForm.base_url"
+              :api-key="cfgForm.api_key"
+              :model="cfgForm.models[0] || ''"
+              :plan-settings="installerPlanSettings"
+              :config-id="cfgEditId"
+            />
             <div class="local-tools">
               <button v-if="isComfyForm" type="button" class="btn btn-sm" :disabled="inspecting" @click="inspectComfyWorkflow">
                 <Loader2 v-if="inspecting" :size="12" class="animate-spin" />
@@ -933,6 +947,7 @@
 import { Plus, Pencil, Trash2, FileText, ChevronDown, Check, Loader2, Bot, Cpu, Sparkles, Palette, ExternalLink, Star, HardDrive, Database, RefreshCw, Download, Languages, SunMoon, X, BookOpen } from 'lucide-vue-next'
 import BaseSelect from '~/components/BaseSelect.vue'
 import StyleModelsPanel from '~/components/StyleModelsPanel.vue'
+import ModelInstallerPanel from '~/components/ModelInstallerPanel.vue'
 import { toast } from 'vue-sonner'
 import { toastError } from '~/composables/useToast'
 import { useI18n } from 'vue-i18n'
@@ -971,7 +986,7 @@ const aiaskSaving = ref(false)
 // 本地服务（ComfyUI / SD WebUI / Fooocus）专属参数存后端 settings JSON，接口上以顶层字段读写
 const LOCAL_SETTING_FIELDS = ['comfyui_workflow', 'comfyui_template', 'comfyui_fps', 'comfyui_steps', 'comfyui_cfg', 'comfyui_negative_prompt', 'prompt_template', 'image_base_size', 'image_steps', 'image_cfg_scale', 'image_sampler', 'image_negative_prompt', 'fooocus_performance', 'fooocus_styles']
 // 布尔设置单独处理：自动绑定默认开；中文翻译默认值按服务类型（本地生图开、ComfyUI 视频关）
-const EMPTY_CFG_FORM = { name: '', provider: '', api_key: '', base_url: '', models: [], service_type: 'text', priority: 0, temperature: '', ...Object.fromEntries(LOCAL_SETTING_FIELDS.map(k => [k, ''])), comfyui_auto_bind: true, prompt_translate: true, style_models_enabled: false, style_models: {} }
+const EMPTY_CFG_FORM = { name: '', provider: '', api_key: '', base_url: '', models: [], service_type: 'text', priority: 0, temperature: '', ...Object.fromEntries(LOCAL_SETTING_FIELDS.map(k => [k, ''])), comfyui_auto_bind: true, prompt_translate: true, style_models_enabled: false, style_models: {}, model_install: null, style_models_auto_download: false, download_prefer_mirror: false, civitai_token: '', hf_token: '' }
 const cfgForm = reactive({ ...EMPTY_CFG_FORM })
 const LOCAL_BASE_URLS = { comfyui: 'http://127.0.0.1:8188', sdwebui: 'http://127.0.0.1:7860', fooocus: 'http://127.0.0.1:8888' }
 const FOOOCUS_PERFORMANCE = ['Speed', 'Quality', 'Extreme Speed', 'Lightning', 'Hyper-SD']
@@ -997,6 +1012,12 @@ const promptTemplatePreview = computed(() => {
   if (!tpl) return sample
   return /\{\{\s*prompt\s*\}\}/i.test(tpl) ? tpl.replace(/\{\{\s*prompt\s*\}\}/gi, sample) : `${sample}, ${tpl}`
 })
+/** 一键下载模型按当前表单（未保存的草稿）计算：风格覆盖、内置模板 / 自定义工作流 */
+const installerPlanSettings = computed(() => ({
+  style_models: cfgForm.style_models || {},
+  comfyui_template: comfySource.value === 'builtin' ? cfgForm.comfyui_template || '' : '',
+  comfyui_workflow: comfySource.value === 'custom' ? cfgForm.comfyui_workflow || '' : '',
+}))
 /** 后端存的风格覆盖表（对象或 JSON 字符串）→ 表单对象 */
 function parseStyleModels(v) {
   if (!v) return {}
@@ -1289,7 +1310,7 @@ async function applyAiaskQuickConfig() {
 function startAddCfg(t) {
   cfgEditId.value = null
   cfgTestResult.value = null
-  Object.assign(cfgForm, { ...EMPTY_CFG_FORM, models: [], service_type: t, prompt_translate: t !== 'video', style_models: {} })
+  Object.assign(cfgForm, { ...EMPTY_CFG_FORM, models: [], service_type: t, prompt_translate: t !== 'video', style_models: {}, model_install: null })
   const firstPreset = presetsByType(t)[0]
   if (firstPreset) applyProviderPreset(t, firstPreset.provider)
   comfySource.value = 'builtin'
@@ -1315,6 +1336,11 @@ function startEditCfg(c) {
     prompt_translate: typeof c.prompt_translate === 'boolean' ? c.prompt_translate : c.service_type !== 'video',
     style_models_enabled: c.style_models_enabled === true,
     style_models: parseStyleModels(c.style_models),
+    model_install: c.model_install && typeof c.model_install === 'object' ? JSON.parse(JSON.stringify(c.model_install)) : null,
+    style_models_auto_download: c.style_models_auto_download === true,
+    download_prefer_mirror: c.download_prefer_mirror === true,
+    civitai_token: c.civitai_token || '',
+    hf_token: c.hf_token || '',
   })
   comfySource.value = c.comfyui_workflow ? 'custom' : 'builtin'
   inspectResult.value = null
@@ -1366,6 +1392,12 @@ function localSettingsPayload() {
     prompt_translate: !!cfgForm.prompt_translate,
     style_models_enabled: !!cfgForm.style_models_enabled,
     style_models: Object.keys(styleOverrides).length ? styleOverrides : '',
+    // 一键下载模型：安装位置 / 自动下载 / 镜像优先 / Token
+    model_install: cfgForm.model_install && (cfgForm.model_install.root || cfgForm.model_install.mode === 'remote') ? cfgForm.model_install : '',
+    style_models_auto_download: !!cfgForm.style_models_auto_download,
+    download_prefer_mirror: !!cfgForm.download_prefer_mirror,
+    civitai_token: text(cfgForm.civitai_token),
+    hf_token: text(cfgForm.hf_token),
   })
   if (isComfyForm.value) {
     return {

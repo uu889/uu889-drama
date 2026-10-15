@@ -188,9 +188,11 @@ test('style video template applies only when nothing else is chosen', async () =
 
 test('download scripts: Civitai token, HF mirror, folders per provider', () => {
   const sd = describeStyleModelCatalog('sdwebui', 'image')!
-  assert.ok(sd.scripts_all.bash.includes('${CIVITAI_TOKEN:+?token=$CIVITAI_TOKEN}'))
+  assert.ok(sd.scripts_all.bash.includes('Authorization: Bearer $CIVITAI_TOKEN'))
   assert.ok(sd.scripts_all.bash.includes('"$SD_DIR/models/Stable-diffusion/'))
-  assert.ok(sd.scripts_all.powershell.includes('$tk'))
+  assert.ok(sd.scripts_all.powershell.includes('$env:CIVITAI_TOKEN'))
+  // 有 HF 同哈希副本的 Civitai 文件改从 HF 下载
+  assert.ok(sd.scripts_all.bash.includes('cagliostrolab/animagine-xl-4.0/resolve/main/animagine-xl-4.0-opt.safetensors'))
   const fo = describeStyleModelCatalog('fooocus', 'image')!
   assert.ok(fo.scripts_all.bash.includes('repositories/Fooocus/models/loras/'))
   assert.ok(fo.scripts_all.bash.includes('${HF_ENDPOINT:-https://huggingface.co}/'))

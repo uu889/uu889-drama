@@ -130,6 +130,22 @@ export const mergeAPI = {
   status: (epId: number) => api.get(`/merge/episodes/${epId}/merge`),
   list: (epId: number) => api.get<any[]>(`/merge/episodes/${epId}/merges`),
 }
+/** 按视觉风格自动下载本地模型（本机 / 远程 SSH） */
+export const modelInstallerAPI = {
+  env: () => api.get('/model-installer/env'),
+  test: (d: any) => api.post('/model-installer/target/test', d),
+  detect: (d: any) => api.post('/model-installer/detect', d),
+  listDir: (d: any) => api.post('/model-installer/fs/list', d),
+  plan: (d: any) => api.post('/model-installer/plan', d),
+  stylesInUse: () => api.get('/model-installer/styles-in-use'),
+  jobs: () => api.get('/model-installer/jobs'),
+  createJob: (d: any) => api.post('/model-installer/jobs', d),
+  pause: (id: string) => api.post(`/model-installer/jobs/${id}/pause`, {}),
+  resume: (id: string) => api.post(`/model-installer/jobs/${id}/resume`, {}),
+  cancel: (id: string) => api.post(`/model-installer/jobs/${id}/cancel`, {}),
+  remove: (id: string) => api.del(`/model-installer/jobs/${id}`),
+}
+
 export const aiConfigAPI = {
   list: (t?: string) => api.get(`/ai-configs${t ? `?service_type=${t}` : ''}`),
   create: (d: any) => api.post('/ai-configs', d),
