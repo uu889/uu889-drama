@@ -29,6 +29,8 @@ import {
 } from './comfyui-common'
 import { LOCAL_DEFAULT_NEGATIVE_PROMPT, applyPromptTemplate, explicitNumberSetting, localImageDimensions, numberSetting, textSetting } from './local-image'
 import { DEFAULT_IMAGE_TEMPLATE_ID, getComfyTemplate, modelOverrideFiles, resolveComfyTemplate, splitModelFiles } from './comfyui-templates'
+import { injectStyleLora } from './comfyui-lora'
+import { resolveStyleModels, withTrigger } from './style-models'
 
 export const COMFYUI_DEFAULT_IMAGE_MODEL = 'sd_xl_base_1.0.safetensors'
 const MAX_REFERENCE_IMAGES = 6
@@ -52,24 +54,28 @@ export class ComfyUIImageAdapter extends ComfyUIClient implements ImageProviderA
 
   async buildGenerateRequest(config: AIConfig, record: ImageGenerationRecord, ctx?: GenerateContext): Promise<ProviderRequest> {
     const settings = config.settings || {}
-    const model = (record.model || config.model || '').trim()
+    // 按项目视觉风格换模型（开启时）：风格 Checkpoint 替换「模型」，并在 Checkpoint 后插入风格 LoRA
+    const sm = resolveStyleModels('comfyui', 'image', settings, record.style)
+    const model = (sm?.checkpoint || record.model || config.model || '').trim()
     // 工作流来源：自定义工作流 > 设置里选的内置模板 > 按模型文件识别（如 flux1-dev-fp8 → FLUX 模板）> SDXL 默认
     const custom = parseComfyWorkflow(settings.comfyui_workflow)
-    const builtin = custom ? null : resolveComfyTemplate('image', settings.comfyui_template, model)
-    const template = custom || builtin!.workflow
+    // 风格模型都是 SDXL Checkpoint：开启后内置模板固定用 SDXL（FLUX 模板没有 Checkpoint 加载节点）
+    const builtin = custom ? null : resolveComfyTemplate('image', sm?.checkpoint ? 'sdxl' : settings.comfyui_template, model)
+    const template = injectStyleLora(custom || builtin!.workflow, sm?.lora ? { file: sm.lora, strength: sm.loraWeight } : null)
     const rec = builtin?.recommended || {}
-    const baseSize = numberSetting(settings.image_base_size, rec.baseSize ?? 1024, 256, 2048)
+    const baseSize = numberSetting(settings.image_base_size, sm?.baseSize ?? rec.baseSize ?? 1024, 256, 2048)
     const { width, height } = localImageDimensions(record.size, baseSize)
     const refs = parseRefs(record.referenceImages).slice(0, MAX_REFERENCE_IMAGES)
 
     const imageSources: Record<string, string | undefined> = { image: refs[0] }
     refs.forEach((ref, i) => { imageSources[`reference_image_${i + 1}`] = ref })
 
-    const explicitSteps = explicitNumberSetting(settings.image_steps, 1, 150)
-    const explicitCfg = explicitNumberSetting(settings.image_cfg_scale, 0, 30)
+    const explicitSteps = explicitNumberSetting(settings.image_steps, 1, 150) ?? (sm ? sm.steps : undefined)
+    const explicitCfg = explicitNumberSetting(settings.image_cfg_scale, 0, 30) ?? (sm ? sm.cfg : undefined)
+    const basePrompt = applyPromptTemplate(settings.prompt_template, record.prompt || '')
     const values: ComfyPlaceholderValues = {
-      prompt: applyPromptTemplate(settings.prompt_template, record.prompt || ''),
-      negative_prompt: textSetting(settings.comfyui_negative_prompt, LOCAL_DEFAULT_NEGATIVE_PROMPT),
+      prompt: sm ? withTrigger(basePrompt, sm.trigger) : basePrompt,
+      negative_prompt: textSetting(settings.comfyui_negative_prompt, sm?.negative || LOCAL_DEFAULT_NEGATIVE_PROMPT),
       seed: Math.floor(Math.random() * 2 ** 32),
       width,
       height,

@@ -219,6 +219,18 @@ Each can be toggled in the video panel.
 
 ---
 
+## 🖌️ Visual Style → Local Models
+
+The project's visual style (3D, anime cel, Ghibli, watercolor, American comic, guofeng 2.5D, webtoon, black-and-white manga) can drive model selection for local services. In a ComfyUI / SD WebUI / Fooocus config, turn on **Visual style → models**; generation then switches to the style's checkpoint, style LoRA, trigger words and recommended params:
+
+- **SD WebUI** (models from Civitai): `override_settings.sd_model_checkpoint` + `<lora:name:weight>` in the prompt
+- **ComfyUI image / Fooocus** (models from Hugging Face): checkpoint written into `CheckpointLoaderSimple` + an injected `LoraLoader`; Fooocus gets `base_model_name` + `loras` + matching Fooocus styles
+- **ComfyUI video**: Wan 2.2 I2V 14B from the styled first frame, with a Wan 14B style LoRA on the low-noise model (skipped on TI2V 5B / MiniMax H3)
+
+Per-style overrides, an installed-file check and copy-ready download commands (bash / PowerShell, Civitai token, hf-mirror) are on the settings page. Full mapping tables, API examples and download scripts: [docs/style-models.md](docs/style-models.md).
+
+---
+
 ## 📦 Deployment
 
 ### 🖥️ Desktop app

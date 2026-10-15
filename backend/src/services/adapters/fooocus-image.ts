@@ -22,6 +22,7 @@ import type {
   ImagePollResponse,
 } from './types'
 import type { TaskProgressPatch } from '../task-progress'
+import { resolveStyleModels, withTrigger } from './style-models'
 import { stagePercent } from '../task-progress'
 import {
   LOCAL_DEFAULT_NEGATIVE_PROMPT,
@@ -87,9 +88,12 @@ export class FooocusImageAdapter implements ImageProviderAdapter {
   buildGenerateRequest(config: AIConfig, record: ImageGenerationRecord): ProviderRequest {
     const settings = config.settings || {}
     const refs = parseRefs(record.referenceImages).slice(0, MAX_IMAGE_PROMPTS)
+    // 按项目视觉风格换模型（开启时）：base_model_name + loras + 触发词 + 风格
+    const sm = resolveStyleModels('fooocus', 'image', settings, record.style)
+    const basePrompt = applyPromptTemplate(settings.prompt_template, record.prompt || '')
     const body: Record<string, any> = {
-      prompt: applyPromptTemplate(settings.prompt_template, record.prompt || ''),
-      negative_prompt: textSetting(settings.image_negative_prompt, LOCAL_DEFAULT_NEGATIVE_PROMPT),
+      prompt: sm ? withTrigger(basePrompt, sm.trigger) : basePrompt,
+      negative_prompt: textSetting(settings.image_negative_prompt, sm?.negative || LOCAL_DEFAULT_NEGATIVE_PROMPT),
       aspect_ratios_selection: fooocusAspectRatio(record.size),
       performance_selection: textSetting(settings.fooocus_performance, 'Speed'),
       image_number: 1,
@@ -99,8 +103,14 @@ export class FooocusImageAdapter implements ImageProviderAdapter {
     }
     const styles = textSetting(settings.fooocus_styles).split(/[,，]/).map((s) => s.trim()).filter(Boolean)
     if (styles.length) body.style_selections = styles
-    const model = record.model || config.model
+    else if (sm?.fooocusStyles) body.style_selections = sm.fooocusStyles
+    const model = sm?.checkpoint || record.model || config.model
     if (!isDefaultModel(model)) body.base_model_name = model
+    if (sm) {
+      // 风格 LoRA 替换 Fooocus 默认 LoRA；没有风格 LoRA 时传空列表，避免默认的写实增强 LoRA 拉偏画风
+      body.loras = sm.lora ? [{ enabled: true, model_name: sm.lora, weight: sm.loraWeight }] : []
+      if (sm.cfg != null) body.guidance_scale = sm.cfg
+    }
     if (refs.length) {
       body.image_prompts = refs.map((ref) => ({ cn_img: toRawBase64OrUrl(ref), cn_stop: 0.5, cn_weight: 1.0, cn_type: 'ImagePrompt' }))
     }

@@ -518,7 +518,32 @@
       },
       "close": "Fermer",
       "discardConfirm": "Des modifications ne sont pas enregistrées. Fermer et les abandonner ?",
-      "outsideHint": "Cliquer à l’extérieur ne ferme plus la fenêtre, pour ne rien perdre. Utilisez « Fermer » en haut à droite, ou Annuler / Enregistrer."
+      "outsideHint": "Cliquer à l’extérieur ne ferme plus la fenêtre, pour ne rien perdre. Utilisez « Fermer » en haut à droite, ou Annuler / Enregistrer.",
+      "styleModels": {
+        "title": "Style visuel → modèles",
+        "enable": "Changer de modèles selon le style du projet",
+        "enableHint": "Activé, un projet au style « Anime cel », « Ghibli », etc. utilise le checkpoint / LoRA de style / mots déclencheurs / paramètres recommandés du tableau. Téléchargez d’abord les modèles ; les valeurs saisies explicitement dans cette configuration restent prioritaires.",
+        "show": "Voir les modèles recommandés et les téléchargements",
+        "hide": "Masquer",
+        "check": "Vérifier les fichiers installés",
+        "folders": "Dossiers des modèles :",
+        "missing": "{n} fichier(s) manquant(s)",
+        "ready": "Installé",
+        "weight": "poids",
+        "lowNoise": "sur le modèle low-noise",
+        "highNoise": "sur le modèle high-noise",
+        "noLora": "inutile (modèle de base / première image suffisent)",
+        "trigger": "Déclencheur",
+        "params": "Paramètres",
+        "override": "Remplacer",
+        "loraPlaceholder": "Fichier LoRA (none = aucun)",
+        "reset": "Réinitialiser",
+        "download": "Commandes de téléchargement",
+        "downloadAll": "Tout télécharger",
+        "downloadHint": "Les commandes utilisent curl -o pour garder les noms de fichiers. Définissez CIVITAI_TOKEN pour les modèles Civitai nécessitant une connexion. Actualisez ensuite la liste des modèles du service.",
+        "copy": "Copier",
+        "copied": "Commandes copiées"
+      }
     },
     "styleDialog": {
       "editTitle": "Modifier le préréglage de style",

@@ -518,7 +518,32 @@
       },
       "close": "Đóng",
       "discardConfirm": "Có thay đổi chưa lưu. Đóng và bỏ các thay đổi?",
-      "outsideHint": "Bấm ra ngoài sẽ không đóng hộp thoại để tránh mất nội dung đã nhập. Hãy dùng nút Đóng ở góc phải trên, hoặc Hủy / Lưu."
+      "outsideHint": "Bấm ra ngoài sẽ không đóng hộp thoại để tránh mất nội dung đã nhập. Hãy dùng nút Đóng ở góc phải trên, hoặc Hủy / Lưu.",
+      "styleModels": {
+        "title": "Phong cách hình ảnh → mô hình",
+        "enable": "Tự đổi mô hình theo phong cách của dự án",
+        "enableHint": "Khi bật, dự án chọn phong cách như \"Anime cel\", \"Ghibli\"… sẽ dùng checkpoint / LoRA phong cách / từ kích hoạt / tham số đề xuất trong bảng dưới. Hãy tải mô hình trước; giá trị bạn tự điền trong cấu hình này vẫn được ưu tiên.",
+        "show": "Xem mô hình đề xuất & cách tải",
+        "hide": "Thu gọn",
+        "check": "Kiểm tra đã cài chưa",
+        "folders": "Thư mục mô hình:",
+        "missing": "Thiếu {n} tệp",
+        "ready": "Đã cài",
+        "weight": "trọng số",
+        "lowNoise": "gắn vào mô hình low-noise",
+        "highNoise": "gắn vào mô hình high-noise",
+        "noLora": "không cần (mô hình gốc / khung đầu là đủ)",
+        "trigger": "Từ kích hoạt",
+        "params": "Tham số",
+        "override": "Ghi đè",
+        "loraPlaceholder": "Tệp LoRA (none = không dùng)",
+        "reset": "Khôi phục",
+        "download": "Lệnh tải",
+        "downloadAll": "Tải tất cả phong cách",
+        "downloadHint": "Lệnh dùng curl -o để giữ đúng tên tệp. Mô hình Civitai cần đăng nhập thì đặt CIVITAI_TOKEN. Sau khi tải, làm mới danh sách mô hình trong dịch vụ.",
+        "copy": "Sao chép",
+        "copied": "Đã sao chép lệnh tải"
+      }
     },
     "styleDialog": {
       "editTitle": "Sửa phong cách mẫu",

@@ -12,6 +12,7 @@ import { getImageAdapter, getVideoAdapter } from './adapters/registry'
 import type { AIConfig, GenerateContext, ImageProviderAdapter, ProviderRequest, VideoProviderAdapter } from './adapters/types'
 import { formatBytes, formatEta, setTaskProgress, stagePercent, type TaskProgressPatch } from './task-progress.js'
 import { maybeTranslatePrompt, needsTranslation, shouldTranslatePrompt } from './prompt-translate.js'
+import { getDramaStyleKey } from './style-preset.js'
 import { logTaskError, logTaskPayload, logTaskProgress, logTaskStart, logTaskSuccess, logTaskWarn, redactUrl } from '../utils/task-logger.js'
 
 type TaskType = 'image' | 'video'
@@ -211,6 +212,9 @@ async function processTask(id: number, config: AIConfig) {
     // 适配器构建请求时（上传参考图、连接进度通道等）上报进度
     const ctx: GenerateContext = { report: (patch) => { setTaskProgress(id, patch) } }
 
+    // 项目视觉风格：本地服务据此切换风格模型（Checkpoint / LoRA）
+    const dramaStyle = await getDramaStyleKey(record.dramaId)
+
     // 本地 SD 系模型只认英文：按设置把中文提示词先翻译成英文（只影响发给上游的提示词）
     let prompt = record.prompt
     if (needsTranslation(prompt) && shouldTranslatePrompt(config.provider, type, config.settings)) {
@@ -236,6 +240,7 @@ async function processTask(id: number, config: AIConfig) {
         size: params.size,
         frameType: params.frameType,
         referenceImages: resolvedReferenceImages.length ? JSON.stringify(resolvedReferenceImages) : null,
+        style: dramaStyle,
       }, ctx)
       ;({ url, method, headers, body } = request)
     } else {
@@ -274,6 +279,7 @@ async function processTask(id: number, config: AIConfig) {
         seed: params.seed,
         promptExtend: params.promptExtend,
         watermark: params.watermark,
+        style: dramaStyle,
       }, ctx)
       ;({ url, method, headers, body } = request)
     }

@@ -5,6 +5,13 @@
 import { and, eq } from 'drizzle-orm'
 import { db, schema } from '../db/index.js'
 
+/** 项目绑定的视觉风格值（如 anime / ghibli）；没有返回 null */
+export async function getDramaStyleKey(dramaId: number | null | undefined): Promise<string | null> {
+  if (!dramaId) return null
+  const [drama] = await db.select().from(schema.dramas).where(eq(schema.dramas.id, dramaId))
+  return drama?.style || null
+}
+
 /** 查询项目绑定的风格预设英文提示词片段；查不到返回 '' */
 export async function getDramaStylePrompt(dramaId: number | null | undefined): Promise<string> {
   if (!dramaId) return ''

@@ -21,6 +21,7 @@ import type {
   ImagePollResponse,
 } from './types'
 import { formatEta, stagePercent, type ProgressReporter } from '../task-progress'
+import { bareModelName, resolveStyleModels, withTrigger } from './style-models'
 import {
   LOCAL_DEFAULT_NEGATIVE_PROMPT,
   applyPromptTemplate,
@@ -40,14 +41,21 @@ export class SdWebuiImageAdapter implements ImageProviderAdapter {
 
   buildGenerateRequest(config: AIConfig, record: ImageGenerationRecord): ProviderRequest {
     const settings = config.settings || {}
-    const { width, height } = localImageDimensions(record.size, numberSetting(settings.image_base_size, 1024, 256, 2048))
+    // 按项目视觉风格换模型（开启时）：Checkpoint + <lora:…> + 触发词 + 推荐参数；用户在配置里明确填写的参数优先
+    const sm = resolveStyleModels('sdwebui', 'image', settings, record.style)
+    const { width, height } = localImageDimensions(record.size, numberSetting(settings.image_base_size, sm?.baseSize ?? 1024, 256, 2048))
+    let prompt = applyPromptTemplate(settings.prompt_template, record.prompt || '')
+    if (sm) {
+      prompt = withTrigger(prompt, sm.trigger)
+      if (sm.lora) prompt = `${prompt} <lora:${bareModelName(sm.lora)}:${sm.loraWeight}>`
+    }
     const body: Record<string, any> = {
-      prompt: applyPromptTemplate(settings.prompt_template, record.prompt || ''),
-      negative_prompt: textSetting(settings.image_negative_prompt, LOCAL_DEFAULT_NEGATIVE_PROMPT),
+      prompt,
+      negative_prompt: textSetting(settings.image_negative_prompt, sm?.negative || LOCAL_DEFAULT_NEGATIVE_PROMPT),
       width,
       height,
-      steps: Math.round(numberSetting(settings.image_steps, 25, 1, 150)),
-      cfg_scale: numberSetting(settings.image_cfg_scale, 7, 0, 30),
+      steps: Math.round(numberSetting(settings.image_steps, sm?.steps ?? 25, 1, 150)),
+      cfg_scale: numberSetting(settings.image_cfg_scale, sm?.cfg ?? 7, 0, 30),
       seed: -1,
       batch_size: 1,
       n_iter: 1,
@@ -56,10 +64,14 @@ export class SdWebuiImageAdapter implements ImageProviderAdapter {
       // 自定义任务 ID：出图期间凭它查询排队位置与进度（WebUI 1.6+；老版本忽略该字段）
       force_task_id: `task(uu889-${record.id}-${randomBytes(3).toString('hex')})`,
     }
-    const sampler = textSetting(settings.image_sampler)
+    const sampler = textSetting(settings.image_sampler) || sm?.sampler
     if (sampler) body.sampler_name = sampler
-    const model = record.model || config.model
-    if (!isDefaultModel(model)) body.override_settings = { sd_model_checkpoint: model }
+    if (sm?.scheduler && !textSetting(settings.image_sampler)) body.scheduler = sm.scheduler
+    const model = sm?.checkpoint || record.model || config.model
+    const overrides: Record<string, any> = {}
+    if (!isDefaultModel(model)) overrides.sd_model_checkpoint = model
+    if (sm?.clipSkip) overrides.CLIP_stopAtLastLayers = sm.clipSkip
+    if (Object.keys(overrides).length) body.override_settings = overrides
 
     return {
       url: localUrl(config.baseUrl, DEFAULT_BASE, '/sdapi/v1/txt2img'),

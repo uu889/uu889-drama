@@ -518,7 +518,32 @@
       },
       "close": "关闭",
       "discardConfirm": "有未保存的修改，确定关闭吗？关闭后填写的内容会丢失。",
-      "outsideHint": "为防止误关丢失填写内容，点空白处不会关闭；请用右上角「关闭」或底部「取消 / 保存」。"
+      "outsideHint": "为防止误关丢失填写内容，点空白处不会关闭；请用右上角「关闭」或底部「取消 / 保存」。",
+      "styleModels": {
+        "title": "视觉风格 → 模型",
+        "enable": "按项目视觉风格自动切换模型",
+        "enableHint": "开启后，项目选了「日漫赛璐璐」「吉卜力手绘」等风格时，自动换成下表对应的 Checkpoint / 风格 LoRA / 触发词 / 推荐参数。先把模型下载到本机再开启；你在本配置里明确填写的步数、CFG、采样器等仍优先。",
+        "show": "查看推荐模型与下载方法",
+        "hide": "收起",
+        "check": "检查本机是否已下载",
+        "folders": "模型目录：",
+        "missing": "缺 {n} 个文件",
+        "ready": "已下载",
+        "weight": "权重",
+        "lowNoise": "挂在低噪声模型",
+        "highNoise": "挂在高噪声模型",
+        "noLora": "不需要（底模 / 首帧已足够）",
+        "trigger": "触发词",
+        "params": "推荐参数",
+        "override": "覆盖",
+        "loraPlaceholder": "LoRA 文件名（填 none 不用）",
+        "reset": "恢复推荐",
+        "download": "下载命令",
+        "downloadAll": "一次下载全部风格",
+        "downloadHint": "命令用 curl -o 指定文件名，保证与上表一致；Civitai 需要登录的模型先设置 CIVITAI_TOKEN（civitai.com → Account settings → API Keys）；国内下载 Hugging Face 可设 HF_ENDPOINT=https://hf-mirror.com。下载后在服务里刷新模型列表（ComfyUI 按 R / SD WebUI 点刷新 / Fooocus 重启）。",
+        "copy": "复制",
+        "copied": "已复制下载命令"
+      }
     },
     "styleDialog": {
       "editTitle": "编辑风格预设",

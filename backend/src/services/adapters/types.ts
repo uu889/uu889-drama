@@ -164,6 +164,8 @@ export interface ImageGenerationRecord {
   size?: string | null
   frameType?: string | null
   referenceImages?: string | null
+  /** 项目视觉风格（style_presets.value，如 anime / ghibli），本地服务按它切换风格模型 */
+  style?: string | null
   // ... 其他字段
 }
 
@@ -187,6 +189,8 @@ export interface VideoGenerationRecord {
   seed?: number | null
   promptExtend?: number | boolean | null
   watermark?: number | boolean | null
+  /** 项目视觉风格（style_presets.value） */
+  style?: string | null
   // ... 其他字段
 }
 

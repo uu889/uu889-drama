@@ -250,6 +250,18 @@ AI 视频常见的三个问题和对应处理：
 
 ---
 
+## 🖌️ 视觉风格 → 本地模型
+
+项目「视觉风格」（3D 漫剧、日漫赛璐璐、吉卜力手绘、水彩绘本、美式漫画、国风 2.5D、韩系网漫、黑白漫画）可以直接决定本地服务用哪个模型。在 ComfyUI / SD WebUI / Fooocus 配置里打开「视觉风格 → 模型」，生成时自动换成该风格的 Checkpoint、风格 LoRA、触发词与推荐参数：
+
+- **SD WebUI**（模型来自 Civitai）：`override_settings.sd_model_checkpoint` + 提示词里的 `<lora:名字:权重>`
+- **ComfyUI 生图 / Fooocus**（模型来自 Hugging Face）：Checkpoint 写入 `CheckpointLoaderSimple`，自动插入 `LoraLoader`；Fooocus 传 `base_model_name` + `loras` + 对应的 Fooocus 风格
+- **ComfyUI 生视频**：风格首帧 + Wan 2.2 I2V 14B，Wan 14B 风格 LoRA 挂在低噪声模型上（TI2V 5B / MiniMax H3 自动跳过）
+
+设置页可逐个风格覆盖文件名 / 权重 / 触发词，「检查本机是否已下载」标出缺失文件，每个风格都有可复制的下载命令（bash / PowerShell，支持 Civitai Token 与 hf-mirror 镜像）。完整对应表、接口调用示例与下载脚本见 [docs/style-models.md](docs/style-models.md)。
+
+---
+
 ## 📦 部署指南
 
 ### 🖥️ 桌面应用

@@ -518,7 +518,32 @@
       },
       "close": "Schließen",
       "discardConfirm": "Es gibt ungespeicherte Änderungen. Schließen und verwerfen?",
-      "outsideHint": "Ein Klick außerhalb schließt den Dialog nicht mehr, damit nichts verloren geht. Oben rechts „Schließen“ oder „Abbrechen / Speichern“ verwenden."
+      "outsideHint": "Ein Klick außerhalb schließt den Dialog nicht mehr, damit nichts verloren geht. Oben rechts „Schließen“ oder „Abbrechen / Speichern“ verwenden.",
+      "styleModels": {
+        "title": "Visueller Stil → Modelle",
+        "enable": "Modelle nach dem Projektstil wechseln",
+        "enableHint": "Wenn aktiv, nutzt ein Projekt mit Stil „Anime-Cel“, „Ghibli“ usw. Checkpoint / Stil-LoRA / Trigger / empfohlene Parameter aus der Tabelle. Modelle vorher herunterladen; explizit gesetzte Werte dieser Konfiguration haben Vorrang.",
+        "show": "Empfohlene Modelle & Downloads anzeigen",
+        "hide": "Einklappen",
+        "check": "Installierte prüfen",
+        "folders": "Modellordner:",
+        "missing": "{n} Datei(en) fehlen",
+        "ready": "Installiert",
+        "weight": "Gewicht",
+        "lowNoise": "am Low-Noise-Modell",
+        "highNoise": "am High-Noise-Modell",
+        "noLora": "nicht nötig (Basismodell / erstes Bild genügt)",
+        "trigger": "Trigger",
+        "params": "Parameter",
+        "override": "Überschreiben",
+        "loraPlaceholder": "LoRA-Datei (none = keine)",
+        "reset": "Zurücksetzen",
+        "download": "Download-Befehle",
+        "downloadAll": "Alle Stile herunterladen",
+        "downloadHint": "Befehle nutzen curl -o, damit Dateinamen passen. Für Civitai-Modelle mit Login CIVITAI_TOKEN setzen. Danach die Modellliste im Dienst aktualisieren.",
+        "copy": "Kopieren",
+        "copied": "Befehle kopiert"
+      }
     },
     "styleDialog": {
       "editTitle": "Stilvorlage bearbeiten",

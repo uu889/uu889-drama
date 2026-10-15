@@ -9,6 +9,8 @@ import { comfyAuthHeaders, comfyUrl, parseComfyWorkflow } from '../services/adap
 import { autoBindComfyWorkflow } from '../services/adapters/comfyui-bind.js'
 import { describeComfyTemplates, modelOverrideFiles, resolveComfyTemplate, splitModelFiles, type ComfyTemplateKind } from '../services/adapters/comfyui-templates.js'
 import { explicitNumberSetting, localAuthHeaders, localUrl } from '../services/adapters/local-image.js'
+import { normalizeStyleOverrides } from '../services/adapters/style-models.js'
+import { describeStyleModelCatalog } from '../services/adapters/style-model-guide.js'
 import { redactUrl, logTaskError, logTaskProgress, logTaskSuccess } from '../utils/task-logger.js'
 
 const app = new Hono()
@@ -31,11 +33,19 @@ type SettingRule =
   | { kind: 'number'; min: number; max: number; integer?: boolean }
   /** 布尔：等于默认值时从 settings 里删除，只存非默认值；default 为 null 时 true / false 都存，空值删除（按服务类型决定默认） */
   | { kind: 'boolean'; default: boolean | null }
+  /** 视觉风格 → 模型覆盖表（JSON 对象），按 normalizeStyleOverrides 校验 */
+  | { kind: 'style_models' }
 
 const IMAGE_PARAM_RULES: Record<string, SettingRule> = {
   image_base_size: { kind: 'number', min: 256, max: 2048, integer: true },
   image_steps: { kind: 'number', min: 1, max: 150, integer: true },
   image_cfg_scale: { kind: 'number', min: 0, max: 30 },
+}
+
+/** 视觉风格 → 本地模型（三个本地服务都支持，默认关） */
+const STYLE_MODEL_RULES: Record<string, SettingRule> = {
+  style_models_enabled: { kind: 'boolean', default: false },
+  style_models: { kind: 'style_models' },
 }
 
 const PROVIDER_SETTING_RULES: Record<string, Record<string, SettingRule>> = {
@@ -50,6 +60,7 @@ const PROVIDER_SETTING_RULES: Record<string, Record<string, SettingRule>> = {
     prompt_template: { kind: 'text', max: 4000 },
     prompt_translate: { kind: 'boolean', default: null },
     ...IMAGE_PARAM_RULES,
+    ...STYLE_MODEL_RULES,
   },
   sdwebui: {
     image_negative_prompt: { kind: 'text', max: 4000 },
@@ -57,6 +68,7 @@ const PROVIDER_SETTING_RULES: Record<string, Record<string, SettingRule>> = {
     prompt_template: { kind: 'text', max: 4000 },
     prompt_translate: { kind: 'boolean', default: null },
     ...IMAGE_PARAM_RULES,
+    ...STYLE_MODEL_RULES,
   },
   fooocus: {
     image_negative_prompt: { kind: 'text', max: 4000 },
@@ -64,6 +76,7 @@ const PROVIDER_SETTING_RULES: Record<string, Record<string, SettingRule>> = {
     prompt_translate: { kind: 'boolean', default: null },
     fooocus_performance: { kind: 'text', max: 50 },
     fooocus_styles: { kind: 'text', max: 1000 },
+    ...STYLE_MODEL_RULES,
   },
 }
 
@@ -87,6 +100,8 @@ function pickProviderSettings(provider: string, body: any): Record<string, any> 
         ? true
         : raw === false || raw === 'false' || raw === 0 || raw === '0' ? false : rule.default
       out[key] = value === rule.default || value === null ? null : value
+    } else if (rule.kind === 'style_models') {
+      out[key] = normalizeStyleOverrides(raw)
     } else if (rule.kind === 'text') {
       const text = String(raw ?? '').trim()
       out[key] = text ? text.slice(0, rule.max ?? 4000) : null
@@ -416,6 +431,18 @@ app.get('/comfyui/templates', (c) => {
 })
 
 /**
+ * GET /ai-configs/style-models?provider=comfyui|sdwebui|fooocus&service_type=image|video
+ * 视觉风格 → 推荐模型清单（Checkpoint / LoRA / 触发词 / 参数 / 下载地址）与模型目录，设置页据此生成下载命令
+ */
+app.get('/style-models', (c) => {
+  const provider = String(c.req.query('provider') || '')
+  const serviceType = c.req.query('service_type') === 'video' ? 'video' : 'image'
+  const data = describeStyleModelCatalog(provider, serviceType)
+  if (!data) return badRequest(c, '该服务商不支持按视觉风格切换模型（仅 ComfyUI / Stable Diffusion WebUI / Fooocus）')
+  return success(c, data)
+})
+
+/**
  * POST /ai-configs/comfyui/inspect — 检查工作流会被怎样控制
  * body: { service_type, workflow?, comfyui_template?, model?, comfyui_auto_bind?, steps?, cfg?, base_url?, api_key? }
  * 返回绑定表（哪个节点的哪个字段接 UU889-Drama 的哪个参数）、提醒、用到的模型文件；
@@ -552,6 +579,10 @@ app.post('/local/models', async (c) => {
       try {
         const samplers = await getJson(localUrl(base, 'http://127.0.0.1:7860', '/sdapi/v1/samplers'), headers)
         groups.push({ key: 'samplers', label: '采样器（填到「采样器」）', items: (Array.isArray(samplers) ? samplers : []).map((s: any) => String(s.name)).filter(Boolean) })
+      } catch { /* 可选 */ }
+      try {
+        const loras = await getJson(localUrl(base, 'http://127.0.0.1:7860', '/sdapi/v1/loras'), headers)
+        groups.push({ key: 'loras', label: 'LoRA（/sdapi/v1/loras）', items: (Array.isArray(loras) ? loras : []).map((l: any) => String(l.path || l.name || '').replace(/^.*[\\/]/, '') || String(l.name)).filter(Boolean) })
       } catch { /* 可选 */ }
     } else if (provider === 'fooocus') {
       const base = String(body.base_url || '')

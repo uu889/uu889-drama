@@ -142,6 +142,8 @@ export const aiConfigAPI = {
   comfyInspect: (d: any) => api.post('/ai-configs/comfyui/inspect', d),
   /** 读取本地服务（ComfyUI / SD WebUI / Fooocus）里可用的模型、采样器、风格 */
   localModels: (d: any) => api.post('/ai-configs/local/models', d),
+  /** 视觉风格 → 推荐模型清单、模型目录与下载命令 */
+  styleModels: (provider: string, serviceType: 'image' | 'video') => api.get(`/ai-configs/style-models?provider=${encodeURIComponent(provider)}&service_type=${serviceType}`),
 }
 
 // lang 缺省/为 zh 时读写基础版（不带 query，保持原请求形态）

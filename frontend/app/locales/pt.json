@@ -518,7 +518,32 @@
       },
       "close": "Fechar",
       "discardConfirm": "Há alterações não salvas. Fechar e descartá-las?",
-      "outsideHint": "Clicar fora não fecha mais a janela, para não perder o que foi digitado. Use «Fechar» no canto superior direito, ou Cancelar / Salvar."
+      "outsideHint": "Clicar fora não fecha mais a janela, para não perder o que foi digitado. Use «Fechar» no canto superior direito, ou Cancelar / Salvar.",
+      "styleModels": {
+        "title": "Estilo visual → modelos",
+        "enable": "Trocar modelos conforme o estilo do projeto",
+        "enableHint": "Ativado, um projeto com estilo «Anime cel», «Ghibli» etc. usa o checkpoint / LoRA de estilo / gatilhos / parâmetros recomendados da tabela. Baixe os modelos antes; valores definidos explicitamente nesta configuração têm prioridade.",
+        "show": "Ver modelos recomendados e downloads",
+        "hide": "Recolher",
+        "check": "Verificar instalados",
+        "folders": "Pastas de modelos:",
+        "missing": "Faltam {n} arquivo(s)",
+        "ready": "Instalado",
+        "weight": "peso",
+        "lowNoise": "no modelo low-noise",
+        "highNoise": "no modelo high-noise",
+        "noLora": "não precisa (modelo base / primeiro quadro bastam)",
+        "trigger": "Gatilho",
+        "params": "Parâmetros",
+        "override": "Sobrescrever",
+        "loraPlaceholder": "Arquivo LoRA (none = nenhum)",
+        "reset": "Restaurar",
+        "download": "Comandos de download",
+        "downloadAll": "Baixar todos os estilos",
+        "downloadHint": "Os comandos usam curl -o para manter os nomes. Defina CIVITAI_TOKEN para modelos da Civitai que exigem login. Depois atualize a lista de modelos do serviço.",
+        "copy": "Copiar",
+        "copied": "Comandos copiados"
+      }
     },
     "styleDialog": {
       "editTitle": "Editar predefinição de estilo",

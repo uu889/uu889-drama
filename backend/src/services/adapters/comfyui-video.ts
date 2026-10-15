@@ -22,6 +22,8 @@ import type {
 import { parseUrlArray } from './media'
 import { applyPromptTemplate, explicitNumberSetting, textSetting } from './local-image'
 import { DEFAULT_VIDEO_TEMPLATE_ID, getComfyTemplate, isMiniMaxH3Workflow, modelOverrideFiles, resolveComfyTemplate } from './comfyui-templates'
+import { hasWan14bModel, injectStyleLora } from './comfyui-lora'
+import { resolveStyleModels, withTrigger } from './style-models'
 import {
   ComfyUIClient,
   COMFY_MISSING_ERROR,
@@ -119,11 +121,19 @@ export class ComfyUIVideoAdapter extends ComfyUIClient implements VideoProviderA
 
   async buildGenerateRequest(config: AIConfig, record: VideoGenerationRecord, ctx?: GenerateContext): Promise<ProviderRequest> {
     const settings = config.settings || {}
+    // 按项目视觉风格（开启时）：推荐模板 + 风格 LoRA（挂在扩散模型后）+ 触发词
+    const sm = resolveStyleModels('comfyui', 'video', settings, record.style)
     const model = (record.model || config.model || '').trim()
-    // 工作流来源：自定义工作流 > 设置里选的内置模板 > 「模型」对应的内置模板 > 默认 Wan 2.2 TI2V 5B
+    // 工作流来源：自定义工作流 > 风格覆盖里填的模板 > 设置里选的内置模板 > 「模型」对应的内置模板 > 风格推荐模板 > 默认 Wan 2.2 TI2V 5B
     const custom = parseComfyWorkflow(settings.comfyui_workflow)
-    const builtin = custom ? null : resolveComfyTemplate('video', settings.comfyui_template, model)
-    const template = custom || builtin!.workflow
+    // 风格推荐模板只在你没选模板、「模型」也没指向某个模板时使用；风格覆盖里填了模板则优先
+    const userPicked = !!settings.comfyui_template || (!!model && resolveComfyTemplate('video', null, model).id !== DEFAULT_VIDEO_TEMPLATE_ID) || model === DEFAULT_VIDEO_TEMPLATE_ID
+    const templateId = sm?.templateOverride ? sm.template : settings.comfyui_template || (userPicked ? null : sm?.template)
+    const builtin = custom ? null : resolveComfyTemplate('video', templateId, model)
+    const sourceWorkflow = custom || builtin!.workflow
+    // 风格 LoRA 是 Wan 14B 的：只挂到 14B 扩散模型上（TI2V 5B、MiniMax H3 等跳过，避免加载失败）
+    const styleLora = sm?.lora && hasWan14bModel(sourceWorkflow) ? { file: sm.lora, strength: sm.loraWeight, applyTo: sm.loraApplyTo } : null
+    const template = injectStyleLora(sourceWorkflow, styleLora)
 
     // MiniMax H3：模型按 24fps、17k+5 帧、768p 画布训练，宽高 / 帧数 / FPS 按它的规则换算
     const h3 = isMiniMaxH3Workflow(template)
@@ -155,8 +165,9 @@ export class ComfyUIVideoAdapter extends ComfyUIClient implements VideoProviderA
 
     const steps = explicitNumberSetting(settings.comfyui_steps, 1, 200)
     const cfg = explicitNumberSetting(settings.comfyui_cfg, 0, 30)
+    const basePrompt = applyPromptTemplate(settings.prompt_template, record.prompt || '')
     const values: ComfyPlaceholderValues = {
-      prompt: applyPromptTemplate(settings.prompt_template, record.prompt || ''),
+      prompt: sm ? withTrigger(basePrompt, sm.trigger) : basePrompt,
       negative_prompt: textSetting(settings.comfyui_negative_prompt, COMFYUI_DEFAULT_NEGATIVE_PROMPT),
       seed,
       width,

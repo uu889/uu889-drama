@@ -724,6 +724,17 @@
                 <span class="field-hint">{{ cfgForm.service_type === 'video' ? t('settings.cfg.local.translateHintVideo') : t('settings.cfg.local.translateHint') }}</span>
               </span>
             </label>
+            <div class="field">
+              <span class="field-label">{{ t('settings.cfg.styleModels.title') }}</span>
+              <StyleModelsPanel
+                v-model:enabled="cfgForm.style_models_enabled"
+                v-model:overrides="cfgForm.style_models"
+                :provider="cfgForm.provider"
+                :service-type="cfgForm.service_type"
+                :base-url="cfgForm.base_url"
+                :api-key="cfgForm.api_key"
+              />
+            </div>
             <div class="local-tools">
               <button v-if="isComfyForm" type="button" class="btn btn-sm" :disabled="inspecting" @click="inspectComfyWorkflow">
                 <Loader2 v-if="inspecting" :size="12" class="animate-spin" />
@@ -921,6 +932,7 @@
 <script setup>
 import { Plus, Pencil, Trash2, FileText, ChevronDown, Check, Loader2, Bot, Cpu, Sparkles, Palette, ExternalLink, Star, HardDrive, Database, RefreshCw, Download, Languages, SunMoon, X, BookOpen } from 'lucide-vue-next'
 import BaseSelect from '~/components/BaseSelect.vue'
+import StyleModelsPanel from '~/components/StyleModelsPanel.vue'
 import { toast } from 'vue-sonner'
 import { toastError } from '~/composables/useToast'
 import { useI18n } from 'vue-i18n'
@@ -959,7 +971,7 @@ const aiaskSaving = ref(false)
 // 本地服务（ComfyUI / SD WebUI / Fooocus）专属参数存后端 settings JSON，接口上以顶层字段读写
 const LOCAL_SETTING_FIELDS = ['comfyui_workflow', 'comfyui_template', 'comfyui_fps', 'comfyui_steps', 'comfyui_cfg', 'comfyui_negative_prompt', 'prompt_template', 'image_base_size', 'image_steps', 'image_cfg_scale', 'image_sampler', 'image_negative_prompt', 'fooocus_performance', 'fooocus_styles']
 // 布尔设置单独处理：自动绑定默认开；中文翻译默认值按服务类型（本地生图开、ComfyUI 视频关）
-const EMPTY_CFG_FORM = { name: '', provider: '', api_key: '', base_url: '', models: [], service_type: 'text', priority: 0, temperature: '', ...Object.fromEntries(LOCAL_SETTING_FIELDS.map(k => [k, ''])), comfyui_auto_bind: true, prompt_translate: true }
+const EMPTY_CFG_FORM = { name: '', provider: '', api_key: '', base_url: '', models: [], service_type: 'text', priority: 0, temperature: '', ...Object.fromEntries(LOCAL_SETTING_FIELDS.map(k => [k, ''])), comfyui_auto_bind: true, prompt_translate: true, style_models_enabled: false, style_models: {} }
 const cfgForm = reactive({ ...EMPTY_CFG_FORM })
 const LOCAL_BASE_URLS = { comfyui: 'http://127.0.0.1:8188', sdwebui: 'http://127.0.0.1:7860', fooocus: 'http://127.0.0.1:8888' }
 const FOOOCUS_PERFORMANCE = ['Speed', 'Quality', 'Extreme Speed', 'Lightning', 'Hyper-SD']
@@ -985,6 +997,12 @@ const promptTemplatePreview = computed(() => {
   if (!tpl) return sample
   return /\{\{\s*prompt\s*\}\}/i.test(tpl) ? tpl.replace(/\{\{\s*prompt\s*\}\}/gi, sample) : `${sample}, ${tpl}`
 })
+/** 后端存的风格覆盖表（对象或 JSON 字符串）→ 表单对象 */
+function parseStyleModels(v) {
+  if (!v) return {}
+  if (typeof v === 'object') return JSON.parse(JSON.stringify(v))
+  try { const o = JSON.parse(v); return o && typeof o === 'object' ? o : {} } catch { return {} }
+}
 function applySdPreset(p) {
   cfgForm.image_base_size = p.base
   cfgForm.image_steps = p.steps
@@ -1271,7 +1289,7 @@ async function applyAiaskQuickConfig() {
 function startAddCfg(t) {
   cfgEditId.value = null
   cfgTestResult.value = null
-  Object.assign(cfgForm, { ...EMPTY_CFG_FORM, models: [], service_type: t, prompt_translate: t !== 'video' })
+  Object.assign(cfgForm, { ...EMPTY_CFG_FORM, models: [], service_type: t, prompt_translate: t !== 'video', style_models: {} })
   const firstPreset = presetsByType(t)[0]
   if (firstPreset) applyProviderPreset(t, firstPreset.provider)
   comfySource.value = 'builtin'
@@ -1295,6 +1313,8 @@ function startEditCfg(c) {
     comfyui_workflow: formatWorkflow(c.comfyui_workflow),
     comfyui_auto_bind: c.comfyui_auto_bind !== false,
     prompt_translate: typeof c.prompt_translate === 'boolean' ? c.prompt_translate : c.service_type !== 'video',
+    style_models_enabled: c.style_models_enabled === true,
+    style_models: parseStyleModels(c.style_models),
   })
   comfySource.value = c.comfyui_workflow ? 'custom' : 'builtin'
   inspectResult.value = null
@@ -1337,7 +1357,16 @@ function localSettingsPayload() {
   const num = v => (v === '' || v === null || v === undefined ? null : Number(v))
   const text = v => String(v ?? '').trim()
   const imageParams = () => ({ image_base_size: num(cfgForm.image_base_size), image_steps: num(cfgForm.image_steps), image_cfg_scale: num(cfgForm.image_cfg_scale) })
-  const promptParams = () => ({ prompt_template: text(cfgForm.prompt_template), prompt_translate: !!cfgForm.prompt_translate })
+  // 视觉风格 → 模型：开关 + 覆盖表（空表发空串，后端删除）
+  const styleOverrides = Object.fromEntries(Object.entries(cfgForm.style_models || {})
+    .map(([k, row]) => [k, Object.fromEntries(Object.entries(row || {}).map(([f, v]) => [f, String(v ?? '').trim()]).filter(([, v]) => v))])
+    .filter(([, row]) => Object.keys(row).length))
+  const promptParams = () => ({
+    prompt_template: text(cfgForm.prompt_template),
+    prompt_translate: !!cfgForm.prompt_translate,
+    style_models_enabled: !!cfgForm.style_models_enabled,
+    style_models: Object.keys(styleOverrides).length ? styleOverrides : '',
+  })
   if (isComfyForm.value) {
     return {
       // 选内置模板时清空自定义工作流（后端据此改用模板）

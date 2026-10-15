@@ -518,7 +518,32 @@
       },
       "close": "Close",
       "discardConfirm": "You have unsaved changes. Close and discard them?",
-      "outsideHint": "Clicking outside no longer closes this dialog, so nothing you typed is lost. Use Close at the top right, or Cancel / Save."
+      "outsideHint": "Clicking outside no longer closes this dialog, so nothing you typed is lost. Use Close at the top right, or Cancel / Save.",
+      "styleModels": {
+        "title": "Visual style → models",
+        "enable": "Switch models by the project visual style",
+        "enableHint": "When on, a project styled \"Anime cel\", \"Ghibli\" etc. uses the checkpoint / style LoRA / trigger words / recommended params below. Download the models first; values you set explicitly in this config (steps, CFG, sampler) still win.",
+        "show": "Show recommended models & downloads",
+        "hide": "Hide",
+        "check": "Check what is installed",
+        "folders": "Model folders:",
+        "missing": "{n} file(s) missing",
+        "ready": "Installed",
+        "weight": "weight",
+        "lowNoise": "on the low-noise model",
+        "highNoise": "on the high-noise model",
+        "noLora": "not needed (base model / first frame is enough)",
+        "trigger": "Trigger",
+        "params": "Params",
+        "override": "Override",
+        "loraPlaceholder": "LoRA file (none = no LoRA)",
+        "reset": "Reset",
+        "download": "Download commands",
+        "downloadAll": "Download all styles at once",
+        "downloadHint": "Commands use curl -o so file names match the table. Set CIVITAI_TOKEN for Civitai models that require login (civitai.com → Account settings → API Keys). In China set HF_ENDPOINT=https://hf-mirror.com for Hugging Face. Refresh the model list afterwards (ComfyUI: R, SD WebUI: refresh, Fooocus: restart).",
+        "copy": "Copy",
+        "copied": "Download commands copied"
+      }
     },
     "styleDialog": {
       "editTitle": "Edit Style Preset",
