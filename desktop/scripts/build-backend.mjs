@@ -2,7 +2,7 @@
  * esbuild 打包后端 — backend/src → desktop/build/backend.mjs（单文件 ESM）
  *
  * - format esm：backend 顶层 await initDb() 要求 ESM
- * - external 四件套：sharp / better-sqlite3（原生模块，electron-builder 按
+ * - external：sharp / better-sqlite3（原生模块，electron-builder 按
  *   Electron ABI 重编并 asarUnpack）、ffmpeg-static / ffprobe-static（postinstall
  *   下载的二进制，且 ffmpeg.ts 经 createRequire 动态引入，无法静态打包）
  * - banner 注入 createRequire：externals 在 ESM 产物里经 require 解析到
@@ -22,7 +22,9 @@ await build({
   platform: 'node',
   target: 'node20',
   sourcemap: true,
-  external: ['sharp', 'better-sqlite3', 'ffmpeg-static', 'ffprobe-static'],
+  // ssh2（远程模型安装）的原生加速是可选的：安装时有编译器（macOS 构建机）才会生成 sshcrypto.node，
+  // esbuild 无法打包 .node；排除后运行时 require 失败会被 ssh2 自己 catch，自动改用纯 JS 实现
+  external: ['sharp', 'better-sqlite3', 'ffmpeg-static', 'ffprobe-static', '*.node', 'cpu-features'],
   banner: {
     // esbuild 打 CJS→ESM 不垫片 __dirname/__filename/require（fluent-ffmpeg 等依赖），
     // 在产物顶层统一注入；__dirname 指向 build/ 目录，仅 presets 等未用到的模块相对路径受影响
