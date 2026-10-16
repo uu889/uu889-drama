@@ -367,6 +367,47 @@ test('generation hook: missing style models are downloaded first (progress repor
   }
 })
 
+test('generation hook: concurrent tasks with different styles share the base checkpoint download and both wait for it', async () => {
+  const { ensureStyleModelsForTask } = await import('../src/services/model-installer/index')
+  const { listJobs } = await import('../src/services/model-installer/jobs')
+  const { FILE_META } = await import('../src/services/model-installer/sources')
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'uu889-auto2-'))
+  for (const d of ['comfy', 'models/checkpoints', 'models/loras']) fs.mkdirSync(path.join(root, d), { recursive: true })
+  fs.writeFileSync(path.join(root, 'main.py'), '')
+  const names = ['sd_xl_base_1.0.safetensors', 'watercolor_v1_sdxl.safetensors', 'comic-ink-halftone.safetensors']
+  const saved = names.map((n) => FILE_META[n])
+  for (const n of names) FILE_META[n] = { bytes: PAYLOAD.length, sha256: SHA }
+  const hits: Record<string, number> = {}
+  const realFetch = globalThis.fetch
+  globalThis.fetch = ((url: any, init: any) => {
+    const u = String(url)
+    if (!u.startsWith('https://huggingface.co/')) return realFetch(url, init)
+    const name = names.find((n) => u.includes(n)) || 'other'
+    hits[name] = (hits[name] || 0) + 1
+    // 底模慢、LoRA 快：没修之前，后来的任务只等自己的 LoRA，会在底模下完前就开始生成
+    return realFetch(name === names[0] ? `${base}/slow/base` : `${base}/ok/lora`, init)
+  }) as any
+  try {
+    const cfg = { provider: 'comfyui', baseUrl: '', apiKey: '', model: '', settings: { style_models_enabled: true, style_models_auto_download: true, model_install: { mode: 'local', root } } }
+    const baseFile = path.join(root, 'models', 'checkpoints', names[0])
+    const reports: string[] = []
+    const run = (style: string) => ensureStyleModelsForTask(cfg, 'image', style, (p) => reports.push(String(p.message)))
+      .then(() => fs.existsSync(baseFile))
+    // 同一风格两个任务 + 另一个风格一个任务，同时开始
+    const ready = await Promise.all([run('watercolor'), run('watercolor'), run('comic')])
+    assert.deepEqual(ready, [true, true, true], '每个任务都要等底模下完才返回')
+    assert.equal(hits[names[0]], 1, '底模只下载一次')
+    assert.equal(hits[names[1]], 1, '同一风格的 LoRA 只下载一次')
+    assert.equal(hits[names[2]], 1)
+    const items = listJobs().filter((j) => j.root === root).flatMap((j) => j.items.map((i) => i.file))
+    assert.deepEqual(items.sort(), [...names].sort(), '每个文件只在一个下载任务里')
+    assert.ok(reports.some((m) => /共用同一份下载/.test(m)), reports.join('\n'))
+  } finally {
+    globalThis.fetch = realFetch
+    names.forEach((n, i) => { FILE_META[n] = saved[i] })
+  }
+})
+
 // ─── 证书（私钥）登录：格式转换与错误提示 ─────────────────────────────────
 test('private keys: PKCS#8 (RSA / EC / Ed25519, encrypted) and PuTTY ppk v3 convert to keys ssh2 can use', async () => {
   const { checkPrivateKey } = await import('../src/services/model-installer/target')

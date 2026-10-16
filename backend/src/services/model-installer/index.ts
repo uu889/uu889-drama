@@ -9,7 +9,7 @@ import { isStyleKey, STYLE_KEYS } from '../adapters/style-models.js'
 import { openTarget, normalizeTargetPath, type InstallTarget, type RemoteLogin, type TargetFs } from './target'
 import { resolveLayout, type InstallProvider } from './detect'
 import { buildPlanFiles, checkPlanFiles } from './plan'
-import { activeJobFor, createJob, getJob, publicJob, targetKeyOf, type DownloadJob } from './jobs'
+import { activeJobFor, createJob, getJob, targetKeyOf } from './jobs'
 import type { ProgressReporter } from '../task-progress'
 
 export interface ModelInstallSettings {
@@ -116,8 +116,41 @@ function fmtGb(n: number) {
 }
 
 /**
+ * 同一台目标机上的「检查缺哪些文件 → 加入 / 创建下载任务」按顺序执行：
+ * 多个生成任务同时开始时，后来的任务一定能看到前面任务刚建的下载任务，同一个文件不会下两遍；
+ * 远程模式下也不会一下子开出一堆 SSH 连接。
+ */
+const targetLocks = new Map<string, Promise<void>>()
+
+async function withTargetLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  const prev = targetLocks.get(key) || Promise.resolve()
+  let release!: () => void
+  const mine = prev.then(() => new Promise<void>((r) => { release = r }))
+  targetLocks.set(key, mine)
+  await prev
+  try {
+    return await fn()
+  } finally {
+    release()
+    if (targetLocks.get(key) === mine) targetLocks.delete(key)
+  }
+}
+
+/** 这个生成任务要等的一个文件：在哪个下载任务里、目标路径 */
+interface WatchedFile {
+  jobId: string
+  dest: string
+  name: string
+  /** true = 别的任务（或手动下载）已经在下，这里只是等它 */
+  shared: boolean
+}
+
+/**
  * 生成任务开始前：本地服务开启了「按风格切换模型」+「自动下载缺少的模型」，且配置了安装位置时，
  * 检查这个风格要用的文件；缺了就创建下载任务（或加入正在进行的任务）并等待下完，期间在任务进度里显示下载进度。
+ *
+ * 多任务并发：每个缺少的文件只会在一个下载任务里——已经有任务在下的（比如别的风格共用的底模 / Wan 基础模型）直接等它，
+ * 只为没人在下的文件新建任务；等待时逐个文件看状态，要用的文件全部下完才开始生成。
  * 不满足条件时直接返回；检查本身出错（连不上远程等）只提示、不阻断生成。
  */
 export async function ensureStyleModelsForTask(
@@ -135,67 +168,96 @@ export async function ensureStyleModelsForTask(
   if (!install?.root) return
 
   const target = targetOf(install)
-  let job: DownloadJob | null = null
-  let t: TargetFs | null = null
+  const key = targetKeyOf(target)
+  let watch: WatchedFile[] = []
   try {
     report({ stage: 'preparing', message: '检查风格模型是否齐全…' })
-    t = await openTarget(target)
-    const plan = await planOnTarget(t, {
-      target,
-      root: install.root,
-      provider: config.provider,
-      serviceType,
-      styles: [style],
-      settings,
-      model: Array.isArray(config.model) ? config.model[0] : config.model,
-      preferMirror: !!settings.download_prefer_mirror,
+    watch = await withTargetLock(key, async () => {
+      const t = await openTarget(target)
+      try {
+        const plan = await planOnTarget(t, {
+          target,
+          root: install!.root,
+          provider: config.provider as InstallProvider,
+          serviceType,
+          styles: [style],
+          settings,
+          model: Array.isArray(config.model) ? config.model[0] : config.model,
+          preferMirror: !!settings.download_prefer_mirror,
+        })
+        const missing = plan.files.filter((f) => f.state !== 'present')
+        if (!missing.length) return []
+        const out: WatchedFile[] = []
+        const notCovered: typeof missing = []
+        for (const f of missing) {
+          const existing = activeJobFor(key, f.dest)
+          if (existing) out.push({ jobId: existing.id, dest: f.dest, name: f.name, shared: true })
+          else notCovered.push(f)
+        }
+        if (notCovered.length) {
+          const job = createJob({
+            provider: config.provider as InstallProvider,
+            serviceType,
+            styles: [style],
+            root: plan.root,
+            target,
+            fsInfo: { os: t.os, hostname: t.hostname },
+            files: notCovered,
+            tokens: { civitai: settings.civitai_token, hf: settings.hf_token },
+            origin: 'auto',
+            refresh: { baseUrl: config.baseUrl, apiKey: config.apiKey },
+          })
+          for (const item of job.items) out.push({ jobId: job.id, dest: item.dest, name: item.name, shared: false })
+        }
+        return out
+      } finally {
+        t.close()
+      }
     })
-    const missing = plan.files.filter((f) => f.state !== 'present')
-    if (!missing.length) return
-    const key = targetKeyOf(target)
-    job = missing.map((f) => activeJobFor(key, f.dest)).find(Boolean) || null
-    const notCovered = missing.filter((f) => !activeJobFor(key, f.dest))
-    if (notCovered.length) {
-      job = createJob({
-        provider: config.provider,
-        serviceType,
-        styles: [style],
-        root: plan.root,
-        target,
-        fsInfo: { os: t.os, hostname: t.hostname },
-        files: notCovered,
-        tokens: { civitai: settings.civitai_token, hf: settings.hf_token },
-        origin: 'auto',
-        refresh: { baseUrl: config.baseUrl, apiKey: config.apiKey },
-      })
-    }
   } catch (err: any) {
     report({ stage: 'preparing', message: `检查风格模型失败，按现有模型继续：${err?.message || err}` })
     return
-  } finally {
-    t?.close()
   }
-  if (!job) return
+  if (!watch.length) return
 
+  const sharedCount = watch.filter((w) => w.shared).length
   const started = Date.now()
-  const jobId = job.id
   while (Date.now() - started < WAIT_LIMIT_MS) {
-    const cur = getJob(jobId)
-    if (!cur) break
-    const pj = publicJob(cur)
-    if (cur.status === 'done') {
+    let done = 0
+    let received = 0
+    let total = 0
+    let speed = 0
+    for (const w of watch) {
+      const job = getJob(w.jobId)
+      const item = job?.items.find((i) => i.dest === w.dest)
+      if (!job || !item) throw new Error(`风格模型「${w.name}」的下载任务记录不见了（可能被删除），请重试生成`)
+      const size = item.bytes || item.total || 0
+      if (item.status === 'done' || item.status === 'skipped' || job.status === 'done') {
+        done++
+        const b = size || item.received
+        received += b
+        total += b
+        continue
+      }
+      if (job.status === 'failed' || job.status === 'canceled' || job.status === 'paused' || item.status === 'failed') {
+        const why = job.status === 'paused' ? '已暂停' : job.status === 'canceled' ? '已取消' : item.error || job.error || job.message || '下载失败'
+        throw new Error(`风格模型「${w.name}」没有下完（${why}）：请在设置 → 视觉风格 → 模型 → 下载任务里处理后重试`)
+      }
+      received += item.received
+      total += size
+      if (item.status === 'downloading') speed += item.speed || 0
+    }
+    if (done === watch.length) {
       report({ stage: 'preparing', message: '风格模型下载完成，开始生成' })
       return
     }
-    if (cur.status === 'failed' || cur.status === 'canceled' || cur.status === 'paused') {
-      throw new Error(`风格模型没有下完（${cur.status === 'paused' ? '已暂停' : cur.status === 'canceled' ? '已取消' : cur.error || cur.message || '下载失败'}）：请在设置 → 视觉风格 → 模型 → 下载任务里处理后重试`)
-    }
-    const pct = pj.percent ?? 0
+    const pct = total ? Math.min(100, Math.round((received / total) * 1000) / 10) : 0
+    const eta = speed > 0 && total ? Math.round((total - received) / speed) : undefined
     report({
       stage: 'preparing',
       percent: 1,
-      message: `正在下载风格模型 ${pj.files_done}/${pj.files_total} 个文件，${pct}%（${fmtGb(pj.received_bytes)} / ${fmtGb(pj.total_bytes)}${pj.speed ? `，${(pj.speed / 1048576).toFixed(1)} MB/s` : ''}），下完自动开始生成`,
-      detail: { downloaded_bytes: pj.received_bytes, total_bytes: pj.total_bytes, eta_seconds: pj.eta ?? undefined },
+      message: `正在下载风格模型 ${done}/${watch.length} 个文件，${pct}%（${fmtGb(received)} / ${fmtGb(total)}${speed ? `，${(speed / 1048576).toFixed(1)} MB/s` : ''}）${sharedCount ? `，其中 ${sharedCount} 个和其他任务共用同一份下载` : ''}，下完自动开始生成`,
+      detail: { downloaded_bytes: received, total_bytes: total, eta_seconds: eta },
     })
     await new Promise((r) => setTimeout(r, 2000))
   }
