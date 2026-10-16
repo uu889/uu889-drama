@@ -643,7 +643,8 @@
         "keyHint": "支持 OpenSSH（~/.ssh/id_ed25519、id_rsa、id_ecdsa）、PEM（云服务器下发的 .pem / .key 证书）、PKCS#8、PuTTY .ppk（v2 / v3）。私钥有密码时填「私钥密码」。对应的公钥需要已加入远程用户的 ~/.ssh/authorized_keys。",
         "fingerprint": "主机指纹",
         "fingerprintHint": "首次连接请与服务器上 ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub 的输出核对"
-      }
+      },
+      "diagnosis": "识别到这个地址上是：{name}"
     },
     "styleDialog": {
       "editTitle": "编辑风格预设",

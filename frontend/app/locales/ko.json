@@ -643,7 +643,8 @@
         "keyHint": "OpenSSH(id_ed25519 / id_rsa / id_ecdsa), PEM(.pem / .key), PKCS#8, PuTTY .ppk(v2 / v3) 지원. 암호가 있는 키는 키 암호를 입력하세요. 해당 공개 키가 원격 사용자의 ~/.ssh/authorized_keys에 있어야 합니다.",
         "fingerprint": "호스트 키",
         "fingerprintHint": "처음 연결할 때 서버의 ssh-keygen -lf 결과와 비교하세요"
-      }
+      },
+      "diagnosis": "이 주소에서 감지됨: {name}"
     },
     "styleDialog": {
       "editTitle": "스타일 프리셋 편집",

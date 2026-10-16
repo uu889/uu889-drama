@@ -643,7 +643,8 @@
         "keyHint": "Prend en charge OpenSSH (id_ed25519 / id_rsa / id_ecdsa), PEM (.pem / .key), PKCS#8 et PuTTY .ppk (v2 / v3). Saisissez la phrase secrète des clés protégées. La clé publique doit figurer dans ~/.ssh/authorized_keys sur la machine distante.",
         "fingerprint": "Clé d’hôte",
         "fingerprintHint": "À la première connexion, comparez avec ssh-keygen -lf sur le serveur"
-      }
+      },
+      "diagnosis": "Détecté à cette adresse : {name}"
     },
     "styleDialog": {
       "editTitle": "Modifier le préréglage de style",

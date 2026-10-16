@@ -10,6 +10,7 @@ import { autoBindComfyWorkflow } from '../services/adapters/comfyui-bind.js'
 import { describeComfyTemplates, modelOverrideFiles, resolveComfyTemplate, splitModelFiles, type ComfyTemplateKind } from '../services/adapters/comfyui-templates.js'
 import { explicitNumberSetting, localAuthHeaders, localUrl } from '../services/adapters/local-image.js'
 import { normalizeStyleOverrides } from '../services/adapters/style-models.js'
+import { describeFetchError, diagnoseLocalService } from '../services/adapters/local-diagnose.js'
 import { normalizeModelInstall } from '../services/model-installer/index.js'
 import { describeStyleModelCatalog } from '../services/adapters/style-model-guide.js'
 import { redactUrl, logTaskError, logTaskProgress, logTaskSuccess } from '../utils/task-logger.js'
@@ -150,6 +151,11 @@ function withParsedFields(r: any) {
     temperature: parseConfigTemperature(r.settings),
     ...extra,
   }
+}
+
+const LOCAL_PROVIDERS = new Set(['sdwebui', 'comfyui', 'fooocus'])
+function localDiagnoseHeaders(provider: string, apiKey?: string): Record<string, string> {
+  return provider === 'comfyui' ? bearerHeaders(apiKey) : localAuthHeaders(apiKey || '')
 }
 
 function bearerHeaders(apiKey?: string, withJson = false) {
@@ -386,9 +392,14 @@ app.post('/test', async (c) => {
       method: probe.method,
       headers: probe.headers,
       body: probe.body ? JSON.stringify(probe.body) : undefined,
+      signal: AbortSignal.timeout(20_000),
     })
     const text = await resp.text()
     const reachable = [200, 204, 400, 401, 403].includes(resp.status)
+    // 本地服务接口不对（最常见：SD WebUI 没加 --api）：探测这个地址上实际是什么程序
+    const diagnosis = !reachable && LOCAL_PROVIDERS.has(body.provider)
+      ? await diagnoseLocalService(body.provider, body.base_url, localDiagnoseHeaders(body.provider, body.api_key)).catch(() => null)
+      : null
     const payload = {
       ok: resp.ok,
       reachable,
@@ -398,8 +409,9 @@ app.post('/test', async (c) => {
       url: probeUrl,
       message: reachable
         ? (resp.ok ? '端点可访问，认证与路径基本正常' : '端点已响应，请根据状态码判断认证或路径是否正确')
-        : '端点未按预期响应，请检查 Base URL 和代理前缀',
+        : diagnosis?.message || '端点未按预期响应，请检查 Base URL 和代理前缀',
       response_preview: text.slice(0, 240),
+      diagnosis,
     }
     if (reachable) {
       logTaskSuccess('AIConfig', 'probe-done', {
@@ -421,13 +433,17 @@ app.post('/test', async (c) => {
       url: probeUrl,
       error: error.message,
     })
+    const diagnosis = LOCAL_PROVIDERS.has(body.provider)
+      ? await diagnoseLocalService(body.provider, body.base_url, localDiagnoseHeaders(body.provider, body.api_key)).catch(() => null)
+      : null
     return success(c, {
       ok: false,
       reachable: false,
       method: probe.method,
       url: probeUrl,
-      message: error.message || '请求失败',
+      message: diagnosis?.message || describeFetchError(error),
       response_preview: '',
+      diagnosis,
     })
   }
 })
@@ -609,7 +625,10 @@ app.post('/local/models', async (c) => {
     }
     return success(c, { groups })
   } catch (err: any) {
-    return success(c, { groups, error: err?.message || String(err) })
+    const diagnosis = LOCAL_PROVIDERS.has(provider)
+      ? await diagnoseLocalService(provider as any, String(body.base_url || ''), localDiagnoseHeaders(provider, apiKey)).catch(() => null)
+      : null
+    return success(c, { groups, error: /fetch failed/.test(String(err?.message)) ? describeFetchError(err) : err?.message || String(err), diagnosis })
   }
 })
 

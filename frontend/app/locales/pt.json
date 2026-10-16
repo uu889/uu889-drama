@@ -643,7 +643,8 @@
         "keyHint": "Suporta OpenSSH (id_ed25519 / id_rsa / id_ecdsa), PEM (.pem / .key), PKCS#8 e PuTTY .ppk (v2 / v3). Informe a senha de chaves protegidas. A chave pública precisa estar em ~/.ssh/authorized_keys do usuário remoto.",
         "fingerprint": "Chave do host",
         "fingerprintHint": "Na primeira conexão, compare com ssh-keygen -lf no servidor"
-      }
+      },
+      "diagnosis": "Detectado neste endereço: {name}"
     },
     "styleDialog": {
       "editTitle": "Editar predefinição de estilo",

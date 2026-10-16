@@ -793,6 +793,7 @@
                 <button type="button" class="btn btn-ghost btn-icon btn-sm ml-auto" @click="localModels = null"><X :size="12" /></button>
               </div>
               <div v-if="localModels.error" class="inspect-warn is-error">{{ localModels.error }}</div>
+              <div v-if="localModels.diagnosis?.message && localModels.diagnosis.message !== localModels.error" class="inspect-warn">{{ localModels.diagnosis.message }}</div>
               <div v-for="g in localModels.groups" :key="g.key" class="model-group">
                 <div class="model-group-title">{{ g.label }}<span v-if="g.folder" class="mono dim"> · ComfyUI/{{ g.folder }}</span> <span class="dim">({{ g.items.length }})</span></div>
                 <div class="model-chips">
@@ -813,6 +814,7 @@
               <span>{{ cfgTestResult.message }}</span>
             </div>
             <div class="mono test-result-url">{{ cfgTestResult.method }} {{ cfgTestResult.url }}</div>
+            <div v-if="cfgTestResult.diagnosis?.label" class="test-result-diag">{{ t('settings.cfg.diagnosis', { name: cfgTestResult.diagnosis.label }) }}</div>
             <div v-if="cfgTestResult.response_preview" class="mono test-result-preview">{{ cfgTestResult.response_preview }}</div>
           </div>
         </div>
@@ -2379,6 +2381,7 @@ onBeforeUnmount(stopUsagePoll)
   color: var(--text-1);
 }
 .test-result-url,
+.test-result-diag { font-size: 11.5px; color: var(--text-2); margin-top: 4px; }
 .test-result-preview {
   font-size: 11px;
   color: var(--text-2);

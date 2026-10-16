@@ -643,7 +643,8 @@
         "keyHint": "Hỗ trợ OpenSSH (id_ed25519 / id_rsa / id_ecdsa), PEM (.pem / .key), PKCS#8, PuTTY .ppk (v2 / v3). Khóa có mật khẩu thì nhập mật khẩu khóa. Khóa công khai tương ứng phải nằm trong ~/.ssh/authorized_keys trên máy từ xa.",
         "fingerprint": "Khóa máy chủ",
         "fingerprintHint": "Lần đầu kết nối, hãy so với kết quả ssh-keygen -lf trên máy chủ"
-      }
+      },
+      "diagnosis": "Nhận diện tại địa chỉ này: {name}"
     },
     "styleDialog": {
       "editTitle": "Sửa phong cách mẫu",

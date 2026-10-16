@@ -643,7 +643,8 @@
         "keyHint": "OpenSSH（id_ed25519 / id_rsa / id_ecdsa）、PEM（.pem / .key）、PKCS#8、PuTTY .ppk（v2 / v3）に対応。パスフレーズ付きの鍵はパスフレーズを入力。対応する公開鍵がリモートの ~/.ssh/authorized_keys に必要です。",
         "fingerprint": "ホスト鍵",
         "fingerprintHint": "初回はサーバー上の ssh-keygen -lf の結果と照合してください"
-      }
+      },
+      "diagnosis": "このアドレスで検出：{name}"
     },
     "styleDialog": {
       "editTitle": "スタイルプリセットを編集",
