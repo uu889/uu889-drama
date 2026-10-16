@@ -366,3 +366,76 @@ test('generation hook: missing style models are downloaded first (progress repor
     FILE_META['watercolor_v1_sdxl.safetensors'] = saved.b
   }
 })
+
+// ─── 证书（私钥）登录：格式转换与错误提示 ─────────────────────────────────
+test('private keys: PKCS#8 (RSA / EC / Ed25519, encrypted) and PuTTY ppk v3 convert to keys ssh2 can use', async () => {
+  const { checkPrivateKey } = await import('../src/services/model-installer/target')
+  const ssh2: any = await import('ssh2')
+  const utils = ssh2.utils ?? ssh2.default.utils
+  const pubOf = (pem: string, pass?: string) => {
+    const k = utils.parseKey(pem, pass)
+    return (Array.isArray(k) ? k[0] : k).getPublicSSH().toString('base64')
+  }
+  for (const [type, opts] of [['rsa', { modulusLength: 2048 }], ['ec', { namedCurve: 'P-256' }], ['ed25519', {}]] as const) {
+    const { privateKey, publicKey } = crypto.generateKeyPairSync(type as any, opts as any)
+    const expected = (() => {
+      const jwk: any = publicKey.export({ format: 'jwk' })
+      return jwk
+    })()
+    const pkcs8 = privateKey.export({ type: 'pkcs8', format: 'pem' }) as string
+    const r = await checkPrivateKey(pkcs8)
+    assert.equal(r.converted, 'PKCS#8', type)
+    assert.ok(pubOf(r.key).length > 20, type)
+    const enc = privateKey.export({ type: 'pkcs8', format: 'pem', cipher: 'aes-256-cbc', passphrase: 'pw' }) as string
+    await assert.rejects(checkPrivateKey(enc), /私钥密码/)
+    await assert.rejects(checkPrivateKey(enc, 'wrong'), /私钥密码不对/)
+    const r2 = await checkPrivateKey(enc, 'pw')
+    assert.equal(pubOf(r2.key), pubOf(r.key), `${type} encrypted pkcs8 → same key`)
+    void expected
+  }
+})
+
+test('private keys: PuTTY ppk v3 (unencrypted) converts; encrypted v3 explains how to export', async () => {
+  const { checkPrivateKey } = await import('../src/services/model-installer/target')
+  const str = (b: Buffer | string) => { const x = Buffer.isBuffer(b) ? b : Buffer.from(b); const l = Buffer.alloc(4); l.writeUInt32BE(x.length); return Buffer.concat([l, x]) }
+  const mp = (b: Buffer) => str(b[0] & 0x80 ? Buffer.concat([Buffer.from([0]), b]) : b)
+  const ppk = (algo: string, pub: Buffer, priv: Buffer, enc = 'none') => {
+    const lines = (b: Buffer) => b.toString('base64').match(/.{1,64}/g)!
+    const pl = lines(pub); const vl = lines(priv)
+    return [`PuTTY-User-Key-File-3: ${algo}`, `Encryption: ${enc}`, 'Comment: test', `Public-Lines: ${pl.length}`, ...pl, `Private-Lines: ${vl.length}`, ...vl, 'Private-MAC: 00'].join('\n')
+  }
+  // Ed25519
+  const ed = crypto.generateKeyPairSync('ed25519')
+  const ej: any = ed.privateKey.export({ format: 'jwk' })
+  const edPub = Buffer.from(ej.x, 'base64url')
+  const r = await checkPrivateKey(ppk('ssh-ed25519', Buffer.concat([str('ssh-ed25519'), str(edPub)]), str(Buffer.from(ej.d, 'base64url'))))
+  assert.equal(r.converted, 'PuTTY ppk v3')
+  assert.match(r.key, /BEGIN OPENSSH PRIVATE KEY/)
+  // RSA
+  const rsa = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 })
+  const rj: any = rsa.privateKey.export({ format: 'jwk' })
+  const B = (s: string) => Buffer.from(s, 'base64url')
+  const rr = await checkPrivateKey(ppk('ssh-rsa', Buffer.concat([str('ssh-rsa'), mp(B(rj.e)), mp(B(rj.n))]), Buffer.concat([mp(B(rj.d)), mp(B(rj.p)), mp(B(rj.q)), mp(B(rj.qi))])))
+  assert.match(rr.key, /BEGIN RSA PRIVATE KEY/)
+  // ECDSA P-256
+  const ec = crypto.generateKeyPairSync('ec', { namedCurve: 'P-256' })
+  const cj: any = ec.privateKey.export({ format: 'jwk' })
+  const Q = Buffer.concat([Buffer.from([4]), B(cj.x), B(cj.y)])
+  const er = await checkPrivateKey(ppk('ecdsa-sha2-nistp256', Buffer.concat([str('ecdsa-sha2-nistp256'), str('nistp256'), str(Q)]), mp(B(cj.d))))
+  assert.match(er.key, /BEGIN EC PRIVATE KEY/)
+  await assert.rejects(checkPrivateKey(ppk('ssh-ed25519', Buffer.alloc(8), Buffer.alloc(8), 'aes256-cbc'), 'x'), /PuTTYgen/)
+})
+
+test('private keys: friendly errors for public keys, certificates and garbage', async () => {
+  const { checkPrivateKey } = await import('../src/services/model-installer/target')
+  await assert.rejects(checkPrivateKey(''), /选择私钥文件/)
+  await assert.rejects(checkPrivateKey('ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH user@host'), /公钥/)
+  await assert.rejects(checkPrivateKey('ssh-ed25519-cert-v01@openssh.com AAAAIHNzaC1lZDI1NTE5LWNlcnQ= user'), /OpenSSH 证书/)
+  await assert.rejects(checkPrivateKey('-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----'), /SSL 证书/)
+  await assert.rejects(checkPrivateKey('not a key'), /私钥格式不支持/)
+  const { privateKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 })
+  const pem = privateKey.export({ type: 'pkcs1', format: 'pem' }) as string
+  const ok = await checkPrivateKey(pem.replace(/\n/g, '\r\n'))
+  assert.equal(ok.converted, null)
+  assert.ok(!ok.key.includes('\r'))
+})

@@ -566,14 +566,14 @@
         "localDisabled": "服务器已关闭本机模型安装（MODEL_INSTALLER_LOCAL=0），请用远程模式。",
         "host": "主机地址（IP 或域名）",
         "username": "用户名",
-        "authPassword": "密码登录",
-        "authKey": "私钥登录",
+        "authPassword": "账号密码登录",
+        "authKey": "证书登录（私钥）",
         "password": "密码",
-        "privateKey": "粘贴 OpenSSH 私钥（-----BEGIN … PRIVATE KEY-----）",
+        "privateKey": "粘贴私钥内容，或点上面的「选择私钥文件…」",
         "passphrase": "私钥密码（没有可留空）",
         "test": "测试连接",
         "connected": "已连接：{os} · {host} · 主目录 {home}",
-        "remoteHint": "远程机器需要开启 SSH：Windows 安装「OpenSSH 服务器」（设置 → 可选功能），macOS 在「系统设置 → 通用 → 共享」开启「远程登录」，Linux 安装 openssh-server。远程下载在对方后台独立运行，关掉 UU889-Drama 也会继续下完。",
+        "remoteHint": "远程机器需要开启 SSH：macOS 在「系统设置 → 通用 → 共享」开启「远程登录」，Linux 安装 openssh-server，Windows 安装「OpenSSH 服务器」（设置 → 可选功能）。macOS 和 Linux 都支持账号密码登录与证书（私钥）登录。远程下载在对方后台独立运行，关掉 UU889-Drama 也会继续下完。",
         "root": "{app} 安装根目录",
         "detect": "自动识别",
         "browse": "选择目录…",
@@ -635,7 +635,14 @@
           "partial": "下了 {pct}%",
           "missing": "缺少",
           "size_mismatch": "文件不完整"
-        }
+        },
+        "passwordHint": "macOS「远程登录」与大多数 Linux 默认允许账号密码登录；服务器关闭了密码登录（PasswordAuthentication no）时请用证书登录。",
+        "keyFile": "选择私钥文件…",
+        "keyLoaded": "已读取：{name}",
+        "keyTooBig": "这个文件太大，不像私钥文件",
+        "keyHint": "支持 OpenSSH（~/.ssh/id_ed25519、id_rsa、id_ecdsa）、PEM（云服务器下发的 .pem / .key 证书）、PKCS#8、PuTTY .ppk（v2 / v3）。私钥有密码时填「私钥密码」。对应的公钥需要已加入远程用户的 ~/.ssh/authorized_keys。",
+        "fingerprint": "主机指纹",
+        "fingerprintHint": "首次连接请与服务器上 ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub 的输出核对"
       }
     },
     "styleDialog": {

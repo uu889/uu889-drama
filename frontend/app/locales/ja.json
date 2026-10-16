@@ -566,14 +566,14 @@
         "localDisabled": "このサーバーではローカルインストールが無効です（MODEL_INSTALLER_LOCAL=0）。リモートを使ってください。",
         "host": "ホスト（IP またはドメイン）",
         "username": "ユーザー名",
-        "authPassword": "パスワード",
-        "authKey": "秘密鍵",
+        "authPassword": "パスワード認証",
+        "authKey": "鍵（証明書）認証",
         "password": "パスワード",
-        "privateKey": "OpenSSH 秘密鍵を貼り付け",
+        "privateKey": "秘密鍵を貼り付けるか、上の「鍵ファイルを選択…」を使用",
         "passphrase": "鍵のパスフレーズ（任意）",
         "test": "接続テスト",
         "connected": "接続済み：{os} · {host} · ホーム {home}",
-        "remoteHint": "リモート側で SSH を有効にしてください（Windows: OpenSSH サーバー、macOS: リモートログイン、Linux: openssh-server）。ダウンロードはリモート側のバックグラウンドで続行され、UU889-Drama を閉じても完了します。",
+        "remoteHint": "リモート側で SSH を有効にしてください（macOS: リモートログイン、Linux: openssh-server、Windows: OpenSSH サーバー）。macOS と Linux はパスワード認証と鍵（証明書）認証の両方に対応。ダウンロードはリモートのバックグラウンドで続行されます。",
         "root": "{app} のインストールフォルダ",
         "detect": "自動検出",
         "browse": "フォルダを選択…",
@@ -635,7 +635,14 @@
           "partial": "{pct}% 取得済み",
           "missing": "不足",
           "size_mismatch": "不完全"
-        }
+        },
+        "passwordHint": "macOS のリモートログインと多くの Linux は既定でパスワード認証が可能です。無効な場合は鍵認証を使ってください。",
+        "keyFile": "鍵ファイルを選択…",
+        "keyLoaded": "読み込み済み：{name}",
+        "keyTooBig": "秘密鍵としては大きすぎるファイルです",
+        "keyHint": "OpenSSH（id_ed25519 / id_rsa / id_ecdsa）、PEM（.pem / .key）、PKCS#8、PuTTY .ppk（v2 / v3）に対応。パスフレーズ付きの鍵はパスフレーズを入力。対応する公開鍵がリモートの ~/.ssh/authorized_keys に必要です。",
+        "fingerprint": "ホスト鍵",
+        "fingerprintHint": "初回はサーバー上の ssh-keygen -lf の結果と照合してください"
       }
     },
     "styleDialog": {

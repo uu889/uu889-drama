@@ -567,13 +567,13 @@
         "host": "Hôte (IP ou domaine)",
         "username": "Utilisateur",
         "authPassword": "Mot de passe",
-        "authKey": "Clé privée",
+        "authKey": "Clé / certificat",
         "password": "Mot de passe",
-        "privateKey": "Collez une clé privée OpenSSH",
+        "privateKey": "Collez la clé privée ou utilisez « Choisir un fichier de clé… » ci-dessus",
         "passphrase": "Phrase secrète (facultative)",
         "test": "Tester la connexion",
         "connected": "Connecté : {os} · {host} · dossier {home}",
-        "remoteHint": "La machine distante doit accepter SSH (Windows : serveur OpenSSH, macOS : Session à distance, Linux : openssh-server). Le téléchargement continue en arrière-plan même si UU889-Drama est fermé.",
+        "remoteHint": "La machine distante doit accepter SSH (macOS : Session à distance, Linux : openssh-server, Windows : serveur OpenSSH). macOS et Linux acceptent mot de passe et clé (certificat). Le téléchargement continue en arrière-plan.",
         "root": "Dossier d’installation de {app}",
         "detect": "Détecter",
         "browse": "Parcourir…",
@@ -635,7 +635,14 @@
           "partial": "{pct} % téléchargé",
           "missing": "Manquant",
           "size_mismatch": "Incomplet"
-        }
+        },
+        "passwordHint": "macOS (Session à distance) et la plupart des Linux acceptent les mots de passe ; s’ils sont désactivés, utilisez une clé.",
+        "keyFile": "Choisir un fichier de clé…",
+        "keyLoaded": "Chargé : {name}",
+        "keyTooBig": "Fichier trop gros pour une clé privée",
+        "keyHint": "Prend en charge OpenSSH (id_ed25519 / id_rsa / id_ecdsa), PEM (.pem / .key), PKCS#8 et PuTTY .ppk (v2 / v3). Saisissez la phrase secrète des clés protégées. La clé publique doit figurer dans ~/.ssh/authorized_keys sur la machine distante.",
+        "fingerprint": "Clé d’hôte",
+        "fingerprintHint": "À la première connexion, comparez avec ssh-keygen -lf sur le serveur"
       }
     },
     "styleDialog": {

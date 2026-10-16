@@ -567,13 +567,13 @@
         "host": "Host (IP o dominio)",
         "username": "Usuario",
         "authPassword": "Contraseña",
-        "authKey": "Clave privada",
+        "authKey": "Clave / certificado",
         "password": "Contraseña",
-        "privateKey": "Pega una clave privada OpenSSH",
+        "privateKey": "Pega la clave privada o usa «Elegir archivo de clave…»",
         "passphrase": "Frase de la clave (opcional)",
         "test": "Probar conexión",
         "connected": "Conectado: {os} · {host} · carpeta {home}",
-        "remoteHint": "El equipo remoto necesita SSH (Windows: servidor OpenSSH, macOS: Inicio de sesión remoto, Linux: openssh-server). La descarga sigue en segundo plano allí aunque cierres UU889-Drama.",
+        "remoteHint": "El equipo remoto necesita SSH (macOS: Inicio de sesión remoto, Linux: openssh-server, Windows: servidor OpenSSH). macOS y Linux admiten contraseña y clave (certificado). La descarga sigue en segundo plano allí.",
         "root": "Carpeta de instalación de {app}",
         "detect": "Detectar",
         "browse": "Elegir carpeta…",
@@ -635,7 +635,14 @@
           "partial": "{pct} % descargado",
           "missing": "Falta",
           "size_mismatch": "Incompleto"
-        }
+        },
+        "passwordHint": "macOS (Inicio de sesión remoto) y la mayoría de Linux aceptan contraseñas; si están desactivadas, usa una clave.",
+        "keyFile": "Elegir archivo de clave…",
+        "keyLoaded": "Cargado: {name}",
+        "keyTooBig": "El archivo es demasiado grande para ser una clave privada",
+        "keyHint": "Admite OpenSSH (id_ed25519 / id_rsa / id_ecdsa), PEM (.pem / .key), PKCS#8 y PuTTY .ppk (v2 / v3). Escribe la frase de las claves protegidas. La clave pública debe estar en ~/.ssh/authorized_keys del usuario remoto.",
+        "fingerprint": "Clave del host",
+        "fingerprintHint": "En la primera conexión, compárala con ssh-keygen -lf en el servidor"
       }
     },
     "styleDialog": {

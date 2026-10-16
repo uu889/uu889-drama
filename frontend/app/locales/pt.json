@@ -567,13 +567,13 @@
         "host": "Host (IP ou domínio)",
         "username": "Usuário",
         "authPassword": "Senha",
-        "authKey": "Chave privada",
+        "authKey": "Chave / certificado",
         "password": "Senha",
-        "privateKey": "Cole uma chave privada OpenSSH",
+        "privateKey": "Cole a chave privada ou use «Escolher arquivo de chave…»",
         "passphrase": "Senha da chave (opcional)",
         "test": "Testar conexão",
         "connected": "Conectado: {os} · {host} · pasta {home}",
-        "remoteHint": "O computador remoto precisa de SSH (Windows: servidor OpenSSH, macOS: Login remoto, Linux: openssh-server). O download continua em segundo plano lá mesmo com o UU889-Drama fechado.",
+        "remoteHint": "O computador remoto precisa de SSH (macOS: Login remoto, Linux: openssh-server, Windows: servidor OpenSSH). macOS e Linux aceitam senha e chave (certificado). O download continua em segundo plano lá.",
         "root": "Pasta de instalação do {app}",
         "detect": "Detectar",
         "browse": "Escolher pasta…",
@@ -635,7 +635,14 @@
           "partial": "{pct}% baixado",
           "missing": "Falta",
           "size_mismatch": "Incompleto"
-        }
+        },
+        "passwordHint": "macOS (Login remoto) e a maioria dos Linux aceitam senha; se estiver desativada, use chave.",
+        "keyFile": "Escolher arquivo de chave…",
+        "keyLoaded": "Carregado: {name}",
+        "keyTooBig": "Arquivo grande demais para ser uma chave privada",
+        "keyHint": "Suporta OpenSSH (id_ed25519 / id_rsa / id_ecdsa), PEM (.pem / .key), PKCS#8 e PuTTY .ppk (v2 / v3). Informe a senha de chaves protegidas. A chave pública precisa estar em ~/.ssh/authorized_keys do usuário remoto.",
+        "fingerprint": "Chave do host",
+        "fingerprintHint": "Na primeira conexão, compare com ssh-keygen -lf no servidor"
       }
     },
     "styleDialog": {

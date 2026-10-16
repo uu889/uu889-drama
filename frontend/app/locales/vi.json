@@ -567,13 +567,13 @@
         "host": "Máy chủ (IP hoặc tên miền)",
         "username": "Tên người dùng",
         "authPassword": "Mật khẩu",
-        "authKey": "Khóa riêng",
+        "authKey": "Khóa / chứng chỉ",
         "password": "Mật khẩu",
-        "privateKey": "Dán khóa riêng OpenSSH",
+        "privateKey": "Dán khóa riêng hoặc dùng «Chọn tệp khóa…» ở trên",
         "passphrase": "Mật khẩu khóa (không bắt buộc)",
         "test": "Kiểm tra kết nối",
         "connected": "Đã kết nối: {os} · {host} · thư mục nhà {home}",
-        "remoteHint": "Máy từ xa cần bật SSH (Windows: OpenSSH Server, macOS: Đăng nhập từ xa, Linux: openssh-server). Việc tải chạy nền trên máy đó và vẫn hoàn tất khi đóng UU889-Drama.",
+        "remoteHint": "Máy từ xa cần bật SSH (macOS: Đăng nhập từ xa, Linux: openssh-server, Windows: OpenSSH Server). macOS và Linux hỗ trợ cả mật khẩu và khóa (chứng chỉ). Việc tải chạy nền trên máy đó.",
         "root": "Thư mục cài {app}",
         "detect": "Tự nhận diện",
         "browse": "Chọn thư mục…",
@@ -635,7 +635,14 @@
           "partial": "Đã tải {pct}%",
           "missing": "Thiếu",
           "size_mismatch": "Không đầy đủ"
-        }
+        },
+        "passwordHint": "macOS (Đăng nhập từ xa) và đa số Linux cho phép đăng nhập bằng mật khẩu; nếu đã tắt, hãy dùng khóa.",
+        "keyFile": "Chọn tệp khóa…",
+        "keyLoaded": "Đã đọc: {name}",
+        "keyTooBig": "Tệp quá lớn, không giống khóa riêng",
+        "keyHint": "Hỗ trợ OpenSSH (id_ed25519 / id_rsa / id_ecdsa), PEM (.pem / .key), PKCS#8, PuTTY .ppk (v2 / v3). Khóa có mật khẩu thì nhập mật khẩu khóa. Khóa công khai tương ứng phải nằm trong ~/.ssh/authorized_keys trên máy từ xa.",
+        "fingerprint": "Khóa máy chủ",
+        "fingerprintHint": "Lần đầu kết nối, hãy so với kết quả ssh-keygen -lf trên máy chủ"
       }
     },
     "styleDialog": {

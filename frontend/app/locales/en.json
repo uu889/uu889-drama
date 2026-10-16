@@ -567,13 +567,13 @@
         "host": "Host (IP or domain)",
         "username": "User name",
         "authPassword": "Password",
-        "authKey": "Private key",
+        "authKey": "Key / certificate",
         "password": "Password",
-        "privateKey": "Paste an OpenSSH private key (-----BEGIN … PRIVATE KEY-----)",
+        "privateKey": "Paste the private key, or use \"Choose key file…\" above",
         "passphrase": "Key passphrase (optional)",
         "test": "Test connection",
         "connected": "Connected: {os} · {host} · home {home}",
-        "remoteHint": "The remote machine needs SSH: Windows → install \"OpenSSH Server\" (Settings → Optional features); macOS → System Settings → General → Sharing → Remote Login; Linux → openssh-server. Remote downloads run in the background on that machine and finish even if UU889-Drama is closed.",
+        "remoteHint": "The remote machine needs SSH: macOS → System Settings → General → Sharing → Remote Login; Linux → openssh-server; Windows → \"OpenSSH Server\" (Settings → Optional features). macOS and Linux both accept password and key (certificate) login. Remote downloads run in the background there and finish even if UU889-Drama is closed.",
         "root": "{app} install folder",
         "detect": "Detect",
         "browse": "Browse…",
@@ -635,7 +635,14 @@
           "partial": "{pct}% downloaded",
           "missing": "Missing",
           "size_mismatch": "Incomplete"
-        }
+        },
+        "passwordHint": "macOS Remote Login and most Linux servers accept passwords by default; if password login is disabled (PasswordAuthentication no), use key login.",
+        "keyFile": "Choose key file…",
+        "keyLoaded": "Loaded: {name}",
+        "keyTooBig": "That file is too large to be a private key",
+        "keyHint": "Supports OpenSSH (~/.ssh/id_ed25519, id_rsa, id_ecdsa), PEM (.pem / .key from cloud consoles), PKCS#8 and PuTTY .ppk (v2 / v3). Enter the passphrase for protected keys. The matching public key must be in the remote user’s ~/.ssh/authorized_keys.",
+        "fingerprint": "Host key",
+        "fingerprintHint": "On first connect, compare with ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub on the server"
       }
     },
     "styleDialog": {

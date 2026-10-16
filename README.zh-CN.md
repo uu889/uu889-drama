@@ -262,7 +262,7 @@ AI 视频常见的三个问题和对应处理：
 设置页可逐个风格覆盖文件名 / 权重 / 触发词，「检查本机是否已下载」标出缺失文件，每个风格都有可复制的下载命令（bash / PowerShell，支持 Civitai Token 与 hf-mirror 镜像）。每个模型都标了许可等级：✅ 可商用、⚠️ 有条件（如不能做收费生图服务、需署名、转载来源不清）、⛔ 非商用 / 需作者授权；默认推荐不含 ⛔ 模型，GuoFeng4、Juggernaut 等只作为可选替代并单独标注。完整对应表、许可说明、接口调用示例与下载脚本见 [docs/style-models.md](docs/style-models.md)。
 
 **一键 / 自动下载模型**：同一个设置弹窗里的「一键下载模型」按风格检查缺少的文件并自动下载到程序的模型目录——
-- **本机**（Windows / macOS / Linux）或 **远程 SSH**（Windows / macOS / Linux）；自动识别 SD WebUI / ComfyUI / Fooocus 安装根目录，也可手动选择
+- **本机**（Windows / macOS / Linux）或 **远程 SSH**（Windows / macOS / Linux；macOS 与 Linux 支持账号密码登录和证书（私钥）登录，私钥支持 OpenSSH / PEM / PKCS#8 / PuTTY .ppk）；自动识别 SD WebUI / ComfyUI / Fooocus 安装根目录，也可手动选择
 - 来源顺序：Hugging Face → hf-mirror.com 镜像 → Civitai → Civitai 镜像（CivArchive）；Civitai 模型有 HF 同哈希副本时直接走 HF，不需要 Civitai Key
 - 进度条（总进度 + 每个文件的速度 / 剩余时间 / 当前来源）、断点续传、SHA256 校验、暂停 / 继续 / 取消
 - 后台离线下载：本机关掉页面继续下、程序重启接着下；远程在对方后台运行，关掉 UU889-Drama 也会下完

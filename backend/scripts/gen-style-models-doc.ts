@@ -251,7 +251,7 @@ w(
   '',
   '1. **工作方式**：',
   '   - **本机**：运行 UU889-Drama 的这台电脑（Windows / macOS / Linux）。下载由 UU889-Drama 后台完成，关掉设置窗口 / 浏览器页面也会继续；程序重启后自动接着下。',
-  '   - **远程（SSH）**：填主机、端口、用户名和密码或私钥。支持 Windows（需安装「OpenSSH 服务器」，Windows 10 1803+ 自带 curl.exe）、macOS（「系统设置 → 通用 → 共享 → 远程登录」）、Linux（openssh-server）。UU889-Drama 把下载脚本放到远程机器后台运行（macOS / Linux 用 nohup + curl，Windows 用 WMI 启动 PowerShell + curl.exe），**关掉 UU889-Drama、断网也会在远程继续下完**，再打开时自动接上进度。',
+  '   - **远程（SSH）**：填主机、端口、用户名，选 **账号密码登录** 或 **证书登录（私钥）**。支持 Windows（需安装「OpenSSH 服务器」，Windows 10 1803+ 自带 curl.exe）、macOS（「系统设置 → 通用 → 共享 → 远程登录」）、Linux（openssh-server）；macOS 与 Linux 两种登录方式都支持（密码登录兼容只开 keyboard-interactive 的 macOS 默认配置）。证书登录可粘贴或「选择私钥文件…」，支持 OpenSSH（id_ed25519 / id_rsa / id_ecdsa）、PEM（云服务器下发的 .pem / .key）、PKCS#8、PuTTY .ppk（v2 / v3，有密码的 v3 需先导出 OpenSSH 格式），有密码的私钥填「私钥密码」；对应公钥需在远程用户的 `~/.ssh/authorized_keys` 里。测试连接会显示主机指纹（SHA256）供核对。暂不支持 CA 签发的 OpenSSH 证书（-cert.pub）。UU889-Drama 把下载脚本放到远程机器后台运行（macOS / Linux 用 nohup + curl，Windows 用 WMI 启动 PowerShell + curl.exe），**关掉 UU889-Drama、断网也会在远程继续下完**，再打开时自动接上进度。',
   '2. **安装根目录**：点「自动识别」——先问正在运行的服务（ComfyUI `/internal/folder_paths`、SD WebUI `/sdapi/v1/cmd-flags`），再在常见位置按特征文件扫描（ComfyUI 的 main.py + comfy/、ComfyUI Desktop 的 models + custom_nodes + user、SD WebUI / Forge 的 webui.py + modules/、Fooocus-API 的 fooocusapi/、Fooocus 的 entry_with_update.py）；找不到就点「选择目录…」（桌面版本机用系统对话框，其余用目录浏览）。',
   '3. **风格**：默认选中项目正在用的视觉风格，也可以全选。点「检查缺少的模型」列出每个文件的目标位置、来源顺序和状态（已有 / 缺少 / 下了一半 / 文件不完整），并检查磁盘剩余空间。',
   '4. **下载**：只下缺少的文件，显示总进度条和每个文件的进度、速度、剩余时间、当前来源；可暂停 / 继续 / 取消。',

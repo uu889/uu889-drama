@@ -25,16 +25,26 @@
         <label class="mi-radio"><input v-model="remote.auth" type="radio" value="password" /> {{ t('settings.cfg.installer.authPassword') }}</label>
         <label class="mi-radio"><input v-model="remote.auth" type="radio" value="key" /> {{ t('settings.cfg.installer.authKey') }}</label>
       </div>
-      <input v-if="remote.auth !== 'key'" v-model="remote.password" class="input" type="password" :placeholder="t('settings.cfg.installer.password')" autocomplete="new-password" />
+      <template v-if="remote.auth !== 'key'">
+        <input v-model="remote.password" class="input" type="password" :placeholder="t('settings.cfg.installer.password')" autocomplete="new-password" />
+        <p class="mi-hint">{{ t('settings.cfg.installer.passwordHint') }}</p>
+      </template>
       <template v-else>
+        <div class="mi-row">
+          <button type="button" class="btn btn-sm" @click="keyInput?.click()">{{ t('settings.cfg.installer.keyFile') }}</button>
+          <input ref="keyInput" type="file" class="mi-hidden" @change="loadKeyFile" />
+          <span v-if="keyFileName" class="mi-dim">{{ t('settings.cfg.installer.keyLoaded', { name: keyFileName }) }}</span>
+        </div>
         <textarea v-model="remote.privateKey" class="input mono mi-key" rows="4" :placeholder="t('settings.cfg.installer.privateKey')" />
         <input v-model="remote.passphrase" class="input" type="password" :placeholder="t('settings.cfg.installer.passphrase')" autocomplete="new-password" />
+        <p class="mi-hint">{{ t('settings.cfg.installer.keyHint') }}</p>
       </template>
       <div class="mi-row">
         <button type="button" class="btn btn-sm" :disabled="testing" @click="testRemote">
           <Loader2 v-if="testing" :size="12" class="animate-spin" />{{ t('settings.cfg.installer.test') }}
         </button>
         <span v-if="remoteInfo?.ok" class="mi-ok">✓ {{ t('settings.cfg.installer.connected', { os: osLabel(remoteInfo.os), host: remoteInfo.hostname, home: remoteInfo.home }) }}</span>
+        <span v-if="remoteInfo?.ok && remoteInfo.fingerprint" class="mi-dim mono" :title="t('settings.cfg.installer.fingerprintHint')">{{ t('settings.cfg.installer.fingerprint') }} {{ remoteInfo.fingerprint }}</span>
         <span v-else-if="remoteInfo?.error" class="mi-err">{{ remoteInfo.error }}</span>
       </div>
       <p class="mi-hint">{{ t('settings.cfg.installer.remoteHint') }}</p>
@@ -262,6 +272,17 @@ const rootPlaceholder = computed(() => {
 // ===== 远程测试 =====
 const testing = ref(false)
 const remoteInfo = ref(null)
+// 证书登录：从本机选择私钥文件（只在浏览器里读取内容，填进私钥框）
+const keyInput = ref(null)
+const keyFileName = ref('')
+async function loadKeyFile(e) {
+  const file = e.target.files?.[0]
+  e.target.value = ''
+  if (!file) return
+  if (file.size > 64 * 1024) { toast.error(t('settings.cfg.installer.keyTooBig')); return }
+  state.remote.privateKey = (await file.text()).trim()
+  keyFileName.value = file.name
+}
 async function testRemote() {
   testing.value = true
   try { remoteInfo.value = await modelInstallerAPI.test({ install: installPayload() }) } catch (e) { remoteInfo.value = { ok: false, error: e?.message || String(e) } } finally { testing.value = false }
@@ -275,7 +296,7 @@ async function detect() {
   try {
     const r = await modelInstallerAPI.detect({ install: installPayload(), provider: props.provider, base_url: props.baseUrl, api_key: props.apiKey })
     candidates.value = r.candidates || []
-    if (mode.value === 'remote') remoteInfo.value = { ok: true, os: r.os, home: r.home, hostname: r.hostname }
+    if (mode.value === 'remote') remoteInfo.value = { ...(remoteInfo.value || {}), ok: true, error: undefined, os: r.os, home: r.home, hostname: r.hostname }
     if (!root.value && candidates.value.length) root.value = candidates.value[0].path
   } catch (e) {
     toast.error(e?.message || String(e))
@@ -406,6 +427,7 @@ function fmtEta(s) {
 .mi-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 @media (max-width: 640px) { .mi-grid, .mi-grid2 { grid-template-columns: 1fr; } }
 .mi-key { font-size: 11px; }
+.mi-hidden { display: none; }
 .mi-cands { display: flex; flex-direction: column; gap: 4px; }
 .mi-cand { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; text-align: left; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; background: transparent; cursor: pointer; font-size: 11.5px; color: var(--text-1); }
 .mi-cand.is-on { border-color: var(--accent, #6e56cf); background: var(--bg-1); }

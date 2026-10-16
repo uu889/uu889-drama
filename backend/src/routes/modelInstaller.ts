@@ -58,7 +58,7 @@ app.get('/env', (c) => success(c, {
 app.post('/target/test', async (c) => {
   const body = await c.req.json().catch(() => ({}))
   try {
-    return success(c, await withTarget(body, async (t) => ({ ok: true, mode: t.mode, os: t.os, home: t.home, hostname: t.hostname })))
+    return success(c, await withTarget(body, async (t) => ({ ok: true, mode: t.mode, os: t.os, home: t.home, hostname: t.hostname, fingerprint: t.fingerprint || null })))
   } catch (err) {
     return success(c, { ok: false, error: errMsg(err) })
   }

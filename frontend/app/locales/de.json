@@ -567,13 +567,13 @@
         "host": "Host (IP oder Domain)",
         "username": "Benutzername",
         "authPassword": "Passwort",
-        "authKey": "Privater Schlüssel",
+        "authKey": "Schlüssel / Zertifikat",
         "password": "Passwort",
-        "privateKey": "OpenSSH-Privatschlüssel einfügen",
+        "privateKey": "Privaten Schlüssel einfügen oder oben „Schlüsseldatei wählen…“",
         "passphrase": "Schlüssel-Passphrase (optional)",
         "test": "Verbindung testen",
         "connected": "Verbunden: {os} · {host} · Home {home}",
-        "remoteHint": "Auf dem Remote-Rechner muss SSH aktiv sein (Windows: OpenSSH-Server, macOS: Entfernte Anmeldung, Linux: openssh-server). Downloads laufen dort im Hintergrund weiter, auch wenn UU889-Drama geschlossen ist.",
+        "remoteHint": "Auf dem Remote-Rechner muss SSH aktiv sein (macOS: Entfernte Anmeldung, Linux: openssh-server, Windows: OpenSSH-Server). macOS und Linux unterstützen Passwort- und Schlüssel-Anmeldung. Downloads laufen dort im Hintergrund weiter.",
         "root": "{app}-Installationsordner",
         "detect": "Erkennen",
         "browse": "Ordner wählen…",
@@ -635,7 +635,14 @@
           "partial": "{pct}% geladen",
           "missing": "Fehlt",
           "size_mismatch": "Unvollständig"
-        }
+        },
+        "passwordHint": "macOS (Entfernte Anmeldung) und die meisten Linux-Server erlauben Passwörter; ist das deaktiviert, Schlüssel verwenden.",
+        "keyFile": "Schlüsseldatei wählen…",
+        "keyLoaded": "Geladen: {name}",
+        "keyTooBig": "Die Datei ist zu groß für einen privaten Schlüssel",
+        "keyHint": "Unterstützt OpenSSH (id_ed25519 / id_rsa / id_ecdsa), PEM (.pem / .key), PKCS#8 und PuTTY .ppk (v2 / v3). Bei geschützten Schlüsseln Passphrase eingeben. Der öffentliche Schlüssel muss in ~/.ssh/authorized_keys des Remote-Benutzers stehen.",
+        "fingerprint": "Host-Schlüssel",
+        "fingerprintHint": "Beim ersten Verbinden mit ssh-keygen -lf auf dem Server vergleichen"
       }
     },
     "styleDialog": {
