@@ -87,8 +87,8 @@ export function comfyFrameCount(durationSeconds: number, fps: number, step = 4):
  * MiniMax H3 画布：短边 480p 档为 480、其余档位为 768（模型原生 768p），长边按比例取 32 的倍数，
  * 总面积不超过官方上限 768×1344（16:9 → 1344×768，9:16 → 768×1344，1:1 → 768×768）
  */
-export function minimaxH3Dimensions(aspectRatio?: string | null, resolution?: string | null): { width: number; height: number } {
-  const short = String(resolution || '').toLowerCase() === '480p' ? 480 : 768
+export function minimaxH3Dimensions(aspectRatio?: string | null, resolution?: string | null, maxShortEdge?: number): { width: number; height: number } {
+  const short = String(resolution || '').toLowerCase() === '480p' || (maxShortEdge && maxShortEdge < 768) ? 480 : 768
   const [rw, rh] = String(aspectRatio || '16:9').split(':').map(Number)
   const ratio = rw > 0 && rh > 0 ? rw / rh : 16 / 9
   const maxLong = Math.floor((768 * 1344) / short / 32) * 32
@@ -148,7 +148,7 @@ export class ComfyUIVideoAdapter extends ComfyUIClient implements VideoProviderA
     const durationRaw = Math.round(Number(record.duration || 5))
     const duration = Number.isFinite(durationRaw) ? Math.min(60, Math.max(1, durationRaw)) : 5
     const { width, height } = h3
-      ? minimaxH3Dimensions(record.aspectRatio, record.resolution)
+      ? minimaxH3Dimensions(record.aspectRatio, record.resolution, builtin?.recommended.maxShortEdge)
       : comfyDimensions(record.aspectRatio, record.resolution, builtin?.recommended.maxShortEdge)
     const frameStep = /LTXV/i.test(JSON.stringify(template)) ? 8 : 4
     const frames = h3 ? minimaxH3FrameCount(duration) : comfyFrameCount(duration, fps, frameStep)

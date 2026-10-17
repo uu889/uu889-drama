@@ -475,7 +475,7 @@
           "resolution": "解像度"
         },
         "stepsTag": "{n} ステップ",
-        "groupVram": "VRAM 容量で選ぶ（Wan 2.2 画像→動画 14B）",
+        "groupVram": "VRAM 容量で選ぶ · {family}",
         "groupOther": "その他のテンプレート",
         "vramTag": "VRAM {n}GB",
         "maxResTag": "最大 {n}p"

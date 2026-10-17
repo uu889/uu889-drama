@@ -81,6 +81,22 @@ export const FILE_META: Record<string, FileMeta> = {
   'Wan2.2-I2V-A14B-LowNoise-Q4_K_S.gguf': { bytes: 8748151296, sha256: '54e2313ef7fbb169e72ab1d7cecdc90a04db01097c86f9f39097b8caacea50fb' },
   'Wan2.2-I2V-A14B-HighNoise-Q5_K_M.gguf': { bytes: 10792055296, sha256: '163e9e5ae7ff83a4598d55242c767384be8909749dc07240d388a24838e8bac6' },
   'Wan2.2-I2V-A14B-LowNoise-Q5_K_M.gguf': { bytes: 10792055296, sha256: 'c5affcba15576959fa6d63c18261275b6407c3edd5ad3d8ab1c420e96f9d05d0' },
+  // ── MiniMax H3（Comfy-Org/MiniMax-H3、lightx2v Turbo LoRA、Abiray 剪枝版 GGUF）──
+  'minimax_h3_fl2va_bf16.safetensors': { bytes: 66280487368, sha256: '907d4add438438ec1544f5240c3b38532ed934fe6be75677a6bbda2a6fdd6182' },
+  'minimax_h3_fl2va_int8_convrot.safetensors': { bytes: 34038892334, sha256: '7ad4c73e6e378b822ffd1629f27f632d3787d95f5e468e3af958f98c58df96a5' },
+  'minimax_h3_fl2va_pruned_int8_convrot.safetensors': { bytes: 20970379616, sha256: 'e889202c41dafb67b10d67b97f0d8541508036a6090af23425a5c2615d03c47a' },
+  'minimax_h3_fl2va_pruned_fp8_scaled.safetensors': { bytes: 20958205608, sha256: '12944c1f7791637e7de12208aef04da82bd26b95271b1b47d817364315ade993' },
+  'MiniMax-H3-FL2VA-Pruned-Q3_K_M.gguf': { bytes: 8902845536, sha256: 'c844d70dbb4df67b7d9605c669bff35d9c631bd0507143cf0276f984de32247d' },
+  'MiniMax-H3-FL2VA-Pruned-Q4_K_M.gguf': { bytes: 11564180576, sha256: 'd74e644906fe95b8c7bf4837ba9d3f9392925f7301675a0993d419b62a4824a3' },
+  'MiniMax-H3-FL2VA-Pruned-Q5_K_M.gguf': { bytes: 14068966496, sha256: 'abe739ac98bc14d6e4e56987198765b02899da632ad254c820f559b6dc4d1171' },
+  'qwen3vl_32b_minimax_h3_bf16.safetensors': { bytes: 51506295256, sha256: '600d567f6a9629c8574e8e7041b199bdd9c59a986afa7906910a81919610607d' },
+  'qwen3vl_32b_minimax_h3_int8_convrot.safetensors': { bytes: 27141342152, sha256: 'bc2ced0fbea64757fa9acddccfc0b3f4819d1dcf1da6c124d690d368be283923' },
+  'qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors': { bytes: 15687142551, sha256: '35a88d51044231fe332301d7a62aa81e3f2cba62febeb446e2c1e3e0ef76f2c6' },
+  'minimax_h3_video_vae_fp16.safetensors': { bytes: 5207808496, sha256: '7c1f131492e7eddacaac9069a61b81bdd39de5cc96561e677c5eab1cdce5e522' },
+  'minimax_h3_video_vae_int8_convrot.safetensors': { bytes: 2811065184, sha256: '52a2c8c73583c86e4f41cdcce3a6ad0ea562987bc0bf3d60a0cef5f5c8e60c0e' },
+  'minimax_h3_audio_vae_fp32.safetensors': { bytes: 605254808, sha256: '8e505d95dd1561d47abd43d4238fd40d9bb1ae9e147ed0a4cba778d76ae4db48' },
+  'minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors': { bytes: 1956193000, sha256: '2339acdf19bfe123f46b971ea35d367a84adb85de43627e1eceafa5a5b2b111e' },
+  'minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors': { bytes: 1956192992, sha256: 'c396a9a06f58399e9df9754b18299818d84a2ddd371724ba48fe4a41221437dc' },
 }
 
 export const SOURCE_LABELS: Record<SourceLabel, string> = {

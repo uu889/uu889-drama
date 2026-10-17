@@ -475,7 +475,7 @@
           "resolution": "Résolution"
         },
         "stepsTag": "{n} étapes",
-        "groupVram": "Par VRAM (Wan 2.2 image-vers-vidéo 14B)",
+        "groupVram": "Par VRAM · {family}",
         "groupOther": "Autres modèles",
         "vramTag": "{n} Go de VRAM",
         "maxResTag": "Jusqu’à {n}p"

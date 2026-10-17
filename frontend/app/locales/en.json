@@ -475,7 +475,7 @@
           "resolution": "Resolution"
         },
         "stepsTag": "{n} steps",
-        "groupVram": "By VRAM (Wan 2.2 image-to-video 14B)",
+        "groupVram": "By VRAM · {family}",
         "groupOther": "Other templates",
         "vramTag": "{n} GB VRAM",
         "maxResTag": "Up to {n}p"

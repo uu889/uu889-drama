@@ -205,7 +205,8 @@ test('minimax h3: templates, 24fps 17k+5 frames, 768p canvas, LoRA files never r
   const { COMFY_VIDEO_TEMPLATES: list, modelOverrideFiles, isMiniMaxH3Workflow } = await import('../src/services/adapters/comfyui-templates')
   const { minimaxH3Dimensions, minimaxH3FrameCount } = await import('../src/services/adapters/comfyui-video')
   const ids = list.filter((t) => t.id.startsWith('minimax-h3')).map((t) => t.id)
-  assert.deepEqual(ids, ['minimax-h3-fl2v', 'minimax-h3-fl2v-turbo-8step', 'minimax-h3-fl2v-turbo-4step'])
+  // 原来的三个 + 按显存档位的九个（见 comfyui-vram-templates.test.ts）
+  assert.deepEqual(ids, ['minimax-h3-fl2v', 'minimax-h3-fl2v-turbo-8step', 'minimax-h3-fl2v-turbo-4step', ...[12, 16, 24, 32, 48, 96, 141, 192, 288].map((n) => `minimax-h3-${n}g`)])
   assert.equal(minimaxH3FrameCount(5), 124)
   assert.equal(minimaxH3FrameCount(2), 56)
   assert.equal(minimaxH3FrameCount(10), 243)

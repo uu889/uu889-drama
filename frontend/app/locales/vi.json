@@ -475,7 +475,7 @@
           "resolution": "Độ phân giải"
         },
         "stepsTag": "{n} bước",
-        "groupVram": "Theo VRAM (Wan 2.2 ảnh sang video 14B)",
+        "groupVram": "Theo VRAM · {family}",
         "groupOther": "Mẫu khác",
         "vramTag": "VRAM {n} GB",
         "maxResTag": "Tối đa {n}p"

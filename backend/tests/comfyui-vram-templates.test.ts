@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { COMFY_VIDEO_TEMPLATES, COMFY_VRAM_TEMPLATES, describeComfyTemplates, getComfyTemplate } from '../src/services/adapters/comfyui-templates'
-import { ComfyUIVideoAdapter, comfyDimensions } from '../src/services/adapters/comfyui-video'
+import { COMFY_H3_VRAM_TEMPLATES, COMFY_VIDEO_TEMPLATES, COMFY_VRAM_TEMPLATES, describeComfyTemplates, getComfyTemplate, resolveComfyTemplate } from '../src/services/adapters/comfyui-templates'
+import { ComfyUIVideoAdapter, comfyDimensions, minimaxH3Dimensions } from '../src/services/adapters/comfyui-video'
 import { hasWan14bModel, injectStyleLora } from '../src/services/adapters/comfyui-lora'
 import { FILE_META, sourcesFor } from '../src/services/model-installer/sources'
 import { buildPlanFiles } from '../src/services/model-installer/plan'
@@ -113,4 +113,92 @@ test('missing GGUF custom node: tells the user to install ComfyUI-GGUF', () => {
   assert.match(String(legacy), /ComfyUI-GGUF/)
   const other = adapter.describeError(400, JSON.stringify({ error: { type: 'missing_node_type', message: "Node 'VHS_VideoCombine' not found." } }))
   assert.match(String(other), /缺少节点 VHS_VideoCombine：请用 ComfyUI-Manager 安装/)
+})
+
+// ─── MiniMax H3 显存档位 ───────────────────────────────────────────────────
+
+test('MiniMax H3 tiers: 12G → 288G, GGUF / pruned int8 / full int8 / bf16, steps grow with VRAM', () => {
+  assert.deepEqual(COMFY_H3_VRAM_TEMPLATES.map((t) => t.vram), [12, 16, 24, 32, 48, 96, 141, 192, 288])
+  const unets: string[] = []
+  for (const t of COMFY_H3_VRAM_TEMPLATES) {
+    assert.ok(COMFY_VIDEO_TEMPLATES.includes(t))
+    assert.equal(t.id, `minimax-h3-${t.vram}g`)
+    assert.equal(getComfyTemplate('video', t.id), t)
+    assert.equal(t.vramFamily, 'MiniMax H3 音画同出')
+    assert.equal(t.needsImage, 'optional')
+    assert.equal(t.recommended.fps, 24)
+    assert.ok(t.label.startsWith(`【${t.vram}G 显存】MiniMax H3`), t.label)
+    const wf = t.workflow
+    for (const [id, node] of Object.entries<any>(wf)) {
+      for (const v of Object.values(node.inputs || {})) if (isLink(v)) assert.ok(wf[String(v[0])], `${t.id} node ${id} → ${v[0]}`)
+    }
+    // 每个用到的文件都在 files 里（一键下载能装齐）
+    const files = new Set(t.files.map((f) => f.file))
+    for (const n of Object.values<any>(wf)) for (const k of ['unet_name', 'clip_name', 'vae_name', 'lora_name']) if (n.inputs?.[k]) assert.ok(files.has(n.inputs[k]), `${t.id} ${n.inputs[k]}`)
+    const gguf = t.vram <= 24
+    assert.equal(wf['6'].class_type, gguf ? 'UnetLoaderGGUF' : 'UNETLoader')
+    assert.equal(wf['13'].inputs.type, 'minimax')
+    const turbo = t.vram <= 32
+    assert.equal(!!wf['121'], turbo)
+    if (turbo) assert.equal(wf['121'].inputs.lora_name, 'minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors')
+    assert.equal(wf['9'].inputs.steps, t.recommended.steps)
+    assert.equal(wf['17'].inputs.sampler_name, 'res_multistep')
+    unets.push(wf['6'].inputs.unet_name)
+  }
+  assert.deepEqual(unets, [
+    'MiniMax-H3-FL2VA-Pruned-Q3_K_M.gguf', 'MiniMax-H3-FL2VA-Pruned-Q4_K_M.gguf', 'MiniMax-H3-FL2VA-Pruned-Q5_K_M.gguf',
+    'minimax_h3_fl2va_pruned_int8_convrot.safetensors', 'minimax_h3_fl2va_int8_convrot.safetensors', 'minimax_h3_fl2va_int8_convrot.safetensors',
+    'minimax_h3_fl2va_bf16.safetensors', 'minimax_h3_fl2va_bf16.safetensors', 'minimax_h3_fl2va_bf16.safetensors',
+  ])
+  const steps = COMFY_H3_VRAM_TEMPLATES.map((t) => t.recommended.steps!)
+  assert.deepEqual(steps, [8, 8, 8, 8, 20, 25, 30, 40, 50])
+  // 32G 档和 ComfyUI 官方模板同一套文件
+  assert.deepEqual(getComfyTemplate('video', 'minimax-h3-32g')!.files.map((f) => f.file).sort(), [
+    'minimax_h3_audio_vae_fp32.safetensors', 'minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors', 'minimax_h3_fl2va_pruned_int8_convrot.safetensors',
+    'minimax_h3_video_vae_int8_convrot.safetensors', 'qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors',
+  ])
+  // 原来的 H3 模板不受影响：按文件名仍然选中原模板
+  assert.equal(resolveComfyTemplate('video', null, 'minimax_h3_fl2va_int8_convrot.safetensors').id, 'minimax-h3-fl2v')
+  const api = describeComfyTemplates('video', false)
+  assert.equal(api.find((t) => t.id === 'minimax-h3-96g')!.vram_family, 'MiniMax H3 音画同出')
+  assert.equal(api.find((t) => t.id === 'wan2.2-i2v-14b-96g')!.vram_family, 'Wan 2.2 图生视频 14B')
+})
+
+test('MiniMax H3 tiers and the original H3 templates: every file has a direct download URL, exact size and sha256', () => {
+  for (const t of COMFY_VIDEO_TEMPLATES.filter((x) => x.id.startsWith('minimax-h3'))) {
+    for (const f of t.files) {
+      assert.match(f.url, /^https:\/\/huggingface\.co\/.+\/resolve\/main\/.+/, `${t.id} ${f.url}`)
+      assert.ok(f.url.endsWith(f.file), f.url)
+      const meta = FILE_META[f.file]
+      assert.ok(meta?.bytes && /^[0-9a-f]{64}$/.test(meta.sha256 || ''), `${t.id} ${f.file}`)
+    }
+  }
+  const plan = buildPlanFiles({ provider: 'comfyui', serviceType: 'video', styles: ['anime'], settings: { comfyui_template: 'minimax-h3-12g' } })
+  const roles = Object.fromEntries(plan.files.map((f) => [f.file, f.role]))
+  assert.equal(roles['MiniMax-H3-FL2VA-Pruned-Q3_K_M.gguf'], 'diffusion_models')
+  assert.equal(roles['qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors'], 'text_encoders')
+  assert.equal(roles['minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors'], 'lora')
+})
+
+test('MiniMax H3 tiers: 12G is capped at 480p, others render the native 768p canvas', async () => {
+  assert.deepEqual(minimaxH3Dimensions('16:9', '1080p', 480), { width: 864, height: 480 })
+  assert.deepEqual(minimaxH3Dimensions('16:9', '1080p', 768), { width: 1344, height: 768 })
+  assert.deepEqual(minimaxH3Dimensions('9:16', '720p'), { width: 768, height: 1344 })
+  const realFetch = globalThis.fetch
+  globalThis.fetch = (async () => new Response('{}', { status: 404 })) as typeof fetch
+  try {
+    const build = (model: string) => new ComfyUIVideoAdapter().buildGenerateRequest(
+      { provider: 'comfyui', baseUrl: 'http://127.0.0.1:1', apiKey: '', model, settings: null },
+      { id: 1, prompt: '街边算命摊，老人说：今天宜出行', duration: 5, aspectRatio: '16:9', resolution: '1080p' },
+    )
+    const low = (await build('minimax-h3-12g')).body.prompt
+    assert.equal(low['104'].inputs.height, 480)
+    assert.equal(low['104'].inputs.length, 124, '24fps、17k+5 帧')
+    assert.equal(low['60'].inputs.fps, 24)
+    const high = (await build('minimax-h3-288g')).body.prompt
+    assert.equal(high['104'].inputs.height, 768)
+    assert.equal(high['9'].inputs.steps, 50)
+  } finally {
+    globalThis.fetch = realFetch
+  }
 })

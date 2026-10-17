@@ -32,6 +32,8 @@ export interface ComfyWorkflowTemplate {
   recommended: { fps?: number; baseSize?: number; steps?: number; cfg?: number; maxShortEdge?: number }
   /** 按显存档位设计的模板：适用的显存（GB），设置页按档位分组显示 */
   vram?: number
+  /** 显存档位所属的模型系列（设置页分组标题），如「Wan 2.2 图生视频 14B」 */
+  vramFamily?: string
   /** 是否需要首帧 / 参考图（没有图片时会降级或报错，设置页给出提示） */
   needsImage?: 'required' | 'optional' | 'none'
   workflow: Record<string, any>
@@ -88,21 +90,24 @@ function wan14bTwoStage(highFile: string, lowFile: string, cond: [string, number
 // SamplerCustomAdvanced(res_multistep / simple) 出音视频联合 latent，分别 VAEDecode / VAEDecodeAudio 后 CreateVideo 合成。
 const HF_H3 = 'https://huggingface.co/Comfy-Org/MiniMax-H3'
 const H3_FILES = {
-  unet: { file: 'minimax_h3_fl2va_int8_convrot.safetensors', folder: 'models/diffusion_models', url: `${HF_H3}/tree/main/diffusion_models` },
-  clip: { file: 'qwen3vl_32b_minimax_h3_int8_convrot.safetensors', folder: 'models/text_encoders', url: `${HF_H3}/tree/main/text_encoders` },
-  videoVae: { file: 'minimax_h3_video_vae_fp16.safetensors', folder: 'models/vae', url: `${HF_H3}/tree/main/vae` },
+  unet: { file: 'minimax_h3_fl2va_int8_convrot.safetensors', folder: 'models/diffusion_models', url: `${HF_H3}/resolve/main/diffusion_models/minimax_h3_fl2va_int8_convrot.safetensors` },
+  clip: { file: 'qwen3vl_32b_minimax_h3_int8_convrot.safetensors', folder: 'models/text_encoders', url: `${HF_H3}/resolve/main/text_encoders/qwen3vl_32b_minimax_h3_int8_convrot.safetensors` },
+  videoVae: { file: 'minimax_h3_video_vae_fp16.safetensors', folder: 'models/vae', url: `${HF_H3}/resolve/main/vae/minimax_h3_video_vae_fp16.safetensors` },
   audioVae: { file: 'minimax_h3_audio_vae_fp32.safetensors', folder: 'models/vae', url: `${HF_H3}/resolve/main/vae/minimax_h3_audio_vae_fp32.safetensors` },
   turbo8: { file: 'minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors', folder: 'models/loras', url: 'https://huggingface.co/lightx2v/Minimax-h3-Turbo/resolve/main/minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors' },
   turbo4: { file: 'minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors', folder: 'models/loras', url: `${HF_H3}/resolve/main/loras/minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors` },
 } satisfies Record<string, ComfyTemplateModelFile>
 
-function minimaxH3Workflow(opts: { steps: number; lora?: string }): Record<string, any> {
+function minimaxH3Workflow(opts: { steps: number; lora?: string; unet?: string; clip?: string; videoVae?: string; gguf?: boolean }): Record<string, any> {
   const model: [string, number] = opts.lora ? ['121', 0] : ['6', 0]
+  const unet = opts.unet || H3_FILES.unet.file
   return {
-    '6': { class_type: 'UNETLoader', inputs: { unet_name: H3_FILES.unet.file, weight_dtype: 'default' }, _meta: { title: '扩散模型' } },
+    '6': opts.gguf
+      ? { class_type: 'UnetLoaderGGUF', inputs: { unet_name: unet }, _meta: { title: '扩散模型（GGUF）' } }
+      : { class_type: 'UNETLoader', inputs: { unet_name: unet, weight_dtype: 'default' }, _meta: { title: '扩散模型' } },
     ...(opts.lora ? { '121': { class_type: 'LoraLoaderModelOnly', inputs: { lora_name: opts.lora, strength_model: 1, model: ['6', 0] }, _meta: { title: 'Turbo LoRA' } } } : {}),
-    '13': { class_type: 'CLIPLoader', inputs: { clip_name: H3_FILES.clip.file, type: 'minimax', device: 'default' }, _meta: { title: '文本编码器' } },
-    '11': { class_type: 'VAELoader', inputs: { vae_name: H3_FILES.videoVae.file }, _meta: { title: '视频 VAE' } },
+    '13': { class_type: 'CLIPLoader', inputs: { clip_name: opts.clip || H3_FILES.clip.file, type: 'minimax', device: 'default' }, _meta: { title: '文本编码器' } },
+    '11': { class_type: 'VAELoader', inputs: { vae_name: opts.videoVae || H3_FILES.videoVae.file }, _meta: { title: '视频 VAE' } },
     '24': { class_type: 'VAELoader', inputs: { vae_name: H3_FILES.audioVae.file }, _meta: { title: '音频 VAE' } },
     '52': { class_type: 'LoadImage', inputs: { image: '{{image}}' }, _meta: { title: '首帧' } },
     '53': { class_type: 'LoadImage', inputs: { image: '{{last_frame}}' }, _meta: { title: '尾帧' } },
@@ -231,6 +236,7 @@ function wanI2vTier(o: WanTierOpts): ComfyWorkflowTemplate {
     id,
     kind: 'video',
     vram: o.vram,
+    vramFamily: 'Wan 2.2 图生视频 14B',
     label: o.label,
     description: o.description,
     descriptionEn: o.descriptionEn,
@@ -310,6 +316,136 @@ export const COMFY_VRAM_TEMPLATES: ComfyWorkflowTemplate[] = [
     description: `适合 B300 288G、MI355X 等。同样是 fp16 + 40 步 + 1080p，Wan 2.2 在这之上不会再变清晰；多出的显存够 1080p 单镜 15 秒以上一次出片，或在同一张卡上再开一个 ComfyUI 实例（换个端口）给生图用，互不抢显存。启动 ComfyUI 时加 --highvram。${TIER_NOTE}`,
     descriptionEn: `For B300 288G / MI355X. Still fp16, 40 steps, 1080p (Wan 2.2 gets no sharper beyond this); the extra VRAM covers 15-second+ 1080p shots in one pass, or a second ComfyUI instance on another port for images without competing for memory. Start ComfyUI with --highvram. ${TIER_NOTE_EN}`,
     models: I2V14B.fp16, textEncoder: UMT5_FP16, steps: 40, maxShortEdge: 1080,
+  }),
+]
+
+
+// ─── 按显存档位：MiniMax H3 音画同出（12G ~ 288G）─────────────────────────────────
+// 参照 ComfyUI 官方 MiniMax H3 模板（docs.comfy.org）：默认组合是剪枝版 int8 + nvfp4 文本编码器 + int8 视频 VAE
+// + 8 步 Turbo LoRA（不含 adaln 权重，剪枝版 / 完整版都能加载）；res_multistep / simple，标准 20 步，细节到 ~50 步仍有提升。
+//   12G / 16G / 24G：社区剪枝版 GGUF（Abiray/MiniMax-H3-Pruned-GGUF：Q3 → 12G、Q4 → 16G、Q5 → 24G，需 ComfyUI-GGUF）
+//   32G：官方剪枝版 int8（官方模板同款）；48G / 96G：完整版 int8；141G 起：完整版 bf16
+// H3 原生最高 768p（再往上要单独的放大流程），所以显存越大加的是精度和步数，不是分辨率。
+const HF_H3_GGUF = 'https://huggingface.co/Abiray/MiniMax-H3-Pruned-GGUF/resolve/main'
+const h3File = (folder: string, file: string): ComfyTemplateModelFile => ({ file, folder: `models/${folder}`, url: `${HF_H3}/resolve/main/${folder}/${file}` })
+const H3_TIER_FILES = {
+  ggufQ3: { file: 'MiniMax-H3-FL2VA-Pruned-Q3_K_M.gguf', folder: 'models/diffusion_models', url: `${HF_H3_GGUF}/MiniMax-H3-FL2VA-Pruned-Q3_K_M.gguf` },
+  ggufQ4: { file: 'MiniMax-H3-FL2VA-Pruned-Q4_K_M.gguf', folder: 'models/diffusion_models', url: `${HF_H3_GGUF}/MiniMax-H3-FL2VA-Pruned-Q4_K_M.gguf` },
+  ggufQ5: { file: 'MiniMax-H3-FL2VA-Pruned-Q5_K_M.gguf', folder: 'models/diffusion_models', url: `${HF_H3_GGUF}/MiniMax-H3-FL2VA-Pruned-Q5_K_M.gguf` },
+  prunedInt8: h3File('diffusion_models', 'minimax_h3_fl2va_pruned_int8_convrot.safetensors'),
+  fullInt8: H3_FILES.unet,
+  fullBf16: h3File('diffusion_models', 'minimax_h3_fl2va_bf16.safetensors'),
+  clipNvfp4: h3File('text_encoders', 'qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors'),
+  clipInt8: H3_FILES.clip,
+  clipBf16: h3File('text_encoders', 'qwen3vl_32b_minimax_h3_bf16.safetensors'),
+  vaeInt8: h3File('vae', 'minimax_h3_video_vae_int8_convrot.safetensors'),
+  vaeFp16: H3_FILES.videoVae,
+} satisfies Record<string, ComfyTemplateModelFile>
+
+interface H3TierOpts {
+  vram: number
+  label: string
+  description: string
+  descriptionEn: string
+  unet: ComfyTemplateModelFile
+  clip: ComfyTemplateModelFile
+  videoVae: ComfyTemplateModelFile
+  gguf?: boolean
+  /** 8 步 Turbo LoRA */
+  turbo?: boolean
+  steps: number
+  maxShortEdge: number
+}
+
+function h3Tier(o: H3TierOpts): ComfyWorkflowTemplate {
+  const id = `minimax-h3-${o.vram}g`
+  const steps = o.turbo ? 8 : o.steps
+  return {
+    id,
+    kind: 'video',
+    vram: o.vram,
+    vramFamily: 'MiniMax H3 音画同出',
+    label: o.label,
+    description: o.description,
+    descriptionEn: o.descriptionEn,
+    files: [o.unet, o.clip, o.videoVae, H3_FILES.audioVae, ...(o.turbo ? [H3_FILES.turbo8] : [])],
+    defaultModel: id,
+    recommended: { fps: 24, steps, maxShortEdge: o.maxShortEdge },
+    needsImage: 'optional',
+    workflow: minimaxH3Workflow({ steps, lora: o.turbo ? H3_FILES.turbo8.file : undefined, unet: o.unet.file, clip: o.clip.file, videoVae: o.videoVae.file, gguf: o.gguf }),
+  }
+}
+
+const H3_TIER_NOTE = '音画同出（对白 / 音效 / 配乐写进提示词）；有首帧 / 尾帧时为首尾帧图生视频，没有时为文生视频。固定 24fps，需要 ComfyUI 0.30.0 以上。'
+const H3_TIER_NOTE_EN = 'Video with native audio (put dialogue / SFX / music in the prompt); first/last-frame image-to-video with frames, text-to-video without. Fixed 24 fps; needs ComfyUI 0.30.0+.'
+const H3_GGUF_NOTE = '扩散模型是社区剪枝版 GGUF（Abiray/MiniMax-H3-Pruned-GGUF，MiniMax H3 社区许可），需要安装最新版 ComfyUI-GGUF 插件（ComfyUI-Manager 里搜 ComfyUI-GGUF）。文本编码器（nvfp4，约 15.7 GB）比显存大，ComfyUI 会自动分批放进显存，电脑内存建议 64GB 以上。'
+const H3_GGUF_NOTE_EN = 'The diffusion model is the community pruned GGUF (Abiray/MiniMax-H3-Pruned-GGUF, MiniMax H3 community license); install the latest ComfyUI-GGUF custom node. The nvfp4 text encoder (~15.7 GB) is larger than VRAM and is streamed by ComfyUI; 64 GB+ system RAM recommended.'
+const H3_INT8_NOTE = 'int8_convrot 模型官方建议配 PyTorch cu130；老显卡或环境用不了时，在「模型」里填 minimax_h3_fl2va_pruned_fp8_scaled.safetensors（同一仓库）替换扩散模型。'
+const H3_INT8_NOTE_EN = 'int8_convrot weights are recommended with PyTorch cu130; on older GPUs or setups put minimax_h3_fl2va_pruned_fp8_scaled.safetensors (same repo) in Models to replace the diffusion model.'
+
+export const COMFY_H3_VRAM_TEMPLATES: ComfyWorkflowTemplate[] = [
+  h3Tier({
+    vram: 12,
+    label: '【12G 显存】MiniMax H3 音画同出 · 剪枝 GGUF Q3 + 8 步加速（480p）',
+    description: `适合 RTX 3060 12G / 4070 / 5070 等。剪枝版 GGUF Q3_K_M（约 8.9 GB）+ 8 步 Turbo LoRA，最高 480p（16:9 为 864×480），画质和声音比完整版弱，适合出草稿。${H3_GGUF_NOTE}${H3_TIER_NOTE}`,
+    descriptionEn: `For 12 GB cards (RTX 3060 12G / 4070 / 5070). Pruned GGUF Q3_K_M (~8.9 GB) plus the 8-step Turbo LoRA, up to 480p (864×480 at 16:9); weaker picture and audio than the full model, good for drafts. ${H3_GGUF_NOTE_EN} ${H3_TIER_NOTE_EN}`,
+    unet: H3_TIER_FILES.ggufQ3, clip: H3_TIER_FILES.clipNvfp4, videoVae: H3_TIER_FILES.vaeInt8, gguf: true, turbo: true, steps: 8, maxShortEdge: 480,
+  }),
+  h3Tier({
+    vram: 16,
+    label: '【16G 显存】MiniMax H3 音画同出 · 剪枝 GGUF Q4 + 8 步加速（768p）',
+    description: `适合 RTX 4060 Ti 16G / 4080 / 5070 Ti 等。剪枝版 GGUF Q4_K_M（约 11.6 GB）+ 8 步 Turbo LoRA，原生 768p（16:9 为 1344×768）；显存不足时选 480p。${H3_GGUF_NOTE}${H3_TIER_NOTE}`,
+    descriptionEn: `For 16 GB cards (RTX 4060 Ti 16G / 4080 / 5070 Ti). Pruned GGUF Q4_K_M (~11.6 GB) plus the 8-step Turbo LoRA at native 768p (1344×768 at 16:9); pick 480p if VRAM runs out. ${H3_GGUF_NOTE_EN} ${H3_TIER_NOTE_EN}`,
+    unet: H3_TIER_FILES.ggufQ4, clip: H3_TIER_FILES.clipNvfp4, videoVae: H3_TIER_FILES.vaeInt8, gguf: true, turbo: true, steps: 8, maxShortEdge: 768,
+  }),
+  h3Tier({
+    vram: 24,
+    label: '【24G 显存】MiniMax H3 音画同出 · 剪枝 GGUF Q5 + 8 步加速（768p）',
+    description: `适合 RTX 3090 / 4090 等。剪枝版 GGUF Q5_K_M（约 14.1 GB，接近 int8 画质）+ 8 步 Turbo LoRA，768p。${H3_GGUF_NOTE}${H3_TIER_NOTE}`,
+    descriptionEn: `For 24 GB cards (RTX 3090 / 4090). Pruned GGUF Q5_K_M (~14.1 GB, close to int8) plus the 8-step Turbo LoRA at 768p. ${H3_GGUF_NOTE_EN} ${H3_TIER_NOTE_EN}`,
+    unet: H3_TIER_FILES.ggufQ5, clip: H3_TIER_FILES.clipNvfp4, videoVae: H3_TIER_FILES.vaeInt8, gguf: true, turbo: true, steps: 8, maxShortEdge: 768,
+  }),
+  h3Tier({
+    vram: 32,
+    label: '【32G 显存】MiniMax H3 音画同出 · 官方剪枝 int8 + 8 步加速（768p）',
+    description: `适合 RTX 5090 32G 等。和 ComfyUI 官方 MiniMax H3 模板同一套：剪枝版 int8（约 21 GB）+ nvfp4 文本编码器 + int8 视频 VAE + 8 步 Turbo LoRA，不需要额外插件。${H3_INT8_NOTE}${H3_TIER_NOTE}`,
+    descriptionEn: `For 32 GB cards (RTX 5090). Same set as ComfyUI's official MiniMax H3 template: pruned int8 (~21 GB), nvfp4 text encoder, int8 video VAE and the 8-step Turbo LoRA; no custom nodes. ${H3_INT8_NOTE_EN} ${H3_TIER_NOTE_EN}`,
+    unet: H3_TIER_FILES.prunedInt8, clip: H3_TIER_FILES.clipNvfp4, videoVae: H3_TIER_FILES.vaeInt8, turbo: true, steps: 8, maxShortEdge: 768,
+  }),
+  h3Tier({
+    vram: 48,
+    label: '【48G 显存】MiniMax H3 音画同出 · 完整版 int8 标准 20 步（768p）',
+    description: `适合 RTX 6000 Ada / A6000 / L40S 48G 等。完整版 int8（约 34 GB，比剪枝版画面和声音更好）+ 标准 20 步（不用加速 LoRA，对白更清楚），fp16 视频 VAE。${H3_INT8_NOTE}${H3_TIER_NOTE}`,
+    descriptionEn: `For 48 GB cards (RTX 6000 Ada / A6000 / L40S). Full int8 model (~34 GB, better picture and audio than pruned) with standard 20 steps (no Turbo LoRA, clearer dialogue) and the fp16 video VAE. ${H3_INT8_NOTE_EN} ${H3_TIER_NOTE_EN}`,
+    unet: H3_TIER_FILES.fullInt8, clip: H3_TIER_FILES.clipNvfp4, videoVae: H3_TIER_FILES.vaeFp16, steps: 20, maxShortEdge: 768,
+  }),
+  h3Tier({
+    vram: 96,
+    label: '【96G 显存】MiniMax H3 音画同出 · 完整版 int8 25 步（768p）',
+    description: `适合 RTX Pro 6000 96G、A100 / H100 80G 等（80~84G 的卡也够）。完整版 int8 + int8 文本编码器（比 nvfp4 理解提示词更准，两者共约 61 GB 可常驻显存），25 步（官方建议动作要更好时用 25 步）。${H3_INT8_NOTE}${H3_TIER_NOTE}`,
+    descriptionEn: `For 96 GB cards (RTX Pro 6000 96G) and 80 GB A100 / H100 (80–84 GB is enough). Full int8 with the int8 text encoder (follows prompts better than nvfp4; ~61 GB together, can stay resident), 25 steps (the official tip for better motion). ${H3_INT8_NOTE_EN} ${H3_TIER_NOTE_EN}`,
+    unet: H3_TIER_FILES.fullInt8, clip: H3_TIER_FILES.clipInt8, videoVae: H3_TIER_FILES.vaeFp16, steps: 25, maxShortEdge: 768,
+  }),
+  h3Tier({
+    vram: 141,
+    label: '【141G 显存】MiniMax H3 音画同出 · 完整版 bf16 30 步（768p）',
+    description: `适合 H200 141G、GH200 等。完整版 bf16 原精度（约 66 GB）+ int8 文本编码器，30 步，画面细节和声音质量最好的一档起点。${H3_TIER_NOTE}`,
+    descriptionEn: `For H200 141G / GH200. Full-precision bf16 model (~66 GB) with the int8 text encoder, 30 steps: the start of the best-quality tiers. ${H3_TIER_NOTE_EN}`,
+    unet: H3_TIER_FILES.fullBf16, clip: H3_TIER_FILES.clipInt8, videoVae: H3_TIER_FILES.vaeFp16, steps: 30, maxShortEdge: 768,
+  }),
+  h3Tier({
+    vram: 192,
+    label: '【192G 显存】MiniMax H3 音画同出 · 完整版 bf16 + bf16 文本编码器 40 步（768p）',
+    description: `适合 B200 192G、MI300X / MI325X 等。扩散模型和文本编码器都用 bf16 原精度（共约 118 GB），40 步。启动 ComfyUI 时加 --highvram，所有模型常驻显存，不用来回换。${H3_TIER_NOTE}`,
+    descriptionEn: `For B200 192G / MI300X / MI325X. bf16 diffusion model and bf16 text encoder (~118 GB together), 40 steps. Start ComfyUI with --highvram to keep everything resident. ${H3_TIER_NOTE_EN}`,
+    unet: H3_TIER_FILES.fullBf16, clip: H3_TIER_FILES.clipBf16, videoVae: H3_TIER_FILES.vaeFp16, steps: 40, maxShortEdge: 768,
+  }),
+  h3Tier({
+    vram: 288,
+    label: '【288G 显存】MiniMax H3 音画同出 · 完整版 bf16 50 步（768p 长镜头）',
+    description: `适合 B300 288G、MI355X 等。全 bf16 + 50 步（官方说明细节到 50 步左右仍在提升），多出的显存够单镜 15 秒（H3 支持的最长时长）一次出片。启动 ComfyUI 时加 --highvram。${H3_TIER_NOTE}`,
+    descriptionEn: `For B300 288G / MI355X. All bf16 with 50 steps (detail keeps improving up to ~50 per the official notes); the extra VRAM covers 15-second shots (H3's longest) in one pass. Start ComfyUI with --highvram. ${H3_TIER_NOTE_EN}`,
+    unet: H3_TIER_FILES.fullBf16, clip: H3_TIER_FILES.clipBf16, videoVae: H3_TIER_FILES.vaeFp16, steps: 50, maxShortEdge: 768,
   }),
 ]
 
@@ -443,6 +579,7 @@ export const COMFY_VIDEO_TEMPLATES: ComfyWorkflowTemplate[] = [
     workflow: minimaxH3Workflow({ steps: 4, lora: H3_FILES.turbo4.file }),
   },
   ...COMFY_VRAM_TEMPLATES,
+  ...COMFY_H3_VRAM_TEMPLATES,
 ]
 
 const SAVE_IMAGE = { class_type: 'SaveImage', inputs: { filename_prefix: 'uu889-drama', images: ['8', 0] }, _meta: { title: '保存图片' } }
@@ -621,6 +758,7 @@ export function describeComfyTemplates(kind: ComfyTemplateKind, includeWorkflow 
     default_model: t.defaultModel,
     recommended: t.recommended,
     vram: t.vram ?? null,
+    vram_family: t.vramFamily ?? null,
     needs_image: t.needsImage || 'none',
     ...(includeWorkflow ? { workflow: t.workflow } : {}),
   }))

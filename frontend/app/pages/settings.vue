@@ -587,9 +587,9 @@
                 <span class="field-label">{{ t('settings.cfg.comfy.template') }}</span>
                 <select v-model="cfgForm.comfyui_template" class="input">
                   <option value="">{{ t('settings.cfg.comfy.templateAuto') }}</option>
-                  <template v-if="comfyVramTemplates.length">
-                    <optgroup :label="t('settings.cfg.comfy.groupVram')">
-                      <option v-for="tpl in comfyVramTemplates" :key="tpl.id" :value="tpl.id">{{ tpl.label }}</option>
+                  <template v-if="comfyVramGroups.length">
+                    <optgroup v-for="g in comfyVramGroups" :key="g.family" :label="t('settings.cfg.comfy.groupVram', { family: g.family })">
+                      <option v-for="tpl in g.list" :key="tpl.id" :value="tpl.id">{{ tpl.label }}</option>
                     </optgroup>
                     <optgroup :label="t('settings.cfg.comfy.groupOther')">
                       <option v-for="tpl in comfyOtherTemplates" :key="tpl.id" :value="tpl.id">{{ tpl.label }}</option>
@@ -1056,8 +1056,19 @@ function applyFooocusPreset(p) {
 const comfySource = ref('builtin')
 const comfyTemplateCache = reactive({ image: [], video: [] })
 const comfyTemplates = computed(() => comfyTemplateCache[cfgForm.service_type === 'image' ? 'image' : 'video'] || [])
-// 按显存档位设计的模板单独一组（从小到大），其余模板放「其他模板」
-const comfyVramTemplates = computed(() => comfyTemplates.value.filter(tpl => tpl.vram).sort((a, b) => a.vram - b.vram))
+// 按显存档位设计的模板按模型系列分组（组内从小到大），其余模板放「其他模板」
+const comfyVramGroups = computed(() => {
+  const groups = []
+  for (const tpl of comfyTemplates.value) {
+    if (!tpl.vram) continue
+    const family = tpl.vram_family || ''
+    let g = groups.find(x => x.family === family)
+    if (!g) groups.push(g = { family, list: [] })
+    g.list.push(tpl)
+  }
+  for (const g of groups) g.list.sort((a, b) => a.vram - b.vram)
+  return groups
+})
 const comfyOtherTemplates = computed(() => comfyTemplates.value.filter(tpl => !tpl.vram))
 async function ensureComfyTemplates(kind) {
   if (comfyTemplateCache[kind]?.length) return

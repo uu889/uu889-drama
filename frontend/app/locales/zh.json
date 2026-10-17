@@ -475,7 +475,7 @@
           "resolution": "分辨率"
         },
         "stepsTag": "{n} 步",
-        "groupVram": "按显存选（Wan 2.2 图生视频 14B）",
+        "groupVram": "按显存选 · {family}",
         "groupOther": "其他模板",
         "vramTag": "{n}G 显存",
         "maxResTag": "最高 {n}p"
