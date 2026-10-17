@@ -56,6 +56,7 @@ export interface ImageProviderAdapter {
   describeProgress?(config: AIConfig, taskId: string, pollResult: any): TaskProgressPatch | null
   onFinished?(config: AIConfig, taskId: string): void
   trackSyncProgress?(config: AIConfig, request: ProviderRequest, report: ProgressReporter): () => void
+  prepareRetry?(config: AIConfig, ctx: RetryContext): Promise<boolean>
 }
 
 /**
@@ -121,6 +122,12 @@ export interface VideoProviderAdapter {
   onFinished?(config: AIConfig, taskId: string): void
 
   /**
+   * 可选：上游执行失败后，判断能否处理后原样重新提交（如 ComfyUI 显存不足：先让 ComfyUI 释放缓存的模型）。
+   * 返回 true = 已处理，由 generation.ts 用同一个请求重新提交；false = 照常判失败。
+   */
+  prepareRetry?(config: AIConfig, ctx: RetryContext): Promise<boolean>
+
+  /**
    * 可选：同步接口（请求阻塞到出结果，如 SD WebUI txt2img）在请求进行期间另行查询进度。
    * 返回停止函数，请求结束后调用。
    */
@@ -146,6 +153,17 @@ export interface ProviderRequest {
    * 此时 headers 不要设置 Content-Type，边界由 fetch 自动生成。
    */
   body: any
+}
+
+/** prepareRetry 的上下文 */
+export interface RetryContext {
+  taskId: string
+  error: string
+  /** 已经重试过的次数（第一次失败时为 0） */
+  attempt: number
+  /** 同一台机器上同一服务商的其他启用配置（如另一个 ComfyUI 端口），可一并释放资源 */
+  peers: AIConfig[]
+  report?: ProgressReporter
 }
 
 export interface AIConfig {

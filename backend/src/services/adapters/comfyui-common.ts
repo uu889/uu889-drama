@@ -10,7 +10,7 @@
  * 图片占位符没有对应素材时，引用它的节点（如 LoadImage）连同只依赖它的下游节点一起移除，
  * 必填输入被断开的节点（按 /object_info 判断）也一并移除，其余指向被移除节点的连线删掉。
  */
-import type { AIConfig, DownloadRequest, GenerateContext, ProviderRequest } from './types'
+import type { AIConfig, DownloadRequest, GenerateContext, ProviderRequest, RetryContext } from './types'
 import { loadReferenceFile } from './media'
 import { autoBindComfyWorkflow, type ComfyBindOptions } from './comfyui-bind'
 import { comfyMonitorFor, comfyQueuePosition, describeComfyPromptMeta } from './comfyui-progress'
@@ -184,6 +184,53 @@ const MODEL_FILE_RE = /\.(safetensors|sft|ckpt|pt|pth|bin|gguf)$/i
 // safetensors / torch 读到截断或损坏文件时的典型报错
 const CORRUPT_FILE_RE = /incomplete metadata|not fully covered|deserializ|header ?too ?large|invalid header|unexpected end of file|PytorchStreamReader|central directory|MetadataIncompleteBuffer|safetensors_rust/i
 const OUT_OF_MEMORY_RE = /out of memory|OutOfMemory|CUDA error: out of memory|allocation on device/i
+/** 显存不足时自动「释放显存 → 重新提交」的次数 */
+export const COMFY_OOM_RETRIES = 2
+
+export function isComfyOutOfMemory(text: string | null | undefined): boolean {
+  return OUT_OF_MEMORY_RE.test(String(text || ''))
+}
+
+function toGb(num: string, unit: string): number {
+  const n = Number(num)
+  return /^M/i.test(unit) ? n / 1024 : /^K/i.test(unit) ? n / 1048576 : n
+}
+
+function fmtGb(gb: number): string {
+  return gb < 1 ? `${Math.round(gb * 1024)} MB` : `${gb.toFixed(1)} GB`
+}
+
+/**
+ * PyTorch 的 CUDA OOM 原文（「Tried to allocate … GPU 0 has a total capacity of … of which … is free.
+ * Process N has … memory in use. Including non-PyTorch memory, this process has … memory in use.」）
+ * → 先说结论和怎么办，原文放最后（任务卡片只显示前几行）。
+ */
+export function describeComfyOutOfMemory(nodeType: string, message: string): string {
+  const num = '([\\d.]+)\\s*([KMG]i?B)'
+  const total = new RegExp(`total capacity of ${num}`, 'i').exec(message)
+  const free = new RegExp(`of which ${num} is free`, 'i').exec(message)
+  const self = new RegExp(`this process has ${num} memory in use`, 'i').exec(message)
+  const procs = [...message.matchAll(new RegExp(`Process (\\d+) has ${num} memory in use`, 'gi'))]
+    .map((m) => ({ pid: m[1], gb: toGb(m[2], m[3]) }))
+  const selfGb = self ? toGb(self[1], self[2]) : null
+  const parts: string[] = []
+  if (total) parts.push(`显卡共 ${fmtGb(toGb(total[1], total[2]))}${free ? `，只剩 ${fmtGb(toGb(free[1], free[2]))}` : ''}`)
+  if (selfGb != null) {
+    parts.push(`ComfyUI 自己占用 ${fmtGb(selfGb)}`)
+    const others = procs.filter((p) => Math.abs(p.gb - selfGb) > 0.5)
+    if (others.length) parts.push(`其他程序占用 ${others.map((p) => `${fmtGb(p.gb)}（进程 ${p.pid}）`).join('、')}`)
+  } else if (procs.length) {
+    parts.push(`占用显存的进程：${procs.map((p) => `${p.pid} 占 ${fmtGb(p.gb)}`).join('、')}（如果不是 ComfyUI，就是同一张显卡上的其他程序）`)
+  }
+  const where = nodeType ? `（${nodeType} 加载时）` : ''
+  return [
+    `ComfyUI 显存不足${where}${parts.length ? `：${parts.join('，')}` : ''}。`,
+    '处理办法：① 关掉同一张显卡上的其他程序（SD WebUI / Fooocus / 另一个 ComfyUI / 本地大模型），或不要同时生成图片和视频；',
+    '② ComfyUI 不要用 --highvram / --gpu-only 启动，显存紧张时改用 --lowvram 或 --reserve-vram 4；',
+    '③ 降低分辨率或时长，或改用 fp8 / GGUF 量化模型。',
+    `原始错误：${nodeType} ${message}`.trim(),
+  ].join('')
+}
 
 /**
  * ComfyUI execution_error → 带排查建议的文案。
@@ -200,9 +247,7 @@ export function describeComfyExecutionError(failure: any): string {
   if (CORRUPT_FILE_RE.test(message)) {
     return `${base}；模型文件不完整或已损坏（多为下载中断）：请删除 ${where} 后重新下载，并核对文件大小 / SHA256 与下载页一致`
   }
-  if (OUT_OF_MEMORY_RE.test(message)) {
-    return `${base}；显存不足：降低分辨率或时长，改用 fp8 / GGUF 量化模型，或用 --lowvram 启动 ComfyUI`
-  }
+  if (OUT_OF_MEMORY_RE.test(message)) return describeComfyOutOfMemory(nodeType, message)
   if (file && /no such file|not found|does not exist/i.test(message)) {
     return `${base}；找不到模型文件：请把 ${file} 放到 ComfyUI/${folder || 'models'}/ 下`
   }
@@ -289,6 +334,46 @@ export function readComfyHistory(result: any): ComfyHistoryState {
   return { state: 'running' }
 }
 
+async function comfyVramFree(config: AIConfig): Promise<number | null> {
+  try {
+    const resp = await fetch(comfyUrl(config, '/system_stats'), { headers: comfyAuthHeaders(config), signal: AbortSignal.timeout(10_000) })
+    if (!resp.ok) return null
+    const stats: any = await resp.json()
+    const v = Number(stats?.devices?.[0]?.vram_free)
+    return Number.isFinite(v) ? v : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 让 ComfyUI 卸载缓存的模型并清空显存缓存（POST /free），可一次处理同一台机器上的多个 ComfyUI。
+ * ComfyUI 在当前任务结束后（空闲时立即）处理 /free；等第一个实例的空闲显存真的涨上来（最多 waitMs），
+ * 避免重新提交的任务抢在释放之前开始。返回释放了多少字节（查不到时为 null）。
+ */
+export async function freeComfyMemory(configs: AIConfig[], waitMs = 15_000): Promise<number | null> {
+  if (!configs.length) return null
+  const before = await comfyVramFree(configs[0])
+  await Promise.all(configs.map((c) => fetch(comfyUrl(c, '/free'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...comfyAuthHeaders(c) },
+    body: JSON.stringify({ unload_models: true, free_memory: true }),
+    signal: AbortSignal.timeout(15_000),
+  }).catch(() => null)))
+  const started = Date.now()
+  let after = before
+  while (Date.now() - started < waitMs) {
+    await new Promise((r) => setTimeout(r, 1000))
+    after = await comfyVramFree(configs[0])
+    if (before == null || after == null) {
+      if (Date.now() - started >= 3000) break
+      continue
+    }
+    if (after - before > 512 * 1048576) break
+  }
+  return before != null && after != null ? Math.max(0, after - before) : null
+}
+
 export const COMFY_MISSING_ERROR = 'ComfyUI 的队列和历史里都找不到该任务（ComfyUI 可能已重启或任务被删除），请重新生成'
 
 /**
@@ -367,6 +452,22 @@ export abstract class ComfyUIClient {
 
   onFinished(config: AIConfig, taskId: string) {
     comfyMonitorFor(config).untrack(taskId)
+  }
+
+  /**
+   * 显存不足：让这台机器上的 ComfyUI 卸载缓存的模型、清空显存缓存，再用同一个工作流重新提交（最多 COMFY_OOM_RETRIES 次）。
+   * 常见原因是前面的任务（另一个工作流 / 生图）留在显存里的模型没卸掉，释放后通常就能跑。
+   */
+  async prepareRetry(config: AIConfig, ctx: RetryContext): Promise<boolean> {
+    if (!isComfyOutOfMemory(ctx.error) || ctx.attempt >= COMFY_OOM_RETRIES) return false
+    const n = ctx.attempt + 1
+    ctx.report?.({ stage: 'queued', message: `ComfyUI 显存不足，正在让 ComfyUI 释放缓存的模型后自动重试（第 ${n}/${COMFY_OOM_RETRIES} 次）` })
+    const freed = await freeComfyMemory([config, ...ctx.peers])
+    ctx.report?.({
+      stage: 'queued',
+      message: `已让 ComfyUI 释放显存${freed ? `（空出 ${(freed / 1073741824).toFixed(1)} GB）` : ''}，重新提交（第 ${n}/${COMFY_OOM_RETRIES} 次）`,
+    })
+    return true
   }
 
   /** 轮询后的细粒度进度：排队位置（来自 /queue）+ 节点 / 采样步数（来自 WebSocket） */

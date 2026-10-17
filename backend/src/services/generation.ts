@@ -350,7 +350,7 @@ async function processTask(id: number, config: AIConfig) {
 
       await markPolling(id, taskId)
       adapter.onSubmitted?.(config, taskId!, request, (patch) => { setTaskProgress(id, patch) })
-      pollTask(record, config, taskId!)
+      pollTask(record, config, taskId!, request)
       return
     }
 
@@ -366,7 +366,7 @@ async function processTask(id: number, config: AIConfig) {
 
     await markPolling(id, taskId)
     adapter.onSubmitted?.(config, taskId!, request, (patch) => { setTaskProgress(id, patch) })
-    pollTask(record, config, taskId!)
+    pollTask(record, config, taskId!, request)
   } catch (err: any) {
     await failTask(id, err.message)
   }
@@ -418,15 +418,77 @@ async function withRetry<T>(fn: () => Promise<T>, attempts = 3, delayMs = 3000):
   throw lastErr
 }
 
-async function pollTask(record: SysTaskRecord, config: AIConfig, taskId: string) {
+/**
+ * 同一台机器上同一服务商的其他启用配置（如生图、生视频各用一个 ComfyUI 端口）：
+ * 显存不足时一起释放。按主机名判断，127.0.0.1 / localhost 视为同一台。
+ */
+async function sameHostPeers(config: AIConfig): Promise<AIConfig[]> {
+  const hostOf = (u: string) => {
+    try {
+      const h = new URL(u).hostname.toLowerCase()
+      return ['127.0.0.1', 'localhost', '0.0.0.0', '::1', '[::1]'].includes(h) ? 'local' : h
+    } catch { return '' }
+  }
+  const norm = (u: string) => String(u || '').trim().replace(/\/+$/, '')
+  const host = hostOf(config.baseUrl)
+  if (!host) return []
+  try {
+    const rows = await db.select().from(schema.aiServiceConfigs)
+    const seen = new Set([norm(config.baseUrl)])
+    const out: AIConfig[] = []
+    for (const r of rows) {
+      if (!r.isActive || r.provider !== config.provider || hostOf(r.baseUrl) !== host || seen.has(norm(r.baseUrl))) continue
+      seen.add(norm(r.baseUrl))
+      out.push({ provider: r.provider || '', baseUrl: r.baseUrl, apiKey: r.apiKey, model: '' })
+    }
+    return out
+  } catch {
+    return []
+  }
+}
+
+async function pollTask(record: SysTaskRecord, config: AIConfig, initialTaskId: string, request?: ProviderRequest) {
   const type = record.type as TaskType
   const label = taskLabel(type)
   const adapter = type === 'image' ? getImageAdapter(config.provider) : getVideoAdapter(config.provider)
-  // 图片 / 视频适配器的可选钩子（轮询节奏、自定义取状态、取消）签名一致
-  const hooks = adapter as Pick<VideoProviderAdapter, 'pollProfile' | 'fetchPollResult' | 'cancel' | 'describeProgress' | 'onFinished'>
+  // 图片 / 视频适配器的可选钩子（轮询节奏、自定义取状态、取消、失败后重试）签名一致
+  const hooks = adapter as Pick<VideoProviderAdapter, 'pollProfile' | 'fetchPollResult' | 'cancel' | 'describeProgress' | 'onFinished' | 'onSubmitted' | 'prepareRetry'>
   const profile = { ...POLL_PROFILES[type], ...(hooks.pollProfile || {}) }
   const startedAt = Date.now()
   let clientErrors = 0
+  let taskId = initialTaskId
+  let retries = 0
+  const report = (patch: TaskProgressPatch) => { setTaskProgress(record.id, patch) }
+
+  /** 上游执行失败：适配器能处理（如 ComfyUI 显存不足先释放显存）就用同一个请求重新提交，继续轮询新任务 */
+  const retryAfterFailure = async (error: string): Promise<boolean> => {
+    if (!hooks.prepareRetry || !request || request.body instanceof FormData) return false
+    try {
+      const peers = await sameHostPeers(config)
+      const ok = await hooks.prepareRetry(config, { taskId, error, attempt: retries, peers, report })
+      if (!ok) return false
+      const resp = await fetch(request.url, {
+        method: request.method,
+        headers: request.headers,
+        body: JSON.stringify(request.body),
+        signal: AbortSignal.timeout(120_000),
+      })
+      if (!resp.ok) throw new Error(adapter.describeError?.(resp.status, await resp.text()) || `HTTP ${resp.status}`)
+      const parsed = adapter.parseGenerateResponse(await resp.json())
+      if (!parsed.isAsync || !parsed.taskId) throw new Error('重新提交后没有拿到任务 ID')
+      hooks.onFinished?.(config, taskId)
+      retries++
+      logTaskWarn(label, 'retry-after-failure', { id: record.id, oldTaskId: taskId, taskId: parsed.taskId, attempt: retries, error: error.slice(0, 200) })
+      taskId = parsed.taskId
+      await db.update(schema.sysTask).set({ taskId, updatedAt: now() }).where(eq(schema.sysTask.id, record.id))
+      hooks.onSubmitted?.(config, taskId, request, report)
+      report({ stage: 'queued', message: `已重新提交（第 ${retries} 次自动重试），上游任务 ID：${taskId}` })
+      return true
+    } catch (err: any) {
+      logTaskWarn(label, 'retry-after-failure-error', { id: record.id, taskId, error: err?.message })
+      return false
+    }
+  }
 
   const giveUp = async (message: string) => {
     // 放弃前尽量取消上游任务（如 ComfyUI 队列），失败不影响落库
@@ -514,8 +576,11 @@ async function pollTask(record: SysTaskRecord, config: AIConfig, taskId: string)
     }
 
     if (pollResp.status === 'failed') {
-      // 上游明确失败（如内容审核拦截）属终态：立即落库，不重试不等待超时
-      await failTask(record.id, pollResp.error || 'Generation failed')
+      const error = pollResp.error || 'Generation failed'
+      // 适配器能处理的失败（如 ComfyUI 显存不足）：处理后重新提交，继续轮询
+      if (await retryAfterFailure(error)) continue
+      // 上游明确失败（如内容审核拦截）属终态：立即落库，不等待超时
+      await failTask(record.id, retries ? `自动重试 ${retries} 次后仍失败。${error}` : error)
       return
     }
     if (pollResp.status !== 'completed') continue
