@@ -1057,8 +1057,8 @@ const comfySource = ref('builtin')
 const comfyTemplateCache = reactive({ image: [], video: [] })
 const comfyTemplates = computed(() => comfyTemplateCache[cfgForm.service_type === 'image' ? 'image' : 'video'] || [])
 // 按显存档位设计的模板单独一组（从小到大），其余模板放「其他模板」
-const comfyVramTemplates = computed(() => comfyTemplates.value.filter((tpl: any) => tpl.vram).sort((a: any, b: any) => a.vram - b.vram))
-const comfyOtherTemplates = computed(() => comfyTemplates.value.filter((tpl: any) => !tpl.vram))
+const comfyVramTemplates = computed(() => comfyTemplates.value.filter(tpl => tpl.vram).sort((a, b) => a.vram - b.vram))
+const comfyOtherTemplates = computed(() => comfyTemplates.value.filter(tpl => !tpl.vram))
 async function ensureComfyTemplates(kind) {
   if (comfyTemplateCache[kind]?.length) return
   try { comfyTemplateCache[kind] = await aiConfigAPI.comfyTemplates(kind) || [] } catch (e) { toastError(e) }
