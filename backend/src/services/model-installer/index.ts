@@ -9,7 +9,7 @@ import { isStyleKey, STYLE_KEYS } from '../adapters/style-models.js'
 import { openTarget, normalizeTargetPath, type InstallTarget, type RemoteLogin, type TargetFs } from './target'
 import { resolveLayout, type InstallProvider } from './detect'
 import { buildPlanFiles, checkPlanFiles } from './plan'
-import { activeJobFor, createJob, getJob, targetKeyOf } from './jobs'
+import { activeJobFor, activeJobs, createJob, getJob, targetKeyOf } from './jobs'
 import type { ProgressReporter } from '../task-progress'
 
 export interface ModelInstallSettings {
@@ -146,12 +146,13 @@ interface WatchedFile {
 }
 
 /**
- * 生成任务开始前：本地服务开启了「按风格切换模型」+「自动下载缺少的模型」，且配置了安装位置时，
- * 检查这个风格要用的文件；缺了就创建下载任务（或加入正在进行的任务）并等待下完，期间在任务进度里显示下载进度。
+ * 生成任务开始前：本地服务开启了「按风格切换模型」且配置了安装位置时，保证这个风格要用的模型文件是完整的。
  *
- * 多任务并发：每个缺少的文件只会在一个下载任务里——已经有任务在下的（比如别的风格共用的底模 / Wan 基础模型）直接等它，
- * 只为没人在下的文件新建任务；等待时逐个文件看状态，要用的文件全部下完才开始生成。
- * 不满足条件时直接返回；检查本身出错（连不上远程等）只提示、不阻断生成。
+ * - 要用的文件正在下载（手动下载、别的任务触发的自动下载、上次没下完程序重启后接着下的）→ 一律等它下完，
+ *   不管有没有开「自动下载」、这次能不能连上目标机——绝不在模型没下完时开始生成
+ * - 开了「自动下载缺少的模型」：再到目标机上检查，缺的文件没人在下就新建下载任务，一起等
+ * - 多任务并发：每个缺少的文件只会在一个下载任务里（不同风格共用的底模 / Wan 基础模型只下一份）
+ * 检查本身出错（连不上远程等）时：有正在下载的文件就照样等；没有就提示后按现有模型继续。
  */
 export async function ensureStyleModelsForTask(
   config: { provider: string; baseUrl?: string; apiKey?: string; model?: string; settings?: Record<string, any> | null },
@@ -160,66 +161,93 @@ export async function ensureStyleModelsForTask(
   report: ProgressReporter,
 ): Promise<void> {
   const settings = config.settings || {}
-  if (!isInstallProvider(config.provider) || !settings.style_models_enabled || !settings.style_models_auto_download) return
+  if (!isInstallProvider(config.provider) || !settings.style_models_enabled) return
   if (!isStyleKey(style)) return
   if (serviceType === 'video' && config.provider !== 'comfyui') return
   let install: ModelInstallSettings | null = null
   try { install = normalizeModelInstall(settings.model_install) } catch { install = null }
   if (!install?.root) return
 
+  const provider = config.provider as InstallProvider
+  const model = Array.isArray(config.model) ? config.model[0] : config.model
   const target = targetOf(install)
   const key = targetKeyOf(target)
-  let watch: WatchedFile[] = []
+  const watch = new Map<string, WatchedFile>()
+  const addWatch = (w: WatchedFile) => { if (!watch.has(w.dest)) watch.set(w.dest, w) }
+
+  // 1) 不连目标机：按清单算出这个风格要用的文件，正在下载的直接等
   try {
-    report({ stage: 'preparing', message: '检查风格模型是否齐全…' })
-    watch = await withTargetLock(key, async () => {
-      const t = await openTarget(target)
-      try {
-        const plan = await planOnTarget(t, {
-          target,
-          root: install!.root,
-          provider: config.provider as InstallProvider,
-          serviceType,
-          styles: [style],
-          settings,
-          model: Array.isArray(config.model) ? config.model[0] : config.model,
-          preferMirror: !!settings.download_prefer_mirror,
-        })
-        const missing = plan.files.filter((f) => f.state !== 'present')
-        if (!missing.length) return []
-        const out: WatchedFile[] = []
-        const notCovered: typeof missing = []
-        for (const f of missing) {
-          const existing = activeJobFor(key, f.dest)
-          if (existing) out.push({ jobId: existing.id, dest: f.dest, name: f.name, shared: true })
-          else notCovered.push(f)
-        }
-        if (notCovered.length) {
-          const job = createJob({
-            provider: config.provider as InstallProvider,
+    const { files } = buildPlanFiles({ provider, serviceType, styles: [style], settings, model })
+    const wanted = new Set(files.map((f) => `${f.role}:${f.file}`))
+    for (const j of activeJobs()) {
+      if (targetKeyOf(j.target) !== key) continue
+      for (const i of j.items) {
+        if (i.status === 'done' || i.status === 'skipped' || !wanted.has(`${i.role}:${i.file}`)) continue
+        addWatch({ jobId: j.id, dest: i.dest, name: i.name, shared: true })
+      }
+    }
+  } catch { /* 清单算不出来（不支持的组合）：交给下面的检查 */ }
+
+  // 2) 开了自动下载：到目标机上查缺哪些，没人在下的新建下载任务
+  if (settings.style_models_auto_download) {
+    try {
+      report({ stage: 'preparing', message: '检查风格模型是否齐全…' })
+      const found = await withTargetLock(key, async () => {
+        const t = await openTarget(target)
+        try {
+          const plan = await planOnTarget(t, {
+            target,
+            root: install!.root,
+            provider,
             serviceType,
             styles: [style],
-            root: plan.root,
-            target,
-            fsInfo: { os: t.os, hostname: t.hostname },
-            files: notCovered,
-            tokens: { civitai: settings.civitai_token, hf: settings.hf_token },
-            origin: 'auto',
-            refresh: { baseUrl: config.baseUrl, apiKey: config.apiKey },
+            settings,
+            model,
+            preferMirror: !!settings.download_prefer_mirror,
           })
-          for (const item of job.items) out.push({ jobId: job.id, dest: item.dest, name: item.name, shared: false })
+          const missing = plan.files.filter((f) => f.state !== 'present')
+          const out: WatchedFile[] = []
+          const notCovered: typeof missing = []
+          for (const f of missing) {
+            const existing = activeJobFor(key, f.dest)
+            if (existing) out.push({ jobId: existing.id, dest: f.dest, name: f.name, shared: true })
+            else notCovered.push(f)
+          }
+          if (notCovered.length) {
+            const job = createJob({
+              provider,
+              serviceType,
+              styles: [style],
+              root: plan.root,
+              target,
+              fsInfo: { os: t.os, hostname: t.hostname },
+              files: notCovered,
+              tokens: { civitai: settings.civitai_token, hf: settings.hf_token },
+              origin: 'auto',
+              refresh: { baseUrl: config.baseUrl, apiKey: config.apiKey },
+            })
+            for (const item of job.items) out.push({ jobId: job.id, dest: item.dest, name: item.name, shared: false })
+          }
+          return out
+        } finally {
+          t.close()
         }
-        return out
-      } finally {
-        t.close()
-      }
-    })
-  } catch (err: any) {
-    report({ stage: 'preparing', message: `检查风格模型失败，按现有模型继续：${err?.message || err}` })
-    return
+      })
+      for (const w of found) addWatch(w)
+    } catch (err: any) {
+      report({
+        stage: 'preparing',
+        message: watch.size
+          ? `检查风格模型失败（${err?.message || err}），先等正在下载的模型下完`
+          : `检查风格模型失败，按现有模型继续：${err?.message || err}`,
+      })
+    }
   }
-  if (!watch.length) return
+  if (!watch.size) return
+  await waitForFiles([...watch.values()], report)
+}
 
+async function waitForFiles(watch: WatchedFile[], report: ProgressReporter): Promise<void> {
   const sharedCount = watch.filter((w) => w.shared).length
   const started = Date.now()
   while (Date.now() - started < WAIT_LIMIT_MS) {
@@ -256,7 +284,7 @@ export async function ensureStyleModelsForTask(
     report({
       stage: 'preparing',
       percent: 1,
-      message: `正在下载风格模型 ${done}/${watch.length} 个文件，${pct}%（${fmtGb(received)} / ${fmtGb(total)}${speed ? `，${(speed / 1048576).toFixed(1)} MB/s` : ''}）${sharedCount ? `，其中 ${sharedCount} 个和其他任务共用同一份下载` : ''}，下完自动开始生成`,
+      message: `正在下载风格模型 ${done}/${watch.length} 个文件，${pct}%（${fmtGb(received)} / ${fmtGb(total)}${speed ? `，${(speed / 1048576).toFixed(1)} MB/s` : ''}）${sharedCount ? `，其中 ${sharedCount} 个已在下载中（共用同一份下载，不重复下）` : ''}，下完自动开始生成`,
       detail: { downloaded_bytes: received, total_bytes: total, eta_seconds: eta },
     })
     await new Promise((r) => setTimeout(r, 2000))

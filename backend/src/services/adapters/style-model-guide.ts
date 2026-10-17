@@ -1,7 +1,7 @@
 /**
  * 视觉风格 → 模型：设置页 / 文档用的说明数据与下载命令（bash + PowerShell）
  *
- * 下载命令统一用 curl（Windows 10+ 自带 curl.exe），-o 指定文件名，保证与推荐清单里的文件名一致
+ * 下载命令统一用 curl（Windows 10+ 自带 curl.exe），先下到 <文件名>.uu889part，成功后改成推荐清单里的文件名
  * （SD WebUI 的 <lora:名字:权重>、ComfyUI 的 lora_name、Fooocus 的 model_name 都按文件名引用）。
  * - Civitai：用 Authorization: Bearer $CIVITAI_TOKEN（Civitai 现在下载任何模型都要 API Key）；
  *   在 Hugging Face 有同哈希副本的 Civitai 文件直接从 HF 下载，不需要 Key
@@ -40,22 +40,24 @@ export interface DownloadItem {
 
 const HF_PREFIX = 'https://huggingface.co/'
 
+/**
+ * 先下载成 <文件>.uu889part，curl 成功（--fail：HTTP 错误不算成功）后才改成正式文件名：
+ * 中途断开不会在模型目录里留下不完整的模型；重新运行同一条命令（或用「一键下载」）会从 .uu889part 续传。
+ */
 function bashLine(provider: ProviderKey, item: DownloadItem): string {
-  const target = `"$${DIR_VAR[provider]}/${item.folder}/${item.file}"`
-  if (item.source === 'civitai') {
-    return `curl -L -C - -H "Authorization: Bearer $CIVITAI_TOKEN" -o ${target} "${item.url}"`
-  }
+  const target = `$${DIR_VAR[provider]}/${item.folder}/${item.file}`
+  const fetch = (auth: string, url: string) => `curl -L --fail -C -${auth} -o "${target}.uu889part" "${url}" && mv -f "${target}.uu889part" "${target}"`
+  if (item.source === 'civitai') return fetch(' -H "Authorization: Bearer $CIVITAI_TOKEN"', item.url)
   const url = item.url.startsWith(HF_PREFIX) ? `\${HF_ENDPOINT:-https://huggingface.co}/${item.url.slice(HF_PREFIX.length)}` : item.url
-  const auth = item.login_required ? ' -H "Authorization: Bearer $HF_TOKEN"' : ''
-  return `curl -L -C -${auth} -o ${target} "${url}"`
+  return fetch(item.login_required ? ' -H "Authorization: Bearer $HF_TOKEN"' : '', url)
 }
 
 function psLine(provider: ProviderKey, item: DownloadItem): string {
-  const target = `"$env:${DIR_VAR[provider]}\\${item.folder.replace(/\//g, '\\')}\\${item.file}"`
-  if (item.source === 'civitai') return `curl.exe -L -C - -H "Authorization: Bearer $env:CIVITAI_TOKEN" -o ${target} "${item.url}"`
+  const target = `$env:${DIR_VAR[provider]}\\${item.folder.replace(/\//g, '\\')}\\${item.file}`
+  const fetch = (auth: string, url: string) => `curl.exe -L --fail -C -${auth} -o "${target}.uu889part" "${url}"; if ($LASTEXITCODE -eq 0) { Move-Item -Force "${target}.uu889part" "${target}" }`
+  if (item.source === 'civitai') return fetch(' -H "Authorization: Bearer $env:CIVITAI_TOKEN"', item.url)
   const url = item.url.startsWith(HF_PREFIX) ? `$hf/${item.url.slice(HF_PREFIX.length)}` : item.url
-  const auth = item.login_required ? ' -H "Authorization: Bearer $env:HF_TOKEN"' : ''
-  return `curl.exe -L -C -${auth} -o ${target} "${url}"`
+  return fetch(item.login_required ? ' -H "Authorization: Bearer $env:HF_TOKEN"' : '', url)
 }
 
 /** 生成一组文件的下载脚本（去重；先建目录） */

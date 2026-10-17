@@ -5,11 +5,13 @@ import os from 'node:os'
 import path from 'node:path'
 import http from 'node:http'
 import crypto from 'node:crypto'
-import { execFile } from 'node:child_process'
+import { execFile, spawn } from 'node:child_process'
 
 // 任务记录写到临时数据目录（必须在导入 jobs 之前设置）
 const DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'uu889-mi-data-'))
 process.env.UU889_DATA_DIR = DATA
+// 大部分用例测程序内下载器；后台进程下载在下面的「退出程序」用例里单独测
+process.env.MODEL_INSTALLER_DETACHED = '0'
 
 const { createJob, getJob, publicJob, pauseJob, resumeJob } = await import('../src/services/model-installer/jobs')
 const { buildPosixScript, buildPowerShellScript, parseStatusLog } = await import('../src/services/model-installer/remote-script')
@@ -53,11 +55,12 @@ before(async () => {
       }
       if (url.startsWith('/slow')) {
         let off = 0
+        // /slower 约 5 秒下完，用来模拟下载途中退出程序
         const tick = setInterval(() => {
           if (off >= body.length || res.destroyed) { clearInterval(tick); res.end(); return }
           res.write(body.subarray(off, off + 64 * 1024))
           off += 64 * 1024
-        }, 20)
+        }, url.startsWith('/slower') ? 100 : 20)
         res.on('close', () => clearInterval(tick))
         return
       }
@@ -406,6 +409,145 @@ test('generation hook: concurrent tasks with different styles share the base che
     globalThis.fetch = realFetch
     names.forEach((n, i) => { FILE_META[n] = saved[i] })
   }
+})
+
+// ─── 退出程序 / 电脑重启：下载不中断、下次打开接着下、没下完的模型不会被用到 ──────
+
+const JOBS_MODULE = path.resolve('src/services/model-installer/jobs.ts')
+
+/** 在单独的进程里跑一段代码，模拟一次「打开 UU889-Drama」（kill 它 = 退出程序） */
+function appProcess(dataDir: string, code: string) {
+  const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'uu889-app-')), 'app.mts')
+  fs.writeFileSync(file, `const J = await import(${JSON.stringify(JOBS_MODULE)})\n${code}`)
+  const child = spawn(process.execPath, ['--import', 'tsx', file], {
+    cwd: process.cwd(),
+    env: { ...process.env, UU889_DATA_DIR: dataDir, MODEL_INSTALLER_DETACHED: '1', NO_PROXY: '*', no_proxy: '*' },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  let out = ''
+  child.stdout!.on('data', (c) => { out += c })
+  child.stderr!.on('data', (c) => { out += c })
+  const waitFor = (re: RegExp, ms = 30_000) => new Promise<string>((resolve, reject) => {
+    const t0 = Date.now()
+    const iv = setInterval(() => {
+      const m = re.exec(out)
+      if (m) { clearInterval(iv); resolve(m[0]) } else if (Date.now() - t0 > ms || child.exitCode != null) { clearInterval(iv); reject(new Error(`app process: ${re} not seen; output:\n${out}`)) }
+    }, 50)
+  })
+  const exited = new Promise<void>((r) => child.once('exit', () => r()))
+  return { child, waitFor, exited, output: () => out }
+}
+
+function createSlowJobCode(root: string, name: string) {
+  return `
+const dest = ${JSON.stringify(path.join(root, 'models', 'checkpoints'))} + '/' + ${JSON.stringify(name)}
+J.createJob({ provider: 'comfyui', serviceType: 'image', styles: ['anime'], root: ${JSON.stringify(root)}, target: { mode: 'local' }, fsInfo: { os: 'linux', hostname: 'h' },
+  files: [{ key: 'checkpoint:${name}', name: '${name}', file: '${name}', role: 'checkpoint', styles: ['anime'], url: '${base}/slower/${name}', bytes: ${PAYLOAD.length}, sha256: '${SHA}',
+    sources: [{ label: 'huggingface', url: '${base}/slower/${name}' }], dest, state: 'missing', currentBytes: 0, partBytes: 0 }] })
+const iv = setInterval(() => { const j = J.getJob(J.listJobs()[0].id); if (j.remote?.jobDir) { clearInterval(iv); console.log('LAUNCHED'); setInterval(() => {}, 1000) } }, 50)
+`
+}
+
+const RESUME_CODE = `
+J.resumeJobsOnStartup()
+const iv = setInterval(() => { const j = J.listJobs()[0]; if (j.status !== 'running' && j.status !== 'queued') { clearInterval(iv); console.log('STATUS=' + j.status + ' MSG=' + (j.message || '') + ' ERR=' + (j.error || '')); process.exit(0) } }, 200)
+`
+
+test('quitting UU889-Drama mid-download: local download keeps running in the background and the next start sees it finished', { skip: process.platform === 'win32' }, async () => {
+  const data = fs.mkdtempSync(path.join(os.tmpdir(), 'uu889-quit-data-'))
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'uu889-quit-root-'))
+  const dest = path.join(root, 'models', 'checkpoints', 'q.safetensors')
+  const app1 = appProcess(data, createSlowJobCode(root, 'q.safetensors'))
+  await app1.waitFor(/LAUNCHED/)
+  await new Promise((r) => setTimeout(r, 800))
+  app1.child.kill('SIGKILL') // 退出程序（连收尾都没有）
+  await app1.exited
+  assert.ok(!fs.existsSync(dest), '刚退出时还没下完，正式文件名下不能有文件')
+  // 程序关着，下载照样下完
+  const t0 = Date.now()
+  while (!fs.existsSync(dest) && Date.now() - t0 < 30_000) await new Promise((r) => setTimeout(r, 200))
+  assert.ok(fs.existsSync(dest), '程序关闭期间后台进程把文件下完了')
+  assert.equal(crypto.createHash('sha256').update(fs.readFileSync(dest)).digest('hex'), SHA)
+  // 再次打开：读到「已完成」
+  const app2 = appProcess(data, RESUME_CODE)
+  const line = await app2.waitFor(/STATUS=\S+/)
+  assert.equal(line, 'STATUS=done', app2.output())
+})
+
+test('download process killed (e.g. computer restarted): next start resumes automatically from the partial file', { skip: process.platform === 'win32' }, async () => {
+  const data = fs.mkdtempSync(path.join(os.tmpdir(), 'uu889-reboot-data-'))
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'uu889-reboot-root-'))
+  const dest = path.join(root, 'models', 'checkpoints', 'r.safetensors')
+  const app1 = appProcess(data, createSlowJobCode(root, 'r.safetensors'))
+  await app1.waitFor(/LAUNCHED/)
+  await new Promise((r) => setTimeout(r, 1500))
+  app1.child.kill('SIGKILL')
+  await app1.exited
+  // 「电脑重启」：后台下载进程（和它的 curl）也没了
+  const saved = JSON.parse(fs.readFileSync(path.join(data, 'model-downloads', 'jobs.json'), 'utf8'))
+  const jobDir = saved[0].remote.jobDir
+  const pid = Number(fs.readFileSync(path.join(jobDir, 'pid'), 'utf8').trim())
+  process.kill(-pid, 'SIGKILL')
+  await new Promise((r) => setTimeout(r, 300))
+  const partBytes = fs.statSync(`${dest}.uu889part`).size
+  assert.ok(partBytes > 0 && partBytes < PAYLOAD.length, `留下了没下完的 .uu889part（${partBytes}）`)
+  assert.ok(!fs.existsSync(dest), '没下完的文件不会出现在正式文件名下')
+  // 模拟过了一段时间（跳过启动后 20 秒的宽限）
+  saved[0].remote.launchedAt = 0
+  fs.writeFileSync(path.join(data, 'model-downloads', 'jobs.json'), JSON.stringify(saved))
+  rangeHits = 0
+  const app2 = appProcess(data, RESUME_CODE)
+  const line = await app2.waitFor(/STATUS=\S+ MSG=[^\n]*/, 60_000)
+  assert.match(line, /^STATUS=done/, app2.output())
+  assert.ok(rangeHits >= 1, '从 .uu889part 断点续传，而不是从头下')
+  assert.equal(crypto.createHash('sha256').update(fs.readFileSync(dest)).digest('hex'), SHA)
+  assert.ok(!fs.existsSync(path.join(jobDir, 'run.sh')), '下完后删掉脚本（里面可能有 Token）')
+})
+
+test('generation waits for a model that is still downloading even when auto-download is off', async () => {
+  const { ensureStyleModelsForTask } = await import('../src/services/model-installer/index')
+  const { FILE_META } = await import('../src/services/model-installer/sources')
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'uu889-manual-'))
+  for (const d of ['comfy', 'models/checkpoints', 'models/loras']) fs.mkdirSync(path.join(root, d), { recursive: true })
+  fs.writeFileSync(path.join(root, 'main.py'), '')
+  const name = 'watercolor_v1_sdxl.safetensors'
+  const savedMeta = FILE_META[name]
+  FILE_META[name] = { bytes: PAYLOAD.length, sha256: SHA }
+  try {
+    const dest = path.join(root, 'models', 'loras', name)
+    // 手动在「一键下载」里开始的下载（比如上次没下完、程序重启后接着下的）
+    createJob({
+      provider: 'comfyui', serviceType: 'image', styles: ['watercolor'], root, target: { mode: 'local' }, fsInfo: { os: 'linux', hostname: 'h' },
+      files: [{ ...fakeFile(path.dirname(dest), name, [{ label: 'huggingface', url: `${base}/slower/w` }]), key: `lora:${name}`, role: 'lora' as const }],
+    })
+    const reports: string[] = []
+    const cfg = { provider: 'comfyui', settings: { style_models_enabled: true, style_models_auto_download: false, model_install: { mode: 'local', root } } }
+    await ensureStyleModelsForTask(cfg, 'image', 'watercolor', (p) => reports.push(String(p.message)))
+    assert.ok(fs.existsSync(dest), '返回时模型已经下完')
+    assert.ok(reports.some((m) => /正在下载风格模型/.test(m)), reports.join('\n'))
+    // 另一个风格用不到这个文件：不等
+    const before = reports.length
+    await ensureStyleModelsForTask(cfg, 'image', 'comic', (p) => reports.push(String(p.message)))
+    assert.equal(reports.length, before)
+  } finally {
+    FILE_META[name] = savedMeta
+  }
+})
+
+test('background script: unknown-size files under 1 MB are not accepted as models', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'uu889-mi-small-'))
+  const jobDir = path.join(dir, 'job')
+  fs.mkdirSync(jobDir, { recursive: true })
+  fs.writeFileSync(path.join(dir, 'tiny.safetensors'), 'oops')
+  const items = [{ dest: path.join(dir, 'tiny.safetensors'), sources: [{ label: 'huggingface', url: `${base}/html/x` }] }]
+  const sp = path.join(jobDir, 'run.sh')
+  fs.writeFileSync(sp, buildPosixScript('t3', jobDir, items).replace(/sleep 5/g, 'sleep 0'))
+  await new Promise<void>((resolve, reject) => {
+    execFile('sh', [sp], { timeout: 60_000, env: { ...process.env, NO_PROXY: '*', no_proxy: '*' } }, (err) => (err ? reject(err) : resolve()))
+  })
+  const parsed = parseStatusLog(fs.readFileSync(path.join(jobDir, 'status.log'), 'utf8'), 1)
+  assert.equal(parsed.items[0].status, 'failed', '已有的 4 字节文件不算下好了；下到的网页也不算模型')
+  assert.equal(fs.readFileSync(items[0].dest, 'utf8'), 'oops')
 })
 
 // ─── 证书（私钥）登录：格式转换与错误提示 ─────────────────────────────────

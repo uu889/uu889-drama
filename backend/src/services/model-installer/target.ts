@@ -6,6 +6,7 @@
  * 远程 Windows 的 SFTP 需要 /C:/a/b 形式，内部自动转换。
  */
 import crypto from 'node:crypto'
+import { exec as execCb } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -55,7 +56,7 @@ export interface TargetFs {
   stat(p: string): Promise<{ size: number; isDir: boolean } | null>
   readdir(p: string): Promise<DirEntry[]>
   freeBytes(p: string): Promise<number | null>
-  /** 本机返回 null（本机下载由后端进程直接完成，不执行命令） */
+  /** 执行命令（远程走 SSH；本机用于启动 / 结束后台下载进程） */
   exec?(command: string, timeoutMs?: number): Promise<ExecResult>
   writeFile?(p: string, content: string): Promise<void>
   readFile?(p: string): Promise<string | null>
@@ -147,6 +148,18 @@ export function openLocalTarget(): TargetFs {
       } catch {
         return null
       }
+    },
+    exec: (command, timeoutMs = 60_000) => new Promise<ExecResult>((resolve) => {
+      execCb(command, { timeout: timeoutMs, windowsHide: true, maxBuffer: 10 * 1024 * 1024 }, (err: any, stdout, stderr) => {
+        resolve({ code: err ? (typeof err.code === 'number' ? err.code : 1) : 0, stdout: String(stdout || ''), stderr: String(stderr || err?.message || '') })
+      })
+    }),
+    writeFile: (p, content) => fs.promises.writeFile(p, content),
+    async readFile(p) {
+      try { return await fs.promises.readFile(p, 'utf8') } catch { return null }
+    },
+    async mkdirp(p) {
+      await fs.promises.mkdir(p, { recursive: true })
     },
     close() {},
   }

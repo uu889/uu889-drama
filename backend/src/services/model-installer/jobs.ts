@@ -1,15 +1,19 @@
 /**
  * 模型下载任务：创建、执行、暂停 / 继续 / 取消、进度、持久化。
  *
- * - 本机：由后端进程直接下载（续传、换来源、校验），关掉浏览器页面也会继续；程序重启后自动接着下
  * - 远程：把下载脚本放到远程机器后台运行，后端只负责读进度；UU889-Drama 关掉也会在远程继续下完
+ * - 本机：同样用后台下载脚本（独立进程，不是 UU889-Drama 的子进程），关掉 UU889-Drama 也会继续下完；
+ *   本机没有 curl / wget（或 MODEL_INSTALLER_DETACHED=0）时退回由后端进程直接下载，关掉程序会停，下次启动从断点接着下
+ * - 下次启动：后台进程还在 → 接着读进度；已经下完 → 标记完成；进程没了（电脑重启 / 被结束）→ 自动从断点重新开始
+ * - 所有下载都先写 <文件>.uu889part，下完核对大小 / SHA256 才改成正式文件名，没下完的文件程序不会用到
  * 任务存 DATA_ROOT/model-downloads/jobs.json（含远程登录信息，只保存在本机数据目录）。
  */
 import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
+import { spawn, spawnSync } from 'node:child_process'
 import { DATA_ROOT } from '../../utils/paths.js'
-import { openTarget, publicTarget, psEncoded, shQuote, type InstallTarget, type TargetFs, type TargetOs } from './target'
+import { openLocalTarget, openTarget, publicTarget, psEncoded, shQuote, type InstallTarget, type TargetFs, type TargetOs } from './target'
 import { authorize, redactToken, SOURCE_LABELS, type DownloadSource } from './sources'
 import { buildPosixScript, buildPowerShellScript, jobTag, parseStatusLog, scriptFileName } from './remote-script'
 import type { InstallProvider } from './detect'
@@ -60,7 +64,8 @@ export interface DownloadJob {
   configId?: number | null
   /** 下完后让服务刷新模型列表 */
   refresh?: { baseUrl?: string; apiKey?: string }
-  remote?: { jobDir: string; launchedAt?: number; lastPollAt?: number; pollError?: string }
+  /** 后台下载脚本的运行状态（远程，或本机后台进程）；没有 = 由后端进程直接下载 */
+  remote?: { jobDir: string; launchedAt?: number; lastPollAt?: number; pollError?: string; relaunches?: number }
 }
 
 const STORE_DIR = path.join(DATA_ROOT, 'model-downloads')
@@ -68,6 +73,9 @@ const STORE_FILE = path.join(STORE_DIR, 'jobs.json')
 const jobs = new Map<string, DownloadJob>()
 const controllers = new Map<string, AbortController>()
 const remoteConns = new Map<string, TargetFs>()
+let localFs: TargetFs | null = null
+/** 后台进程停掉后自动重新开始的次数上限（有文件下完会清零） */
+const MAX_RELAUNCH = 5
 let loaded = false
 let saveTimer: NodeJS.Timeout | null = null
 let pollTimer: NodeJS.Timeout | null = null
@@ -186,6 +194,12 @@ export function removeJob(id: string): boolean {
   return true
 }
 
+/** 正在进行（含排队、暂停）的任务 */
+export function activeJobs(): DownloadJob[] {
+  load()
+  return [...jobs.values()].filter((j) => ['queued', 'running', 'paused'].includes(j.status))
+}
+
 /** 某个目标机 + 根目录上正在进行（含排队、暂停）的任务里包含的目标文件 */
 export function activeJobFor(targetKey: string, dest: string): DownloadJob | null {
   load()
@@ -267,23 +281,49 @@ export function createJob(input: CreateJobInput): DownloadJob {
 
 // ─── 控制 ─────────────────────────────────────────────────────────────────
 
+function isScriptJob(job: DownloadJob): boolean {
+  return job.target.mode === 'remote' || !!job.remote?.jobDir
+}
+
+let localToolCache: boolean | null = null
+/** 本机能不能用后台下载脚本：Windows 要有系统自带的 curl.exe（能续传），macOS / Linux 要有 curl 或 wget */
+function localScriptAvailable(): boolean {
+  if (process.env.MODEL_INSTALLER_DETACHED === '0') return false
+  if (localToolCache != null) return localToolCache
+  try {
+    if (process.platform === 'win32') {
+      localToolCache = fs.existsSync(path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'curl.exe'))
+    } else {
+      localToolCache = spawnSync('sh', ['-c', 'command -v curl >/dev/null 2>&1 || command -v wget >/dev/null 2>&1'], { timeout: 10_000 }).status === 0
+    }
+  } catch {
+    localToolCache = false
+  }
+  return localToolCache
+}
+
+function failJob(job: DownloadJob, err: any) {
+  job.status = 'failed'
+  job.error = err?.message || String(err)
+  touch(job)
+}
+
 function startJob(job: DownloadJob) {
   job.status = 'running'
   job.error = undefined
   job.message = undefined
   touch(job)
-  if (job.target.mode === 'remote') {
-    launchRemote(job).catch((err) => {
-      job.status = 'failed'
-      job.error = err?.message || String(err)
+  if (job.target.mode === 'remote' || localScriptAvailable()) {
+    launchScript(job).catch((err) => {
+      if (job.target.mode === 'remote' || job.status !== 'running') return failJob(job, err)
+      // 本机后台进程起不来：改由后端进程直接下载（关掉程序会停，下次启动接着下）
+      job.remote = undefined
+      job.message = `后台下载进程启动失败（${err?.message || err}），改为在程序内下载：关掉 UU889-Drama 会暂停，下次打开自动从断点接着下`
       touch(job)
+      runLocal(job).catch((e) => failJob(job, e))
     })
   } else {
-    runLocal(job).catch((err) => {
-      job.status = 'failed'
-      job.error = err?.message || String(err)
-      touch(job)
-    })
+    runLocal(job).catch((err) => failJob(job, err))
   }
 }
 
@@ -294,7 +334,7 @@ export async function pauseJob(id: string) {
   job.status = 'paused'
   job.message = '已暂停，点「继续」接着下载（已下载的部分会保留）'
   controllers.get(id)?.abort()
-  if (job.target.mode === 'remote') await killRemote(job).catch((err) => { job.message = `暂停时结束远程进程失败：${err.message}` })
+  if (isScriptJob(job)) await killScript(job).catch((err) => { job.message = `暂停时结束后台下载进程失败：${err.message}` })
   for (const i of job.items) if (i.status === 'downloading' || i.status === 'verifying') { i.status = 'pending'; i.speed = 0 }
   touch(job)
   return publicJob(job)
@@ -305,6 +345,7 @@ export function resumeJob(id: string) {
   if (!job) throw new Error('任务不存在')
   if (job.status === 'running') return publicJob(job)
   for (const i of job.items) if (i.status === 'failed') { i.status = 'pending'; i.error = undefined; i.sourceIndex = 0; i.attempts = 0 }
+  if (job.remote) job.remote.relaunches = 0
   startJob(job)
   return publicJob(job)
 }
@@ -313,7 +354,7 @@ export async function cancelJob(id: string) {
   const job = getJob(id)
   if (!job) throw new Error('任务不存在')
   controllers.get(id)?.abort()
-  if (job.target.mode === 'remote' && (job.status === 'running' || job.status === 'queued')) await killRemote(job).catch(() => {})
+  if (isScriptJob(job) && (job.status === 'running' || job.status === 'queued')) await killScript(job).catch(() => {})
   job.status = 'canceled'
   job.message = '已取消；已下载的部分（.uu889part）保留在模型目录，下次下载同一文件会接着下'
   for (const i of job.items) if (i.status === 'downloading' || i.status === 'verifying') { i.status = 'pending'; i.speed = 0 }
@@ -552,9 +593,13 @@ async function finalizeLocal(job: DownloadJob, item: JobItem, part: string, dest
   touch(job)
 }
 
-// ─── 远程下载 ─────────────────────────────────────────────────────────────
+// ─── 后台脚本下载（远程 / 本机）──────────────────────────────────────────
 
-async function remoteFs(job: DownloadJob): Promise<TargetFs> {
+async function targetFs(job: DownloadJob): Promise<TargetFs> {
+  if (job.target.mode !== 'remote') {
+    if (!localFs) localFs = openLocalTarget()
+    return localFs
+  }
   const key = targetKeyOf(job.target)
   const cached = remoteConns.get(key)
   if (cached) {
@@ -572,15 +617,22 @@ async function remoteFs(job: DownloadJob): Promise<TargetFs> {
 }
 
 function dropRemote(job: DownloadJob) {
+  if (job.target.mode !== 'remote') return
   const key = targetKeyOf(job.target)
   const t = remoteConns.get(key)
   if (t) { t.close(); remoteConns.delete(key) }
 }
 
-async function launchRemote(job: DownloadJob) {
-  const t = await remoteFs(job)
+function whereOf(job: DownloadJob) {
+  return job.target.mode === 'remote' ? `远程 ${job.hostname}` : '本机'
+}
+
+async function launchScript(job: DownloadJob) {
+  const t = await targetFs(job)
   const jobDir = t.join(job.root, '.uu889-downloads', jobTag(job.id))
   await t.mkdirp!(jobDir)
+  // 同一任务的旧进程（如果还在）先结束，避免两个进程写同一个文件
+  await killScript(job, t).catch(() => {})
   const items = job.items.map((i) => ({
     dest: i.dest,
     bytes: i.bytes,
@@ -593,25 +645,43 @@ async function launchRemote(job: DownloadJob) {
   const scriptPath = t.join(jobDir, scriptFileName(t.os))
   const script = t.os === 'windows' ? buildPowerShellScript(job.id, jobDir, items) : buildPosixScript(job.id, jobDir, items)
   await t.writeFile!(scriptPath, script)
-  // 新一轮运行：清空旧日志（暂停后继续时，已完成的文件会被脚本跳过）
+  // 新一轮运行：清空旧日志（已完成的文件会被脚本跳过，没下完的从 .uu889part 续传）
   await t.writeFile!(t.join(jobDir, 'status.log'), '')
-  let r
+  await t.writeFile!(t.join(jobDir, 'pid'), '')
   if (t.os === 'windows') {
+    // 用 WMI 创建进程：不是本进程（或 SSH 会话）的子进程，UU889-Drama 退出 / SSH 断开都不会结束它
     const cmdline = `powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "${scriptPath}"`
-    r = await t.exec!(psEncoded(`$r = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = '${cmdline.replace(/'/g, "''")}' }; Write-Output $r.ReturnValue`), 30_000)
-    if (r.code !== 0 || r.stdout.trim().split(/\s+/).pop() !== '0') throw new Error(`启动远程下载失败：${(r.stderr || r.stdout).trim() || '未知错误'}`)
+    const r = await t.exec!(psEncoded(`$r = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = '${cmdline.replace(/'/g, "''")}' }; Write-Output $r.ReturnValue`), 30_000)
+    if (r.code !== 0 || r.stdout.trim().split(/\s+/).pop() !== '0') throw new Error(`启动后台下载失败：${(r.stderr || r.stdout).trim() || '未知错误'}`)
+  } else if (t.mode === 'local') {
+    // 独立会话（setsid）的后台进程：UU889-Drama 退出时不会被一起结束
+    const out = fs.openSync(path.join(jobDir, 'run.out'), 'a')
+    try {
+      const child = spawn('sh', [scriptPath], { detached: true, stdio: ['ignore', out, out], cwd: jobDir })
+      await new Promise<void>((resolve, reject) => {
+        child.once('spawn', () => resolve())
+        child.once('error', reject)
+      })
+      child.unref()
+    } finally {
+      fs.closeSync(out)
+    }
   } else {
-    r = await t.exec!(`chmod +x ${shQuote(scriptPath)}; nohup sh ${shQuote(scriptPath)} > ${shQuote(t.join(jobDir, 'run.out'))} 2>&1 < /dev/null & echo started`, 30_000)
+    // setsid（有的话）让下载进程脱离 SSH 会话；nohup 忽略断线信号
+    const runOut = shQuote(t.join(jobDir, 'run.out'))
+    const r = await t.exec!(`chmod +x ${shQuote(scriptPath)}; if command -v setsid >/dev/null 2>&1; then S=setsid; else S=; fi; nohup $S sh ${shQuote(scriptPath)} > ${runOut} 2>&1 < /dev/null & echo started`, 30_000)
     if (!/started/.test(r.stdout)) throw new Error(`启动远程下载失败：${(r.stderr || r.stdout).trim()}`)
   }
-  job.remote = { jobDir, launchedAt: Date.now() }
-  job.message = `已在远程 ${job.hostname} 后台下载（关掉 UU889-Drama 也会继续）`
-  touch(job)
+  job.remote = { jobDir, launchedAt: Date.now(), relaunches: job.remote?.relaunches || 0 }
+  job.message = `已在${whereOf(job)}后台下载（关掉 UU889-Drama 也会继续；下次打开自动接上进度）`
+  job.updatedAt = Date.now()
+  // 立即保存：刚启动就退出程序时，下次打开也要知道后台进程在哪
+  save(true)
   ensurePolling()
 }
 
-async function killRemote(job: DownloadJob) {
-  const t = await remoteFs(job)
+async function killScript(job: DownloadJob, given?: TargetFs) {
+  const t = given || await targetFs(job)
   const tag = jobTag(job.id)
   if (t.os === 'windows') {
     await t.exec!(psEncoded(`Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*${tag}*' -and $_.ProcessId -ne $PID } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`), 30_000)
@@ -622,10 +692,13 @@ async function killRemote(job: DownloadJob) {
   }
 }
 
-async function remoteAlive(t: TargetFs, job: DownloadJob): Promise<boolean> {
+async function scriptAlive(t: TargetFs, job: DownloadJob): Promise<boolean> {
   const pidFile = t.join(job.remote!.jobDir, 'pid')
-  const pid = (await t.readFile!(pidFile))?.replace(/^﻿/, '').trim()
+  const pid = (await t.readFile!(pidFile))?.replace(/^\uFEFF/, '').trim()
   if (!pid || !/^\d+$/.test(pid)) return false
+  if (t.mode === 'local') {
+    try { process.kill(Number(pid), 0); return true } catch (err: any) { return err?.code === 'EPERM' }
+  }
   if (t.os === 'windows') {
     const r = await t.exec!(psEncoded(`if (Get-Process -Id ${pid} -ErrorAction SilentlyContinue) { 'alive' } else { 'dead' }`), 20_000)
     return /alive/.test(r.stdout)
@@ -634,11 +707,11 @@ async function remoteAlive(t: TargetFs, job: DownloadJob): Promise<boolean> {
   return /alive/.test(r.stdout)
 }
 
-async function pollRemote(job: DownloadJob) {
+async function pollScript(job: DownloadJob) {
   if (!job.remote?.jobDir) return
   let t: TargetFs
   try {
-    t = await remoteFs(job)
+    t = await targetFs(job)
   } catch (err: any) {
     job.remote.pollError = `暂时连不上远程（${err.message}），远程那边仍在后台下载，恢复连接后自动更新进度`
     touch(job)
@@ -654,6 +727,7 @@ async function pollRemote(job: DownloadJob) {
       if (st.sourceLabel) item.sourceLabel = st.sourceLabel
       item.error = st.error
       if (st.status === 'done' || st.status === 'skipped') {
+        if (item.status !== 'done' && item.status !== 'skipped') job.remote.relaunches = 0
         item.status = st.status
         item.received = item.bytes || item.total || item.received
         item.speed = 0
@@ -682,15 +756,24 @@ async function pollRemote(job: DownloadJob) {
       finishJob(job)
       return
     }
-    // 进程不在了但没写 FINISHED：远程重启 / 被结束
-    if (now - (job.remote.launchedAt || 0) > 20_000 && !(await remoteAlive(t, job))) {
-      job.status = 'failed'
-      job.error = '远程下载进程已停止（可能是远程机器重启或进程被结束），点「继续」从断点接着下'
+    // 进程不在了但没写 FINISHED：电脑重启 / 进程被结束 → 自动从断点重新开始
+    if (now - (job.remote.launchedAt || 0) > 20_000 && !(await scriptAlive(t, job))) {
       for (const i of job.items) if (i.status === 'downloading' || i.status === 'verifying') { i.status = 'pending'; i.speed = 0 }
+      const n = job.remote.relaunches || 0
+      if (n < MAX_RELAUNCH) {
+        job.remote.relaunches = n + 1
+        touch(job)
+        await launchScript(job)
+        job.message = `${whereOf(job)}的下载进程停止了（可能是电脑重启或进程被结束），已自动从断点接着下`
+        touch(job)
+        return
+      }
+      job.status = 'failed'
+      job.error = `${whereOf(job)}的下载进程反复停止，已自动重试 ${MAX_RELAUNCH} 次，点「继续」从断点接着下`
     }
     touch(job)
   } catch (err: any) {
-    job.remote.pollError = `读取远程进度失败：${err.message}`
+    job.remote.pollError = `读取下载进度失败：${err.message}`
     dropRemote(job)
     touch(job)
   }
@@ -703,7 +786,7 @@ function ensurePolling() {
     if (polling) return
     polling = true
     try {
-      const active = [...jobs.values()].filter((j) => j.target.mode === 'remote' && j.status === 'running' && j.remote?.jobDir)
+      const active = [...jobs.values()].filter((j) => j.status === 'running' && j.remote?.jobDir)
       if (!active.length) {
         clearInterval(pollTimer!)
         pollTimer = null
@@ -711,21 +794,25 @@ function ensurePolling() {
         remoteConns.clear()
         return
       }
-      for (const j of active) await pollRemote(j)
+      for (const j of active) await pollScript(j)
     } finally {
       polling = false
     }
   }, 3000)
+  pollTimer.unref?.()
 }
 
-/** 后端启动时：本机任务接着下；远程任务恢复读进度（远程在 UU889-Drama 关闭期间一直在下） */
+/**
+ * 后端启动时：后台脚本任务（远程 / 本机）恢复读进度——还在下就接着显示，关闭期间下完的标记完成，
+ * 进程没了自动从断点重新开始；程序内下载的任务从 .uu889part 断点接着下。
+ */
 export function resumeJobsOnStartup() {
   load()
   for (const job of jobs.values()) {
     if (job.status !== 'running' && job.status !== 'queued') continue
-    if (job.target.mode === 'remote') {
-      if (job.remote?.jobDir) ensurePolling()
-      else startJob(job)
+    if (job.remote?.jobDir) {
+      job.status = 'running'
+      ensurePolling()
     } else {
       for (const i of job.items) if (i.status === 'downloading' || i.status === 'verifying') i.status = 'pending'
       startJob(job)
