@@ -61,10 +61,14 @@ export const COMFYUI_DEFAULT_WORKFLOW: Record<string, any> = getComfyTemplate('v
 const VIDEO_EXT_RE = /\.(mp4|webm|mov|mkv)$/i
 const ANIMATED_IMAGE_EXT_RE = /\.(gif|webp)$/i
 
-/** 宽高：短边按档位（480/720/1080），长边按画面比例，均对齐到 32 的倍数（Wan 系 VAE 要求） */
-export function comfyDimensions(aspectRatio?: string | null, resolution?: string | null): { width: number; height: number } {
+/**
+ * 宽高：短边按档位（480/720/1080），长边按画面比例，均对齐到 32 的倍数（Wan 系 VAE 要求）。
+ * maxShortEdge：模板的分辨率上限（低显存档位），选了更高的档位也按上限出片
+ */
+export function comfyDimensions(aspectRatio?: string | null, resolution?: string | null, maxShortEdge?: number): { width: number; height: number } {
   const tier = String(resolution || '').toLowerCase()
-  const shortSide = tier === '480p' ? 480 : tier === '1080p' || tier === '2k' ? 1080 : 720
+  const requested = tier === '480p' ? 480 : tier === '1080p' || tier === '2k' ? 1080 : 720
+  const shortSide = maxShortEdge && maxShortEdge > 0 ? Math.min(requested, maxShortEdge) : requested
   const [rw, rh] = String(aspectRatio || '16:9').split(':').map(Number)
   const ratio = rw > 0 && rh > 0 ? rw / rh : 16 / 9
   const align = (v: number, round: (x: number) => number) => Math.max(32, round(v / 32) * 32)
@@ -145,7 +149,7 @@ export class ComfyUIVideoAdapter extends ComfyUIClient implements VideoProviderA
     const duration = Number.isFinite(durationRaw) ? Math.min(60, Math.max(1, durationRaw)) : 5
     const { width, height } = h3
       ? minimaxH3Dimensions(record.aspectRatio, record.resolution)
-      : comfyDimensions(record.aspectRatio, record.resolution)
+      : comfyDimensions(record.aspectRatio, record.resolution, builtin?.recommended.maxShortEdge)
     const frameStep = /LTXV/i.test(JSON.stringify(template)) ? 8 : 4
     const frames = h3 ? minimaxH3FrameCount(duration) : comfyFrameCount(duration, fps, frameStep)
     const seed = Number.isFinite(Number(record.seed)) && record.seed != null

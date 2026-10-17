@@ -474,7 +474,11 @@
           "aspect_ratio": "Aspect ratio",
           "resolution": "Resolution"
         },
-        "stepsTag": "{n} steps"
+        "stepsTag": "{n} steps",
+        "groupVram": "By VRAM (Wan 2.2 image-to-video 14B)",
+        "groupOther": "Other templates",
+        "vramTag": "{n} GB VRAM",
+        "maxResTag": "Up to {n}p"
       },
       "local": {
         "apiKeyOptional": "optional for local services",

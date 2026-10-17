@@ -474,7 +474,11 @@
           "aspect_ratio": "Proporção",
           "resolution": "Resolução"
         },
-        "stepsTag": "{n} passos"
+        "stepsTag": "{n} passos",
+        "groupVram": "Por VRAM (Wan 2.2 imagem para vídeo 14B)",
+        "groupOther": "Outros modelos",
+        "vramTag": "{n} GB de VRAM",
+        "maxResTag": "Até {n}p"
       },
       "local": {
         "apiKeyOptional": "opcional para serviços locais",

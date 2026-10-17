@@ -474,7 +474,11 @@
           "aspect_ratio": "Seitenverhältnis",
           "resolution": "Auflösung"
         },
-        "stepsTag": "{n} Schritte"
+        "stepsTag": "{n} Schritte",
+        "groupVram": "Nach VRAM (Wan 2.2 Bild-zu-Video 14B)",
+        "groupOther": "Weitere Vorlagen",
+        "vramTag": "{n} GB VRAM",
+        "maxResTag": "Bis {n}p"
       },
       "local": {
         "apiKeyOptional": "bei lokalen Diensten optional",

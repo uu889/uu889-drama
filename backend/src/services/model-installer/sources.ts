@@ -71,6 +71,16 @@ export const FILE_META: Record<string, FileMeta> = {
   'wan2.2_vae.safetensors': { bytes: 1409400960, sha256: 'e40321bd36b9709991dae2530eb4ac303dd168276980d3e9bc4b6e2b75fed156' },
   'wan_2.1_vae.safetensors': { bytes: 253815318, sha256: '2fc39d31359a4b0a64f55876d8ff7fa8d780956ae2cb13463b0223e15148976b' },
   'umt5_xxl_fp8_e4m3fn_scaled.safetensors': { bytes: 6735906897, sha256: 'c3355d30191f1f066b26d93fba017ae9809dce6c627dda5f6a66eaa651204f68' },
+  // ── 按显存档位的 Wan 2.2 图生视频 14B 模板（comfyui-templates.ts COMFY_VRAM_TEMPLATES）──
+  'umt5_xxl_fp16.safetensors': { bytes: 11366399385, sha256: '7b8850f1961e1cf8a77cca4c964a358d303f490833c6c087d0cff4b2f99db2af' },
+  'wan2.2_i2v_high_noise_14B_fp16.safetensors': { bytes: 28577914792, sha256: 'c21c21efa368d529a982a7d89dd11d86608b5937cae9a125d0ffe5491918a100' },
+  'wan2.2_i2v_low_noise_14B_fp16.safetensors': { bytes: 28577914792, sha256: 'edb89340c8a6fbf1a70e76a839ae01eaf7d289f05ea1ebd6b1a3fc6f533826e9' },
+  'wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors': { bytes: 1226977424, sha256: 'd176c808d6fc461999b68e321efcb7501b20b8c3797523ed0df14f7d1deff11e' },
+  'wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors': { bytes: 1226977424, sha256: '024f21de095bc8fad9809ded3e9e49a2e170dcf27075da8145ba7d60d8aab7f9' },
+  'Wan2.2-I2V-A14B-HighNoise-Q4_K_S.gguf': { bytes: 8748151296, sha256: '8fc5f726ccf1214e43c6a599bdef1e63daf7fab06e71fb74081416c4b9ce200b' },
+  'Wan2.2-I2V-A14B-LowNoise-Q4_K_S.gguf': { bytes: 8748151296, sha256: '54e2313ef7fbb169e72ab1d7cecdc90a04db01097c86f9f39097b8caacea50fb' },
+  'Wan2.2-I2V-A14B-HighNoise-Q5_K_M.gguf': { bytes: 10792055296, sha256: '163e9e5ae7ff83a4598d55242c767384be8909749dc07240d388a24838e8bac6' },
+  'Wan2.2-I2V-A14B-LowNoise-Q5_K_M.gguf': { bytes: 10792055296, sha256: 'c5affcba15576959fa6d63c18261275b6407c3edd5ad3d8ab1c420e96f9d05d0' },
 }
 
 export const SOURCE_LABELS: Record<SourceLabel, string> = {

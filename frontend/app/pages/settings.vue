@@ -587,14 +587,26 @@
                 <span class="field-label">{{ t('settings.cfg.comfy.template') }}</span>
                 <select v-model="cfgForm.comfyui_template" class="input">
                   <option value="">{{ t('settings.cfg.comfy.templateAuto') }}</option>
-                  <option v-for="tpl in comfyTemplates" :key="tpl.id" :value="tpl.id">{{ tpl.label }}</option>
+                  <template v-if="comfyVramTemplates.length">
+                    <optgroup :label="t('settings.cfg.comfy.groupVram')">
+                      <option v-for="tpl in comfyVramTemplates" :key="tpl.id" :value="tpl.id">{{ tpl.label }}</option>
+                    </optgroup>
+                    <optgroup :label="t('settings.cfg.comfy.groupOther')">
+                      <option v-for="tpl in comfyOtherTemplates" :key="tpl.id" :value="tpl.id">{{ tpl.label }}</option>
+                    </optgroup>
+                  </template>
+                  <template v-else>
+                    <option v-for="tpl in comfyOtherTemplates" :key="tpl.id" :value="tpl.id">{{ tpl.label }}</option>
+                  </template>
                 </select>
                 <span class="field-hint">{{ t('settings.cfg.comfy.templateHint') }}</span>
               </label>
               <div v-if="activeComfyTemplate" class="tpl-card">
                 <div class="tpl-card-head">
                   <strong>{{ activeComfyTemplate.label }}</strong>
+                  <span v-if="activeComfyTemplate.vram" class="tag">{{ t('settings.cfg.comfy.vramTag', { n: activeComfyTemplate.vram }) }}</span>
                   <span class="tag">{{ t('settings.cfg.comfy.needsImage.' + (activeComfyTemplate.needs_image || 'none')) }}</span>
+                  <span v-if="activeComfyTemplate.recommended?.maxShortEdge" class="tag">{{ t('settings.cfg.comfy.maxResTag', { n: activeComfyTemplate.recommended.maxShortEdge }) }}</span>
                   <span v-if="activeComfyTemplate.recommended?.fps" class="tag">{{ activeComfyTemplate.recommended.fps }} fps</span>
                   <span v-if="activeComfyTemplate.recommended?.steps" class="tag">{{ t('settings.cfg.comfy.stepsTag', { n: activeComfyTemplate.recommended.steps }) }}</span>
                   <span v-if="activeComfyTemplate.recommended?.baseSize" class="tag">{{ activeComfyTemplate.recommended.baseSize }}px</span>
@@ -1044,6 +1056,9 @@ function applyFooocusPreset(p) {
 const comfySource = ref('builtin')
 const comfyTemplateCache = reactive({ image: [], video: [] })
 const comfyTemplates = computed(() => comfyTemplateCache[cfgForm.service_type === 'image' ? 'image' : 'video'] || [])
+// 按显存档位设计的模板单独一组（从小到大），其余模板放「其他模板」
+const comfyVramTemplates = computed(() => comfyTemplates.value.filter((tpl: any) => tpl.vram).sort((a: any, b: any) => a.vram - b.vram))
+const comfyOtherTemplates = computed(() => comfyTemplates.value.filter((tpl: any) => !tpl.vram))
 async function ensureComfyTemplates(kind) {
   if (comfyTemplateCache[kind]?.length) return
   try { comfyTemplateCache[kind] = await aiConfigAPI.comfyTemplates(kind) || [] } catch (e) { toastError(e) }

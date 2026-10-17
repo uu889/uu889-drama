@@ -474,7 +474,11 @@
           "aspect_ratio": "Tỷ lệ",
           "resolution": "Độ phân giải"
         },
-        "stepsTag": "{n} bước"
+        "stepsTag": "{n} bước",
+        "groupVram": "Theo VRAM (Wan 2.2 ảnh sang video 14B)",
+        "groupOther": "Mẫu khác",
+        "vramTag": "VRAM {n} GB",
+        "maxResTag": "Tối đa {n}p"
       },
       "local": {
         "apiKeyOptional": "không bắt buộc với dịch vụ cục bộ",

@@ -474,7 +474,11 @@
           "aspect_ratio": "画面比例",
           "resolution": "分辨率"
         },
-        "stepsTag": "{n} 步"
+        "stepsTag": "{n} 步",
+        "groupVram": "按显存选（Wan 2.2 图生视频 14B）",
+        "groupOther": "其他模板",
+        "vramTag": "{n}G 显存",
+        "maxResTag": "最高 {n}p"
       },
       "local": {
         "apiKeyOptional": "本地服务可留空",

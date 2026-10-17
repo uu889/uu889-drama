@@ -539,6 +539,16 @@ export abstract class ComfyUIClient {
       const body = JSON.parse(bodyText)
       const detail = summarizeComfyNodeErrors(body?.node_errors)
       const message = body?.error?.message || ''
+      // 工作流用到的节点没装（如低显存模板的 GGUF 加载器）
+      const missingNode = body?.error?.extra_info?.class_type
+        || /node\s+'?([\w.-]+)'?\s+(?:not found|does not exist)/i.exec(message)?.[1]
+        || /because node ([\w.-]+) does not exist/i.exec(message)?.[1]
+      if (missingNode && (body?.error?.type === 'missing_node_type' || /not found|does not exist/i.test(message))) {
+        const how = /GGUF/i.test(missingNode)
+          ? '这个模板用 GGUF 量化模型，需要安装 ComfyUI-GGUF 插件：ComfyUI-Manager 里搜 ComfyUI-GGUF 安装，或把 https://github.com/city96/ComfyUI-GGUF 克隆到 ComfyUI/custom_nodes 后重启 ComfyUI；不想装插件可以改选 24G 以上的 fp8 / fp16 模板'
+          : '请用 ComfyUI-Manager 安装缺少的自定义节点后重启 ComfyUI，或改选不需要插件的模板'
+        return `ComfyUI 缺少节点 ${missingNode}：${how}`
+      }
       if (!detail && !message) return null
       return `ComfyUI 工作流校验失败（HTTP ${status}）：${[message, detail].filter(Boolean).join(' — ')}`.slice(0, 600)
     } catch {

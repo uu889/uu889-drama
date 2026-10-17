@@ -28,8 +28,10 @@ export interface ComfyWorkflowTemplate {
   files: ComfyTemplateModelFile[]
   /** 推荐填在「模型」列表里的值（视频填模板 ID，图片填 checkpoint 文件名） */
   defaultModel: string
-  /** 推荐参数：视频 fps；图片基准尺寸 / 步数 / CFG */
-  recommended: { fps?: number; baseSize?: number; steps?: number; cfg?: number }
+  /** 推荐参数：视频 fps / 最大短边（低显存档位限制分辨率，避免显存不足）；图片基准尺寸 / 步数 / CFG */
+  recommended: { fps?: number; baseSize?: number; steps?: number; cfg?: number; maxShortEdge?: number }
+  /** 按显存档位设计的模板：适用的显存（GB），设置页按档位分组显示 */
+  vram?: number
   /** 是否需要首帧 / 参考图（没有图片时会降级或报错，设置页给出提示） */
   needsImage?: 'required' | 'optional' | 'none'
   workflow: Record<string, any>
@@ -127,6 +129,189 @@ function minimaxH3Workflow(opts: { steps: number; lora?: string }): Record<strin
 const H3_BASE_FILES = [H3_FILES.unet, H3_FILES.clip, H3_FILES.videoVae, H3_FILES.audioVae]
 const H3_NOTE = '音画同出（对白 / 音效 / 配乐写进提示词）；无首尾帧时为文生视频，有首帧 / 尾帧时为首尾帧图生视频。固定 24fps，帧数按 17k+5 取整（5 秒 = 124 帧），短边最高 768（16:9 为 1344×768）。需要 ComfyUI 0.30.0 以上。'
 const H3_NOTE_EN = 'Video with native stereo audio (describe dialogue / SFX / music in the prompt); text-to-video without frames, first/last-frame image-to-video with them. Fixed 24 fps, frames snapped to 17k+5 (5 s = 124), short edge up to 768 (1344×768 at 16:9). Needs ComfyUI 0.30.0+.'
+
+// ─── 按显存档位：Wan 2.2 图生视频 14B（12G ~ 288G）──────────────────────────────
+// 同一个模型（Wan 2.2 I2V A14B 高 / 低噪声双专家）按显存选精度与采样方式：
+//   12G / 16G：GGUF 量化（需要 ComfyUI-GGUF 插件）+ lightx2v 4 步加速 LoRA，限制分辨率
+//   24G：fp8 + 4 步加速；32G：fp8 标准 20 步；48G 起：fp16（文本编码器也用 fp16），步数随显存增加
+// 4 步加速的参数照 ComfyUI 官方 Wan 2.2 14B lightx2v 模板：shift 5、CFG 1、高 / 低噪声各 2 步。
+const HF_WAN22_GGUF = 'https://huggingface.co/QuantStack/Wan2.2-I2V-A14B-GGUF/resolve/main'
+const UMT5_FP16: ComfyTemplateModelFile = { file: 'umt5_xxl_fp16.safetensors', folder: 'models/text_encoders', url: `${HF_WAN21}/text_encoders/umt5_xxl_fp16.safetensors` }
+const I2V14B = {
+  fp16: [
+    { file: 'wan2.2_i2v_high_noise_14B_fp16.safetensors', folder: 'models/diffusion_models', url: `${HF_WAN22}/diffusion_models/wan2.2_i2v_high_noise_14B_fp16.safetensors` },
+    { file: 'wan2.2_i2v_low_noise_14B_fp16.safetensors', folder: 'models/diffusion_models', url: `${HF_WAN22}/diffusion_models/wan2.2_i2v_low_noise_14B_fp16.safetensors` },
+  ],
+  fp8: [
+    { file: 'wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors', folder: 'models/diffusion_models', url: `${HF_WAN22}/diffusion_models/wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors` },
+    { file: 'wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors', folder: 'models/diffusion_models', url: `${HF_WAN22}/diffusion_models/wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors` },
+  ],
+  q5: [
+    { file: 'Wan2.2-I2V-A14B-HighNoise-Q5_K_M.gguf', folder: 'models/diffusion_models', url: `${HF_WAN22_GGUF}/HighNoise/Wan2.2-I2V-A14B-HighNoise-Q5_K_M.gguf` },
+    { file: 'Wan2.2-I2V-A14B-LowNoise-Q5_K_M.gguf', folder: 'models/diffusion_models', url: `${HF_WAN22_GGUF}/LowNoise/Wan2.2-I2V-A14B-LowNoise-Q5_K_M.gguf` },
+  ],
+  q4: [
+    { file: 'Wan2.2-I2V-A14B-HighNoise-Q4_K_S.gguf', folder: 'models/diffusion_models', url: `${HF_WAN22_GGUF}/HighNoise/Wan2.2-I2V-A14B-HighNoise-Q4_K_S.gguf` },
+    { file: 'Wan2.2-I2V-A14B-LowNoise-Q4_K_S.gguf', folder: 'models/diffusion_models', url: `${HF_WAN22_GGUF}/LowNoise/Wan2.2-I2V-A14B-LowNoise-Q4_K_S.gguf` },
+  ],
+} satisfies Record<string, ComfyTemplateModelFile[]>
+const LIGHTX2V_I2V: ComfyTemplateModelFile[] = [
+  { file: 'wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors', folder: 'models/loras', url: `${HF_WAN22}/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors` },
+  { file: 'wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors', folder: 'models/loras', url: `${HF_WAN22}/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors` },
+]
+
+interface WanTierOpts {
+  vram: number
+  label: string
+  description: string
+  descriptionEn: string
+  models: ComfyTemplateModelFile[]
+  textEncoder: ComfyTemplateModelFile
+  /** GGUF 量化模型用 ComfyUI-GGUF 的 UnetLoaderGGUF */
+  gguf?: boolean
+  /** lightx2v 4 步加速 LoRA */
+  fast?: boolean
+  steps: number
+  maxShortEdge: number
+}
+
+/** Wan 2.2 I2V 14B 双专家两段采样（可选 GGUF 加载器 / 4 步加速 LoRA） */
+function wanI2vTierWorkflow(o: WanTierOpts): Record<string, any> {
+  const loader = o.gguf ? 'UnetLoaderGGUF' : 'UNETLoader'
+  const unet = (file: string) => (o.gguf ? { unet_name: file } : { unet_name: file, weight_dtype: 'default' })
+  const steps = o.fast ? 4 : o.steps
+  const split = Math.floor(steps / 2)
+  const cfg = o.fast ? 1 : 3.5
+  const shift = o.fast ? 5 : 8
+  const high: [string, number] = o.fast ? ['101', 0] : ['37', 0]
+  const low: [string, number] = o.fast ? ['102', 0] : ['56', 0]
+  const cond: [string, number] = ['50', 0]
+  const neg: [string, number] = ['50', 1]
+  return {
+    '37': { class_type: loader, inputs: unet(o.models[0].file), _meta: { title: '高噪声模型' } },
+    '56': { class_type: loader, inputs: unet(o.models[1].file), _meta: { title: '低噪声模型' } },
+    ...(o.fast ? {
+      '101': { class_type: 'LoraLoaderModelOnly', inputs: { lora_name: LIGHTX2V_I2V[0].file, strength_model: 1, model: ['37', 0] }, _meta: { title: '4 步加速 LoRA（高噪声）' } },
+      '102': { class_type: 'LoraLoaderModelOnly', inputs: { lora_name: LIGHTX2V_I2V[1].file, strength_model: 1, model: ['56', 0] }, _meta: { title: '4 步加速 LoRA（低噪声）' } },
+    } : {}),
+    '38': { class_type: 'CLIPLoader', inputs: { clip_name: o.textEncoder.file, type: 'wan', device: 'default' } },
+    '39': { class_type: 'VAELoader', inputs: { vae_name: WAN21_VAE.file } },
+    '54': { class_type: 'ModelSamplingSD3', inputs: { shift, model: high } },
+    '55': { class_type: 'ModelSamplingSD3', inputs: { shift, model: low } },
+    '6': { class_type: 'CLIPTextEncode', inputs: { text: '{{prompt}}', clip: ['38', 0] }, _meta: { title: '正向提示词' } },
+    '7': { class_type: 'CLIPTextEncode', inputs: { text: '{{negative_prompt}}', clip: ['38', 0] }, _meta: { title: '负向提示词' } },
+    '52': { class_type: 'LoadImage', inputs: { image: '{{image}}' }, _meta: { title: '首帧' } },
+    '50': { class_type: 'WanImageToVideo', inputs: { width: '{{width}}', height: '{{height}}', length: '{{frames}}', batch_size: 1, positive: ['6', 0], negative: ['7', 0], vae: ['39', 0], start_image: ['52', 0] } },
+    '57': {
+      class_type: 'KSamplerAdvanced',
+      inputs: {
+        add_noise: 'enable', noise_seed: '{{seed}}', steps, cfg, sampler_name: 'euler', scheduler: 'simple',
+        start_at_step: 0, end_at_step: split, return_with_leftover_noise: 'enable',
+        model: ['54', 0], positive: cond, negative: neg, latent_image: ['50', 2],
+      },
+      _meta: { title: '采样（高噪声段）' },
+    },
+    '58': {
+      class_type: 'KSamplerAdvanced',
+      inputs: {
+        add_noise: 'disable', noise_seed: 0, steps, cfg, sampler_name: 'euler', scheduler: 'simple',
+        start_at_step: split, end_at_step: 10000, return_with_leftover_noise: 'disable',
+        model: ['55', 0], positive: cond, negative: neg, latent_image: ['57', 0],
+      },
+      _meta: { title: '采样（低噪声段）' },
+    },
+    '8': { class_type: 'VAEDecode', inputs: { samples: ['58', 0], vae: ['39', 0] } },
+    ...SAVE_VIDEO(['8', 0]),
+  }
+}
+
+function wanI2vTier(o: WanTierOpts): ComfyWorkflowTemplate {
+  const id = `wan2.2-i2v-14b-${o.vram}g`
+  return {
+    id,
+    kind: 'video',
+    vram: o.vram,
+    label: o.label,
+    description: o.description,
+    descriptionEn: o.descriptionEn,
+    files: [...o.models, ...(o.fast ? LIGHTX2V_I2V : []), o.textEncoder, WAN21_VAE],
+    defaultModel: id,
+    recommended: { fps: 16, steps: o.fast ? 4 : o.steps, maxShortEdge: o.maxShortEdge },
+    needsImage: 'required',
+    workflow: wanI2vTierWorkflow(o),
+  }
+}
+
+const TIER_NOTE = '必须有首帧（分镜图）；没有图片的纯文生视频请选 TI2V 5B 或 T2V 14B。16fps，单镜建议 5 秒（81 帧）。'
+const TIER_NOTE_EN = 'Needs a first frame (storyboard image); for text-only video pick TI2V 5B or T2V 14B. 16 fps; 5-second shots (81 frames) recommended.'
+const GGUF_NOTE = '需要先安装 ComfyUI-GGUF 插件（ComfyUI-Manager 里搜 ComfyUI-GGUF，或把 github.com/city96/ComfyUI-GGUF 克隆到 custom_nodes 后重启）。'
+const GGUF_NOTE_EN = 'Requires the ComfyUI-GGUF custom node (search ComfyUI-GGUF in ComfyUI-Manager, or clone github.com/city96/ComfyUI-GGUF into custom_nodes and restart).'
+
+export const COMFY_VRAM_TEMPLATES: ComfyWorkflowTemplate[] = [
+  wanI2vTier({
+    vram: 12,
+    label: '【12G 显存】Wan 2.2 图生视频 14B · GGUF Q4 + 4 步加速（480p）',
+    description: `适合 RTX 3060 12G / 4070 / 5070 等。14B 图生视频的 GGUF Q4_K_S 量化版（每个约 8.7 GB）+ lightx2v 4 步加速 LoRA，画质明显好于 5B；最高 480p（16:9 为 864×480），每段采样只有 2 步所以很快。电脑内存建议 32GB 以上（两个模型在内存和显存之间轮换）。${GGUF_NOTE}${TIER_NOTE}`,
+    descriptionEn: `For 12 GB cards (RTX 3060 12G / 4070 / 5070). 14B image-to-video as GGUF Q4_K_S (~8.7 GB each) plus the lightx2v 4-step LoRA; up to 480p (864×480 at 16:9). 32 GB+ system RAM recommended. ${GGUF_NOTE_EN} ${TIER_NOTE_EN}`,
+    models: I2V14B.q4, textEncoder: UMT5, gguf: true, fast: true, steps: 4, maxShortEdge: 480,
+  }),
+  wanI2vTier({
+    vram: 16,
+    label: '【16G 显存】Wan 2.2 图生视频 14B · GGUF Q5 + 4 步加速（640p）',
+    description: `适合 RTX 4060 Ti 16G / 4080 / 5060 Ti 16G / 5070 Ti 等。GGUF Q5_K_M 量化（每个约 10.8 GB，画质接近 fp8）+ lightx2v 4 步加速 LoRA；最高 640p（16:9 为 1152×640）。电脑内存建议 32GB 以上。${GGUF_NOTE}${TIER_NOTE}`,
+    descriptionEn: `For 16 GB cards (RTX 4060 Ti 16G / 4080 / 5070 Ti). GGUF Q5_K_M (~10.8 GB each, close to fp8) plus the lightx2v 4-step LoRA; up to 640p (1152×640 at 16:9). 32 GB+ system RAM recommended. ${GGUF_NOTE_EN} ${TIER_NOTE_EN}`,
+    models: I2V14B.q5, textEncoder: UMT5, gguf: true, fast: true, steps: 4, maxShortEdge: 640,
+  }),
+  wanI2vTier({
+    vram: 24,
+    label: '【24G 显存】Wan 2.2 图生视频 14B · fp8 + 4 步加速（720p）',
+    description: `适合 RTX 3090 / 4090 / A5000 等。官方 fp8 模型（每个约 14.3 GB）+ lightx2v 4 步加速 LoRA，720p 一镜几分钟出片；动作幅度比 20 步标准采样略小。不需要额外插件。${TIER_NOTE}`,
+    descriptionEn: `For 24 GB cards (RTX 3090 / 4090 / A5000). Official fp8 models (~14.3 GB each) plus the lightx2v 4-step LoRA: 720p in a few minutes; slightly less motion than 20-step sampling. No extra custom nodes. ${TIER_NOTE_EN}`,
+    models: I2V14B.fp8, textEncoder: UMT5, fast: true, steps: 4, maxShortEdge: 720,
+  }),
+  wanI2vTier({
+    vram: 32,
+    label: '【32G 显存】Wan 2.2 图生视频 14B · fp8 标准 20 步（720p）',
+    description: `适合 RTX 5090 32G / V100 32G 等。官方 fp8 模型，标准 20 步两段采样（高 / 低噪声各 10 步），动作和细节比 4 步加速好，耗时约 5 倍。V100 等不支持 fp8 计算的显卡也能用（ComfyUI 自动转成 fp16 计算）。${TIER_NOTE}`,
+    descriptionEn: `For 32 GB cards (RTX 5090 / V100 32G). Official fp8 models with standard 20-step two-stage sampling: better motion and detail than 4-step, ~5× slower. Works on GPUs without fp8 compute (ComfyUI casts to fp16). ${TIER_NOTE_EN}`,
+    models: I2V14B.fp8, textEncoder: UMT5, steps: 20, maxShortEdge: 720,
+  }),
+  wanI2vTier({
+    vram: 48,
+    label: '【48G 显存】Wan 2.2 图生视频 14B · fp16 20 步（720p）',
+    description: `适合 RTX 6000 Ada / A6000 / L40S 48G 等。fp16 原精度模型（每个约 28.6 GB，两段之间自动换模型）+ fp16 文本编码器，画质比 fp8 更稳定。${TIER_NOTE}`,
+    descriptionEn: `For 48 GB cards (RTX 6000 Ada / A6000 / L40S). Full-precision fp16 models (~28.6 GB each, swapped between stages) and the fp16 text encoder for the most stable quality. ${TIER_NOTE_EN}`,
+    models: I2V14B.fp16, textEncoder: UMT5_FP16, steps: 20, maxShortEdge: 720,
+  }),
+  wanI2vTier({
+    vram: 96,
+    label: '【96G 显存】Wan 2.2 图生视频 14B · fp16 30 步（最高 1080p）',
+    description: `适合 RTX Pro 6000 96G、A100 / H100 80G 等。fp16 模型 + 30 步，高 / 低噪声模型和文本编码器（共约 68 GB）可以同时常驻显存，最高 1080p。80~84G 的显卡选 1080p 偶尔会显存不足，建议用 720p。${TIER_NOTE}`,
+    descriptionEn: `For 96 GB cards (RTX Pro 6000 96G) and 80 GB A100 / H100. fp16 with 30 steps; both experts plus the text encoder (~68 GB) can stay in VRAM; up to 1080p (prefer 720p on 80–84 GB cards). ${TIER_NOTE_EN}`,
+    models: I2V14B.fp16, textEncoder: UMT5_FP16, steps: 30, maxShortEdge: 1080,
+  }),
+  wanI2vTier({
+    vram: 141,
+    label: '【141G 显存】Wan 2.2 图生视频 14B · fp16 40 步（1080p）',
+    description: `适合 H200 141G、GH200 等。fp16 模型 + 40 步（Wan 官方图生视频默认步数），1080p 单镜 5 秒宽裕。启动 ComfyUI 时加 --highvram，让所有模型常驻显存，省掉两段之间换模型的时间。${TIER_NOTE}`,
+    descriptionEn: `For H200 141G / GH200-class cards. fp16 with 40 steps (Wan's official I2V default); 1080p 5-second shots with headroom. Start ComfyUI with --highvram to keep every model resident and skip swaps between stages. ${TIER_NOTE_EN}`,
+    models: I2V14B.fp16, textEncoder: UMT5_FP16, steps: 40, maxShortEdge: 1080,
+  }),
+  wanI2vTier({
+    vram: 192,
+    label: '【192G 显存】Wan 2.2 图生视频 14B · fp16 40 步（1080p 长镜头）',
+    description: `适合 B200 192G、MI300X / MI325X 等。和 141G 档同样的最高画质设置（fp16 + 40 步 + 1080p），多出的显存用来出更长的镜头：1080p 单镜 10 秒（161 帧）也能一次生成，解码不需要分块。启动 ComfyUI 时加 --highvram。${TIER_NOTE}`,
+    descriptionEn: `For B200 192G / MI300X / MI325X. Same top settings as the 141G tier (fp16, 40 steps, 1080p); the extra VRAM goes to longer shots: 10-second 1080p shots (161 frames) in one pass without tiled decoding. Start ComfyUI with --highvram. ${TIER_NOTE_EN}`,
+    models: I2V14B.fp16, textEncoder: UMT5_FP16, steps: 40, maxShortEdge: 1080,
+  }),
+  wanI2vTier({
+    vram: 288,
+    label: '【288G 显存】Wan 2.2 图生视频 14B · fp16 40 步（1080p 超长镜头）',
+    description: `适合 B300 288G、MI355X 等。同样是 fp16 + 40 步 + 1080p，Wan 2.2 在这之上不会再变清晰；多出的显存够 1080p 单镜 15 秒以上一次出片，或在同一张卡上再开一个 ComfyUI 实例（换个端口）给生图用，互不抢显存。启动 ComfyUI 时加 --highvram。${TIER_NOTE}`,
+    descriptionEn: `For B300 288G / MI355X. Still fp16, 40 steps, 1080p (Wan 2.2 gets no sharper beyond this); the extra VRAM covers 15-second+ 1080p shots in one pass, or a second ComfyUI instance on another port for images without competing for memory. Start ComfyUI with --highvram. ${TIER_NOTE_EN}`,
+    models: I2V14B.fp16, textEncoder: UMT5_FP16, steps: 40, maxShortEdge: 1080,
+  }),
+]
 
 export const COMFY_VIDEO_TEMPLATES: ComfyWorkflowTemplate[] = [
   {
@@ -257,6 +442,7 @@ export const COMFY_VIDEO_TEMPLATES: ComfyWorkflowTemplate[] = [
     needsImage: 'optional',
     workflow: minimaxH3Workflow({ steps: 4, lora: H3_FILES.turbo4.file }),
   },
+  ...COMFY_VRAM_TEMPLATES,
 ]
 
 const SAVE_IMAGE = { class_type: 'SaveImage', inputs: { filename_prefix: 'uu889-drama', images: ['8', 0] }, _meta: { title: '保存图片' } }
@@ -434,6 +620,7 @@ export function describeComfyTemplates(kind: ComfyTemplateKind, includeWorkflow 
     files: t.files,
     default_model: t.defaultModel,
     recommended: t.recommended,
+    vram: t.vram ?? null,
     needs_image: t.needsImage || 'none',
     ...(includeWorkflow ? { workflow: t.workflow } : {}),
   }))
