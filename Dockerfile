@@ -36,8 +36,9 @@ ENV NODE_ENV=production \
     FRONTEND_DIST=/app/frontend-dist
 
 # ffprobe-static 不包含 Linux ARM64 二进制；两个架构统一使用系统媒体工具。
+# fonts-wqy-microhei：烧录中文字幕用的字体（约 5 MB）
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ffmpeg \
+  && apt-get install -y --no-install-recommends ffmpeg fonts-wqy-microhei \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

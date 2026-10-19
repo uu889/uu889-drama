@@ -29,8 +29,8 @@ onMounted(() => {
   bridge.onMigrateProgress((p) => {
     if (p.phase === 'done') {
       update(p)
-      // 稍等遮罩展示「完成」，再刷新页面让所有数据源指向新目录
-      setTimeout(() => { end(); location.reload() }, 800)
+      // 稍等遮罩展示「完成」，再刷新页面让所有数据源指向新目录（有提示文字时多留几秒，如旧文件夹没能删除）
+      setTimeout(() => { end(); location.reload() }, p.message ? 6000 : 800)
       return
     }
     if (p.phase === 'error') {

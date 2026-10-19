@@ -101,6 +101,7 @@ cd ../backend && npm start                                      # 访问 http://
 | `FFMPEG_BIN` / `FFPROBE_BIN` | npm 内置二进制 | 自定义 ffmpeg/ffprobe 路径 |
 | `PUBLIC_BASE_URL` | — | Seedance 引用本地参考视频/音频时所需的公网地址 |
 | `MODEL_INSTALLER_LOCAL` | `1` | 设为 `0` 时关闭「一键下载模型」的本机模式（服务器部署不想让网页操作服务器本机文件时使用，远程 SSH 模式不受影响） |
+| `SUBTITLE_FONT` | 自动 | 烧录字幕用的字体文件路径；默认自动找系统中文字体（Windows 微软雅黑、macOS 苹方 / 黑体、Linux Noto CJK / 文泉驿） |
 | `MODEL_INSTALLER_DETACHED` | `1` | 设为 `0` 时本机模型下载改由程序内完成，不启动后台进程（默认用后台进程，退出 UU889-Drama 也会继续下完） |
 | `UU889_UPDATE_FEED` | GitHub Releases 的 `latest.json` | 自定义更新清单地址 |
 

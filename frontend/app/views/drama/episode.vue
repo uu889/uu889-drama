@@ -852,6 +852,48 @@
                       <img v-if="continuityStatus.image" :src="continuityStatus.image" alt="" @click="openImageViewer(continuityStatus.image, continuityStatus.text)" />
                       <span>{{ continuityStatus.text }}</span>
                     </div>
+                    <label class="video-direction-toggle" :title="t('episode.subtitle.tip')">
+                      <input v-model="videoSubtitle.enabled" type="checkbox" />
+                      <span>{{ t('episode.subtitle.enable') }}</span>
+                    </label>
+                    <div v-if="videoSubtitle.enabled" class="video-subtitle-opts">
+                      <div class="video-subtitle-styles" role="radiogroup" :aria-label="t('episode.subtitle.style')">
+                        <button
+                          v-for="st in SUBTITLE_STYLES"
+                          :key="st"
+                          type="button"
+                          role="radio"
+                          :aria-checked="videoSubtitle.style === st"
+                          :class="['sub-style', { active: videoSubtitle.style === st }]"
+                          @click="videoSubtitle.style = st"
+                        >
+                          <span :class="['sub-sample', 'sub-sample-' + st]"><i>{{ t('episode.subtitle.sample') }}</i></span>
+                          <span class="sub-name">{{ t('episode.subtitle.styles.' + st) }}</span>
+                        </button>
+                      </div>
+                      <div class="video-subtitle-row">
+                        <label class="video-subtitle-field">
+                          <span>{{ t('episode.subtitle.size') }}</span>
+                          <select v-model="videoSubtitle.size" class="input input-sm">
+                            <option value="small">{{ t('episode.subtitle.sizes.small') }}</option>
+                            <option value="medium">{{ t('episode.subtitle.sizes.medium') }}</option>
+                            <option value="large">{{ t('episode.subtitle.sizes.large') }}</option>
+                          </select>
+                        </label>
+                        <label class="video-subtitle-field">
+                          <span>{{ t('episode.subtitle.position') }}</span>
+                          <select v-model="videoSubtitle.position" class="input input-sm">
+                            <option value="bottom">{{ t('episode.subtitle.positions.bottom') }}</option>
+                            <option value="top">{{ t('episode.subtitle.positions.top') }}</option>
+                          </select>
+                        </label>
+                      </div>
+                      <label class="video-direction-toggle is-sub">
+                        <input v-model="videoSubtitle.speaker" type="checkbox" />
+                        <span>{{ t('episode.subtitle.speaker') }}</span>
+                      </label>
+                      <div class="video-subtitle-hint">{{ t('episode.subtitle.hint') }}</div>
+                    </div>
                   </section>
                   <section class="video-inspector-section video-params-card">
                     <div class="video-param-row">
@@ -3415,6 +3457,16 @@ function readDirectionPrefs() {
 }
 const videoDirection = reactive(readDirectionPrefs())
 watch(videoDirection, v => { try { localStorage.setItem(DIRECTION_STORE_KEY, JSON.stringify(v)) } catch { /* 静默 */ } }, { deep: true })
+
+// ===== 字幕：生成视频后把分镜台词烧进画面（后端 services/subtitles.ts） =====
+const SUBTITLE_STYLES = ['classic', 'yellow', 'box', 'shadow', 'pink']
+const SUBTITLE_STORE_KEY = 'uu889:video-subtitle'
+const SUBTITLE_DEFAULTS = { enabled: false, style: 'classic', size: 'medium', position: 'bottom', speaker: false }
+function readSubtitlePrefs() {
+  try { return { ...SUBTITLE_DEFAULTS, ...(JSON.parse(localStorage.getItem(SUBTITLE_STORE_KEY) || 'null') || {}) } } catch { return { ...SUBTITLE_DEFAULTS } }
+}
+const videoSubtitle = reactive(readSubtitlePrefs())
+watch(videoSubtitle, v => { try { localStorage.setItem(SUBTITLE_STORE_KEY, JSON.stringify(v)) } catch { /* 静默 */ } }, { deep: true })
 /** 批量接戏链中排队、尚未提交的镜头 */
 const chainQueuedIds = new Set()
 
@@ -3492,6 +3544,8 @@ async function genVid(sb, opts = {}) {
     config_id: ownerConfigId(videoModelOptions.value, videoModel.value),
     reference_image_urls: referenceImages,
     ...(frameMode === 'first_frame' ? { first_frame_url: endFrame } : {}),
+    // 字幕：开了才传，成片下载后由后端烧录
+    ...(videoSubtitle.enabled ? { subtitle: { ...videoSubtitle } } : {}),
     // 后端据此附加导演指令：台词控制、人物 / 场景 / 画风锁定、站位与接上一镜
     direction: {
       dialogue_lock: videoDirection.dialogue_lock,
@@ -6361,6 +6415,22 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
 .video-direction-toggle { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-1); cursor: pointer; }
 .video-direction-toggle input { accent-color: var(--accent); }
 .video-direction-toggle.is-sub { padding-left: 18px; }
+.video-subtitle-opts { display: flex; flex-direction: column; gap: 8px; padding: 2px 0 2px 18px; }
+.video-subtitle-styles { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; }
+.sub-style { display: flex; flex-direction: column; align-items: stretch; gap: 4px; padding: 4px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-1, transparent); cursor: pointer; color: var(--text-2); }
+.sub-style.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); color: var(--text-1); }
+.sub-sample { display: flex; align-items: flex-end; justify-content: center; height: 34px; padding-bottom: 5px; border-radius: 5px; font-size: 12px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #5b6b7d, #a3907a 60%, #3d4a5a); }
+.sub-sample-classic { text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; }
+.sub-sample-yellow { color: #ffd84d; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; }
+.sub-sample i { font-style: normal; }
+.sub-sample-box i { background: rgba(0, 0, 0, .58); padding: 1px 5px; border-radius: 2px; }
+.sub-sample-shadow { text-shadow: 2px 2px 2px rgba(0, 0, 0, .8); }
+.sub-sample-pink { text-shadow: -1.5px -1.5px 0 #ff3d7f, 1.5px -1.5px 0 #ff3d7f, -1.5px 1.5px 0 #ff3d7f, 1.5px 1.5px 0 #ff3d7f; }
+.sub-name { font-size: 11px; text-align: center; line-height: 1.2; }
+.video-subtitle-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.video-subtitle-field { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-2); }
+.video-subtitle-field select { min-width: 72px; }
+.video-subtitle-hint { font-size: 11px; color: var(--text-3, var(--text-2)); line-height: 1.5; }
 .video-continuity-status { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-2); line-height: 1.4; padding-left: 18px; }
 .video-continuity-status img { width: 52px; height: 30px; object-fit: cover; border-radius: 4px; cursor: zoom-in; flex-shrink: 0; }
 .video-continuity-status.is-waiting { color: var(--warning, #b7791f); }

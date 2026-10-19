@@ -1160,6 +1160,32 @@
       "prevAsFirst": "Começa com o último quadro do plano #{n} como primeiro quadro.",
       "prevAsRef": "Usa o último quadro do plano #{n} como referência 1 para igualar as posições iniciais.",
       "chainBatch": "Continuidade ativada: {n} grupo(s) de planos do mesmo cenário serão gerados em ordem, cada um a partir do último quadro do anterior."
+    },
+    "subtitle": {
+      "enable": "Legendas (gravar os diálogos do plano no vídeo)",
+      "tip": "Depois de gerar e baixar o vídeo, os diálogos / narração da descrição do plano são gravados na ordem de fala; o vídeo original é mantido e o quadro final da continuidade fica sem legendas.",
+      "style": "Estilo das legendas",
+      "sample": "Legenda",
+      "size": "Tamanho",
+      "position": "Posição",
+      "speaker": "Prefixar o nome do personagem (Ana: …)",
+      "hint": "O texto vem dos diálogos e da narração da descrição do plano, com tempos pela velocidade de fala estimada; planos sem diálogo ficam sem legendas. Vale para os vídeos gerados daqui em diante.",
+      "styles": {
+        "classic": "Branco, contorno preto",
+        "yellow": "Amarelo, contorno preto",
+        "box": "Branco em caixa preta",
+        "shadow": "Sombra de cinema",
+        "pink": "Contorno rosa estilo show"
+      },
+      "sizes": {
+        "small": "Pequeno",
+        "medium": "Médio",
+        "large": "Grande"
+      },
+      "positions": {
+        "bottom": "Embaixo",
+        "top": "Em cima"
+      }
     }
   },
   "errors": {

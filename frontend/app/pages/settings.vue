@@ -1883,7 +1883,9 @@ async function startMigrate() {
     // 成功的完成提示与页面刷新由全局进度订阅（app.vue）处理
   } catch (e) {
     endMigrate()
-    toastError(e, { fallback: 'settings.migrate.failed' })
+    // Electron 的 invoke 错误带「Error invoking remote method …: Error: 」前缀，只留原因
+    const reason = String(e?.message || e || '').replace(/^Error invoking remote method '[^']+':\s*(Error:\s*)?/, '')
+    toastError(reason || e, { fallback: 'settings.migrate.failed' })
   } finally {
     migrating.value = false
     migrateDialog.value = false

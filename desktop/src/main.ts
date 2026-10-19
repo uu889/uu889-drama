@@ -15,6 +15,7 @@ import * as fs from 'fs'
 import * as fsp from 'fs/promises'
 import * as path from 'path'
 import { registerMigrationIpc } from './migrate'
+import { resolveMigrationTarget } from './migrate-core'
 import { registerUpdater, markQuitting } from './updater'
 
 // 主进程打 CJS 产物，__dirname 天然可用（import.meta.url 在 CJS 下为 undefined）
@@ -312,23 +313,27 @@ ipcMain.handle('uu889:pick-directory', async () => {
     properties: ['openDirectory', 'createDirectory'],
   })
   if (res.canceled || !res.filePaths[0]) return { ok: false, canceled: true }
-  const target = path.resolve(res.filePaths[0])
-
-  // 轻校验（完整校验在迁移引擎 start-migration 时重新执行）
+  // 选了已有内容的文件夹（如 D:\）时自动用其中的 UU889Drama-Data 子目录
+  let target: string
+  try {
+    target = await resolveMigrationTarget(res.filePaths[0], currentDataDir)
+  } catch (err) {
+    return { ok: false, error: (err as Error).message }
+  }
   const a = normCase(path.resolve(currentDataDir))
   const b = normCase(target)
-  if (b === a) return { ok: false, error: '不能选择当前数据目录' }
-  if (b.startsWith(a + path.sep)) return { ok: false, error: '目标目录在当前数据目录内部' }
-  if (a.startsWith(b + path.sep)) return { ok: false, error: '目标目录是当前数据目录的上级目录' }
+  if (b.startsWith(a + path.sep)) return { ok: false, error: '目标文件夹在当前数据目录里面' }
+  if (a.startsWith(b + path.sep)) return { ok: false, error: '目标文件夹是当前数据目录的上级目录' }
   try {
-    await assertWritable(target)
+    // 子目录还不存在时检查它的上级是否可写
+    await assertWritable(fs.existsSync(target) ? target : path.dirname(target))
   } catch {
-    return { ok: false, error: '目标目录不可写' }
+    return { ok: false, error: '目标文件夹不可写' }
   }
 
   let freeBytes: number | null = null
   try {
-    const st = await fsp.statfs(target)
+    const st = await fsp.statfs(fs.existsSync(target) ? target : path.dirname(target))
     freeBytes = st.bavail * st.bsize
   } catch { /* statfs 不可用时跳过剩余空间展示 */ }
   return { ok: true, path: target, freeBytes }

@@ -1160,6 +1160,32 @@
       "prevAsFirst": "Opens from the last frame of shot #{n} as the first frame.",
       "prevAsRef": "Uses the last frame of shot #{n} as reference 1 so the opening positions match.",
       "chainBatch": "Continuity is on: {n} group(s) of same-scene shots will be generated in order, each continuing from the previous last frame."
+    },
+    "subtitle": {
+      "enable": "Subtitles (burn the shot's dialogue into the video)",
+      "tip": "After the video is generated and downloaded, the dialogue / narration in the shot description is burned in, in speaking order; the original video is kept and the continuity end frame has no subtitles.",
+      "style": "Subtitle style",
+      "sample": "Subtitle",
+      "size": "Size",
+      "position": "Position",
+      "speaker": "Prefix the speaker name (Anna: …)",
+      "hint": "Text comes from the dialogue and narration in the shot description, timed by estimated speaking speed; shots without dialogue get no subtitles. Applies to videos generated from now on.",
+      "styles": {
+        "classic": "White, black outline",
+        "yellow": "Yellow, black outline",
+        "box": "White on black box",
+        "shadow": "Film shadow",
+        "pink": "Variety pink outline"
+      },
+      "sizes": {
+        "small": "Small",
+        "medium": "Medium",
+        "large": "Large"
+      },
+      "positions": {
+        "bottom": "Bottom",
+        "top": "Top"
+      }
     }
   },
   "errors": {

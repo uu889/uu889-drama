@@ -1160,6 +1160,32 @@
       "prevAsFirst": "Beginnt mit dem letzten Bild von Shot #{n} als Startbild.",
       "prevAsRef": "Nutzt das letzte Bild von Shot #{n} als Referenz 1, damit die Startpositionen passen.",
       "chainBatch": "Anschluss ist an: {n} Gruppe(n) von Shots derselben Szene werden nacheinander erzeugt, jeweils ab dem letzten Bild des vorigen."
+    },
+    "subtitle": {
+      "enable": "Untertitel (Dialog der Einstellung ins Video brennen)",
+      "tip": "Nach Erzeugen und Herunterladen werden Dialog / Erzählung aus der Einstellungsbeschreibung in Sprechreihenfolge eingebrannt; das Originalvideo bleibt erhalten, das Anschluss-Endbild hat keine Untertitel.",
+      "style": "Untertitelstil",
+      "sample": "Untertitel",
+      "size": "Größe",
+      "position": "Position",
+      "speaker": "Sprechername voranstellen (Anna: …)",
+      "hint": "Der Text stammt aus Dialog und Erzählung der Einstellungsbeschreibung, zeitlich nach geschätzter Sprechgeschwindigkeit verteilt; Einstellungen ohne Dialog bekommen keine Untertitel. Gilt für ab jetzt erzeugte Videos.",
+      "styles": {
+        "classic": "Weiß, schwarzer Rand",
+        "yellow": "Gelb, schwarzer Rand",
+        "box": "Weiß auf schwarzem Kasten",
+        "shadow": "Filmschatten",
+        "pink": "Show-Stil, pinker Rand"
+      },
+      "sizes": {
+        "small": "Klein",
+        "medium": "Mittel",
+        "large": "Groß"
+      },
+      "positions": {
+        "bottom": "Unten",
+        "top": "Oben"
+      }
     }
   },
   "errors": {

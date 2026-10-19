@@ -88,6 +88,7 @@ cd ../backend && npm start                                      # open http://lo
 | `FFMPEG_BIN` / `FFPROBE_BIN` | bundled binaries | Custom ffmpeg / ffprobe paths |
 | `PUBLIC_BASE_URL` | — | Public URL needed when Seedance references local video/audio |
 | `MODEL_INSTALLER_LOCAL` | `1` | `0` disables "this computer" mode of the one-click model download on server deployments (remote SSH mode stays available) |
+| `SUBTITLE_FONT` | auto | Font file for burned-in subtitles; by default a system CJK font is found automatically (Microsoft YaHei on Windows, PingFang / Heiti on macOS, Noto CJK / WenQuanYi on Linux) |
 | `MODEL_INSTALLER_DETACHED` | `1` | `0` makes this-computer model downloads run inside the app instead of a detached background process (by default downloads keep going after UU889-Drama exits) |
 | `UU889_UPDATE_FEED` | GitHub Releases `latest.json` | Custom update feed |
 

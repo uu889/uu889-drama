@@ -251,6 +251,8 @@ app.post('/', async (c) => {
         seed: videoBody!.seed,
         promptExtend: videoBody!.prompt_extend,
         watermark: videoBody!.watermark,
+        // 字幕：成片下载后把分镜台词烧进视频（开关 + 样式）
+        subtitle: body.subtitle && typeof body.subtitle === 'object' ? body.subtitle : undefined,
         configId,
       })
 

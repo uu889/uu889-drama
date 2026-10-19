@@ -7,13 +7,15 @@ import { db, getInsertId, schema } from '../db/index.js'
 import { eq } from 'drizzle-orm'
 import { getActiveConfig, getConfigById } from './ai.js'
 import { now } from '../utils/response.js'
-import { downloadFile, fetchImageAsCompressedDataUrl, generateImageThumb, readImageAsCompressedDataUrl, readImageAsDataUrl, saveBase64Image } from '../utils/storage.js'
-import { extractVideoEndFrame, extractVideoPoster } from '../utils/video-poster.js'
+import fs from 'fs'
+import { downloadFile, fetchImageAsCompressedDataUrl, generateImageThumb, getAbsolutePath, readImageAsCompressedDataUrl, readImageAsDataUrl, saveBase64Image } from '../utils/storage.js'
+import { endFramePathFor, extractVideoEndFrame, extractVideoPoster, posterPathFor } from '../utils/video-poster.js'
 import { getImageAdapter, getVideoAdapter } from './adapters/registry'
 import type { AIConfig, GenerateContext, ImageProviderAdapter, ProviderRequest, VideoProviderAdapter } from './adapters/types'
 import { formatBytes, formatEta, setTaskProgress, stagePercent, type TaskProgressPatch } from './task-progress.js'
 import { maybeTranslatePrompt, needsTranslation, shouldTranslatePrompt } from './prompt-translate.js'
 import { getDramaStyleKey } from './style-preset.js'
+import { burnSubtitles, normalizeSubtitleOptions, storyboardDialogue } from './subtitles.js'
 import { logTaskError, logTaskPayload, logTaskProgress, logTaskStart, logTaskSuccess, logTaskWarn, redactUrl } from '../utils/task-logger.js'
 
 type TaskType = 'image' | 'video'
@@ -61,6 +63,8 @@ interface GenerateVideoParams {
   seed?: number
   promptExtend?: boolean
   watermark?: boolean
+  /** 字幕开关与样式（见 services/subtitles.ts） */
+  subtitle?: Record<string, unknown>
   configId?: number
 }
 
@@ -132,6 +136,8 @@ export async function generateVideo(params: GenerateVideoParams): Promise<number
     seed: params.seed,
     promptExtend: params.promptExtend,
     watermark: params.watermark,
+    // 存规范化后的选项（带 enabled，任务完成时再读）
+    subtitle: (() => { const o = normalizeSubtitleOptions(params.subtitle); return o ? { enabled: true, ...o } : undefined })(),
   })
 
   logTaskStart('VideoTask', 'enqueue', {
@@ -697,18 +703,54 @@ async function handleVideoComplete(record: SysTaskRecord, config: AIConfig, vide
   await extractVideoPoster(localPath)
   // 结尾帧供同场景下一个镜头接戏（作为首帧 / 参考图）
   await extractVideoEndFrame(localPath)
+  // 字幕：把分镜台词烧进视频（原视频保留；接戏结尾帧取自原视频，下一镜不会带上字幕）
+  const sub = await maybeBurnSubtitles(record, localPath)
+  const finalPath = sub?.video || localPath
   await db.update(schema.sysTask)
-    .set({ resultUrl: videoUrl, localPath, status: 'completed', completedAt: now(), updatedAt: now() })
+    .set({ resultUrl: videoUrl, localPath: finalPath, status: 'completed', completedAt: now(), updatedAt: now() })
     .where(eq(schema.sysTask.id, record.id))
 
-  logTaskSuccess('VideoTask', 'downloaded', { id: record.id, localPath, storyboardId: record.storyboardId, duration })
+  logTaskSuccess('VideoTask', 'downloaded', { id: record.id, localPath: finalPath, storyboardId: record.storyboardId, duration, subtitles: sub?.cues ?? 0 })
 
   if (record.storyboardId) {
     await db.update(schema.storyboards)
-      .set({ videoUrl: localPath, duration: duration || undefined, updatedAt: now() })
+      .set({ videoUrl: finalPath, ...(sub ? { subtitleUrl: sub.srt } : {}), duration: duration || undefined, updatedAt: now() })
       .where(eq(schema.storyboards.id, record.storyboardId))
   }
   setTaskProgress(record.id, { stage: 'completed', percent: 100, message: '视频已生成并保存到本地' })
+}
+
+/**
+ * 生成时开了字幕：读分镜台词烧进视频，返回带字幕版本；没开 / 没台词返回 null。
+ * 失败只提示、不让任务失败（保留无字幕视频）。
+ */
+async function maybeBurnSubtitles(record: SysTaskRecord, localPath: string): Promise<{ video: string; srt: string; cues: number } | null> {
+  const opts = normalizeSubtitleOptions(parseTaskParams(record.params).subtitle)
+  if (!opts || !record.storyboardId) return null
+  try {
+    const [sb] = await db.select().from(schema.storyboards).where(eq(schema.storyboards.id, record.storyboardId))
+    if (!sb) return null
+    const links = await db.select().from(schema.storyboardCharacters).where(eq(schema.storyboardCharacters.storyboardId, sb.id))
+    const ids = new Set(links.map((l) => l.characterId))
+    const names = ids.size ? (await db.select().from(schema.characters)).filter((c) => ids.has(c.id)).map((c) => c.name).filter(Boolean) as string[] : []
+    const lines = storyboardDialogue(sb.description, names)
+    if (!lines.length) {
+      setTaskProgress(record.id, { stage: 'saving', message: '本镜没有台词 / 旁白，不加字幕' })
+      return null
+    }
+    setTaskProgress(record.id, { stage: 'saving', message: `烧录字幕（${lines.length} 句台词）` })
+    const out = await burnSubtitles(localPath, lines, opts)
+    if (!out) return null
+    // 封面和接戏结尾帧沿用原视频的（不带字幕）
+    for (const [from, to] of [[posterPathFor(localPath), posterPathFor(out.video)], [endFramePathFor(localPath), endFramePathFor(out.video)]]) {
+      try { fs.copyFileSync(getAbsolutePath(from), getAbsolutePath(to)) } catch { /* 原视频没抽出来就跳过 */ }
+    }
+    return out
+  } catch (err: any) {
+    logTaskWarn('VideoTask', 'subtitle-failed', { id: record.id, error: err?.message })
+    setTaskProgress(record.id, { stage: 'saving', message: `字幕烧录失败，保留无字幕视频：${err?.message || err}` })
+    return null
+  }
 }
 
 /** 下载进度 → 任务进度（下载阶段占整体 90%~98%） */

@@ -1160,6 +1160,32 @@
       "prevAsFirst": "Empieza con el último fotograma del plano #{n} como primer fotograma.",
       "prevAsRef": "Usa el último fotograma del plano #{n} como referencia 1 para igualar las posiciones iniciales.",
       "chainBatch": "Raccord activado: {n} grupo(s) de planos del mismo escenario se generarán en orden, cada uno desde el último fotograma del anterior."
+    },
+    "subtitle": {
+      "enable": "Subtítulos (incrustar los diálogos del plano)",
+      "tip": "Tras generar y descargar el vídeo, se incrustan los diálogos / la narración de la descripción del plano en orden; el vídeo original se conserva y el fotograma final para la continuidad no lleva subtítulos.",
+      "style": "Estilo de subtítulos",
+      "sample": "Subtítulo",
+      "size": "Tamaño",
+      "position": "Posición",
+      "speaker": "Anteponer el nombre del personaje (Ana: …)",
+      "hint": "El texto sale de los diálogos y la narración de la descripción del plano, con tiempos según la velocidad de habla estimada; los planos sin diálogo no llevan subtítulos. Se aplica a los vídeos que generes a partir de ahora.",
+      "styles": {
+        "classic": "Blanco, borde negro",
+        "yellow": "Amarillo, borde negro",
+        "box": "Blanco sobre caja negra",
+        "shadow": "Sombra de cine",
+        "pink": "Borde rosa estilo show"
+      },
+      "sizes": {
+        "small": "Pequeño",
+        "medium": "Mediano",
+        "large": "Grande"
+      },
+      "positions": {
+        "bottom": "Abajo",
+        "top": "Arriba"
+      }
     }
   },
   "errors": {

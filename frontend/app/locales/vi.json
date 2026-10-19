@@ -1160,6 +1160,32 @@
       "prevAsFirst": "Mở đầu bằng khung hình cuối của cảnh #{n} làm khung hình đầu.",
       "prevAsRef": "Dùng khung hình cuối của cảnh #{n} làm ảnh tham chiếu 1 để vị trí mở đầu khớp.",
       "chainBatch": "Đã bật nối cảnh: {n} nhóm cảnh cùng bối cảnh sẽ được tạo lần lượt, mỗi cảnh nối từ khung hình cuối của cảnh trước."
+    },
+    "subtitle": {
+      "enable": "Phụ đề (in lời thoại của cảnh vào video)",
+      "tip": "Sau khi tạo và tải video, lời thoại / lời dẫn trong mô tả cảnh được in vào hình theo thứ tự nói; video gốc được giữ lại và khung cuối để nối cảnh không có phụ đề.",
+      "style": "Kiểu phụ đề",
+      "sample": "Phụ đề",
+      "size": "Cỡ chữ",
+      "position": "Vị trí",
+      "speaker": "Thêm tên nhân vật phía trước (An: …)",
+      "hint": "Chữ lấy từ lời thoại và lời dẫn trong mô tả cảnh, thời gian chia theo tốc độ nói ước tính; cảnh không có thoại sẽ không có phụ đề. Áp dụng cho video tạo từ bây giờ.",
+      "styles": {
+        "classic": "Chữ trắng viền đen",
+        "yellow": "Chữ vàng viền đen",
+        "box": "Chữ trắng nền đen",
+        "shadow": "Bóng điện ảnh",
+        "pink": "Viền hồng kiểu show"
+      },
+      "sizes": {
+        "small": "Nhỏ",
+        "medium": "Vừa",
+        "large": "Lớn"
+      },
+      "positions": {
+        "bottom": "Dưới",
+        "top": "Trên"
+      }
     }
   },
   "errors": {

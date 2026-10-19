@@ -1160,6 +1160,32 @@
       "prevAsFirst": "Démarre sur la dernière image du plan #{n} comme première image.",
       "prevAsRef": "Utilise la dernière image du plan #{n} comme référence 1 pour des positions de départ identiques.",
       "chainBatch": "Raccord activé : {n} groupe(s) de plans d’un même décor seront générés dans l’ordre, chacun à partir de la dernière image du précédent."
+    },
+    "subtitle": {
+      "enable": "Sous-titres (incruster les dialogues du plan)",
+      "tip": "Après génération et téléchargement, les dialogues / la narration de la description du plan sont incrustés dans l’ordre de parole ; la vidéo d’origine est conservée et l’image de fin pour le raccord n’a pas de sous-titres.",
+      "style": "Style de sous-titres",
+      "sample": "Sous-titre",
+      "size": "Taille",
+      "position": "Position",
+      "speaker": "Préfixer le nom du personnage (Anna : …)",
+      "hint": "Le texte vient des dialogues et de la narration de la description du plan, minuté selon une vitesse de parole estimée ; les plans sans dialogue n’ont pas de sous-titres. S’applique aux vidéos générées à partir de maintenant.",
+      "styles": {
+        "classic": "Blanc, contour noir",
+        "yellow": "Jaune, contour noir",
+        "box": "Blanc sur fond noir",
+        "shadow": "Ombre cinéma",
+        "pink": "Contour rose variétés"
+      },
+      "sizes": {
+        "small": "Petit",
+        "medium": "Moyen",
+        "large": "Grand"
+      },
+      "positions": {
+        "bottom": "Bas",
+        "top": "Haut"
+      }
     }
   },
   "errors": {
