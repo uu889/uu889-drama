@@ -21,7 +21,7 @@ import type {
 } from './types'
 import { parseUrlArray } from './media'
 import { applyPromptTemplate, explicitNumberSetting, textSetting } from './local-image'
-import { DEFAULT_VIDEO_TEMPLATE_ID, getComfyTemplate, isMiniMaxH3Workflow, modelOverrideFiles, resolveComfyTemplate } from './comfyui-templates'
+import { DEFAULT_VIDEO_TEMPLATE_ID, H3_MAX_REF_IMAGES, getComfyTemplate, isMiniMaxH3RefWorkflow, isMiniMaxH3Workflow, modelOverrideFiles, resolveComfyTemplate, toMiniMaxH3PictureTags } from './comfyui-templates'
 import { hasWan14bModel, injectStyleLora } from './comfyui-lora'
 import { resolveStyleModels, withTrigger } from './style-models'
 import {
@@ -169,7 +169,10 @@ export class ComfyUIVideoAdapter extends ComfyUIClient implements VideoProviderA
 
     const steps = explicitNumberSetting(settings.comfyui_steps, 1, 200)
     const cfg = explicitNumberSetting(settings.comfyui_cfg, 0, 30)
-    const basePrompt = applyPromptTemplate(settings.prompt_template, record.prompt || '')
+    // MiniMax H3 参考图生视频：@图片N → <Picture N>（参考图按顺序接 ref_image_0..8）
+    const h3Ref = isMiniMaxH3RefWorkflow(template)
+    const rawPrompt = h3Ref ? toMiniMaxH3PictureTags(record.prompt || '', Math.min(refImages.length, H3_MAX_REF_IMAGES)) : (record.prompt || '')
+    const basePrompt = applyPromptTemplate(settings.prompt_template, rawPrompt)
     const values: ComfyPlaceholderValues = {
       prompt: sm ? withTrigger(basePrompt, sm.trigger) : basePrompt,
       negative_prompt: textSetting(settings.comfyui_negative_prompt, COMFYUI_DEFAULT_NEGATIVE_PROMPT),

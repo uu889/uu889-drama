@@ -22,6 +22,13 @@ const COMFYUI_CLIENT_ID = 'uu889-drama'
 const NUMERIC_PLACEHOLDERS = new Set(['seed', 'width', 'height', 'duration', 'fps', 'frames', 'length', 'steps', 'cfg'])
 const TEXT_PLACEHOLDERS = new Set(['prompt', 'negative_prompt', 'aspect_ratio', 'resolution', 'model', 'shot_type', 'frame_type'])
 const IMAGE_PLACEHOLDER_RE = /^(image|first_frame|last_frame|reference_image_\d+)$/
+/**
+ * 缺图时整个节点要「短路」的节点：图片 / 音频都没接时这个节点会报错（如 MiniMaxH3AddGuide「needs an image or an audio」），
+ * 所以把它从链路里摘掉，下游改接它的 through 输入（原样往下传）。
+ */
+const BYPASS_WITHOUT_MEDIA: Record<string, { through: string; media: string[] }> = {
+  MiniMaxH3AddGuide: { through: 'positive', media: ['image', 'audio'] },
+}
 const PLACEHOLDER_RE = /\{\{\s*([a-z0-9_]+)\s*\}\}/gi
 
 /**
@@ -136,6 +143,21 @@ export function renderComfyWorkflow(
       if (!linkEntries.length) continue
       const dangling = linkEntries.filter(([, link]) => pruned.has(String(link[0])))
       if (!dangling.length) continue
+      // 图片 / 音频都没了的引导节点：下游改接它的 through 输入，再移除它
+      const bypass = BYPASS_WITHOUT_MEDIA[node.class_type]
+      const through = bypass ? node.inputs?.[bypass.through] : null
+      if (bypass && isLink(through) && !pruned.has(String(through[0]))
+        && bypass.media.every((k) => !isLink(node.inputs?.[k]) || pruned.has(String(node.inputs[k][0])))) {
+        for (const [otherId, other] of Object.entries(workflow)) {
+          if (otherId === nodeId) continue
+          for (const [key, value] of Object.entries(other?.inputs || {})) {
+            if (isLink(value) && String(value[0]) === nodeId && value[1] === 0) other.inputs[key] = [through[0], through[1]]
+          }
+        }
+        pruned.add(nodeId)
+        changed = true
+        continue
+      }
       const required = requiredInputs[node.class_type] || []
       if (dangling.length === linkEntries.length || dangling.some(([key]) => required.includes(key))) {
         pruned.add(nodeId)
@@ -544,7 +566,9 @@ export abstract class ComfyUIClient {
         || /node\s+'?([\w.-]+)'?\s+(?:not found|does not exist)/i.exec(message)?.[1]
         || /because node ([\w.-]+) does not exist/i.exec(message)?.[1]
       if (missingNode && (body?.error?.type === 'missing_node_type' || /not found|does not exist/i.test(message))) {
-        const how = /GGUF/i.test(missingNode)
+        const how = /^MiniMaxH3/.test(missingNode)
+          ? '这是 ComfyUI 自带的 MiniMax H3 节点，说明 ComfyUI 版本太旧：请把 ComfyUI 更新到最新版（参考图生视频需要 0.30.0 以上，锚定首帧 / 尾帧的 MiniMaxH3AddGuide 需要 0.34.0 以上）后重启'
+          : /GGUF/i.test(missingNode)
           ? '这个模板用 GGUF 量化模型，需要安装 ComfyUI-GGUF 插件：ComfyUI-Manager 里搜 ComfyUI-GGUF 安装，或把 https://github.com/city96/ComfyUI-GGUF 克隆到 ComfyUI/custom_nodes 后重启 ComfyUI；不想装插件可以改选 24G 以上的 fp8 / fp16 模板'
           : '请用 ComfyUI-Manager 安装缺少的自定义节点后重启 ComfyUI，或改选不需要插件的模板'
         return `ComfyUI 缺少节点 ${missingNode}：${how}`

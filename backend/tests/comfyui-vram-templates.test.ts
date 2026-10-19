@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { COMFY_H3_VRAM_TEMPLATES, COMFY_VIDEO_TEMPLATES, COMFY_VRAM_TEMPLATES, describeComfyTemplates, getComfyTemplate, resolveComfyTemplate } from '../src/services/adapters/comfyui-templates'
+import { COMFY_H3_VRAM_TEMPLATES, COMFY_VIDEO_TEMPLATES, COMFY_VRAM_TEMPLATES, describeComfyTemplates, getComfyTemplate, resolveComfyTemplate, toMiniMaxH3PictureTags } from '../src/services/adapters/comfyui-templates'
+import { renderComfyWorkflow } from '../src/services/adapters/comfyui-common'
 import { ComfyUIVideoAdapter, comfyDimensions, minimaxH3Dimensions } from '../src/services/adapters/comfyui-video'
 import { hasWan14bModel, injectStyleLora } from '../src/services/adapters/comfyui-lora'
 import { FILE_META, sourcesFor } from '../src/services/model-installer/sources'
@@ -140,21 +141,22 @@ test('MiniMax H3 tiers: 12G → 288G, GGUF / pruned int8 / full int8 / bf16, ste
     assert.equal(wf['13'].inputs.type, 'minimax')
     const turbo = t.vram <= 32
     assert.equal(!!wf['121'], turbo)
-    if (turbo) assert.equal(wf['121'].inputs.lora_name, 'minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors')
+    if (turbo) assert.equal(wf['121'].inputs.lora_name, 'minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors')
+    assert.equal(wf['104'].class_type, 'MiniMaxH3ReferenceToVideo', '用参考图生视频节点，才能引用角色资产')
     assert.equal(wf['9'].inputs.steps, t.recommended.steps)
     assert.equal(wf['17'].inputs.sampler_name, 'res_multistep')
     unets.push(wf['6'].inputs.unet_name)
   }
   assert.deepEqual(unets, [
-    'MiniMax-H3-FL2VA-Pruned-Q3_K_M.gguf', 'MiniMax-H3-FL2VA-Pruned-Q4_K_M.gguf', 'MiniMax-H3-FL2VA-Pruned-Q5_K_M.gguf',
-    'minimax_h3_fl2va_pruned_int8_convrot.safetensors', 'minimax_h3_fl2va_int8_convrot.safetensors', 'minimax_h3_fl2va_int8_convrot.safetensors',
-    'minimax_h3_fl2va_bf16.safetensors', 'minimax_h3_fl2va_bf16.safetensors', 'minimax_h3_fl2va_bf16.safetensors',
+    'MiniMax-H3-Ref2VA-Pruned-Q3_K_M.gguf', 'MiniMax-H3-Ref2VA-Pruned-Q4_K_M.gguf', 'MiniMax-H3-Ref2VA-Pruned-Q5_K_M.gguf',
+    'minimax_h3_ref2va_pruned_int8_convrot.safetensors', 'minimax_h3_ref2va_int8_convrot.safetensors', 'minimax_h3_ref2va_int8_convrot.safetensors',
+    'minimax_h3_ref2va_bf16.safetensors', 'minimax_h3_ref2va_bf16.safetensors', 'minimax_h3_ref2va_bf16.safetensors',
   ])
   const steps = COMFY_H3_VRAM_TEMPLATES.map((t) => t.recommended.steps!)
-  assert.deepEqual(steps, [8, 8, 8, 8, 20, 25, 30, 40, 50])
+  assert.deepEqual(steps, [4, 4, 4, 4, 20, 25, 30, 40, 50])
   // 32G 档和 ComfyUI 官方模板同一套文件
   assert.deepEqual(getComfyTemplate('video', 'minimax-h3-32g')!.files.map((f) => f.file).sort(), [
-    'minimax_h3_audio_vae_fp32.safetensors', 'minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors', 'minimax_h3_fl2va_pruned_int8_convrot.safetensors',
+    'minimax_h3_audio_vae_fp32.safetensors', 'minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors', 'minimax_h3_ref2va_pruned_int8_convrot.safetensors',
     'minimax_h3_video_vae_int8_convrot.safetensors', 'qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors',
   ])
   // 原来的 H3 模板不受影响：按文件名仍然选中原模板
@@ -175,9 +177,9 @@ test('MiniMax H3 tiers and the original H3 templates: every file has a direct do
   }
   const plan = buildPlanFiles({ provider: 'comfyui', serviceType: 'video', styles: ['anime'], settings: { comfyui_template: 'minimax-h3-12g' } })
   const roles = Object.fromEntries(plan.files.map((f) => [f.file, f.role]))
-  assert.equal(roles['MiniMax-H3-FL2VA-Pruned-Q3_K_M.gguf'], 'diffusion_models')
+  assert.equal(roles['MiniMax-H3-Ref2VA-Pruned-Q3_K_M.gguf'], 'diffusion_models')
   assert.equal(roles['qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors'], 'text_encoders')
-  assert.equal(roles['minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors'], 'lora')
+  assert.equal(roles['minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors'], 'lora')
 })
 
 test('MiniMax H3 tiers: 12G is capped at 480p, others render the native 768p canvas', async () => {
@@ -201,4 +203,117 @@ test('MiniMax H3 tiers: 12G is capped at 480p, others render the native 768p can
   } finally {
     globalThis.fetch = realFetch
   }
+})
+
+// ─── MiniMax H3 参考图生视频：角色资产真的进了工作流 ─────────────────────────────
+
+const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC'
+const PNG2 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNg+M8AAAICAQB7CYF4AAAAAElFTkSuQmCC'
+const PNG3 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNgYPgPAAEDAQAIicLsAAAAAElFTkSuQmCC'
+
+/** 模拟 ComfyUI：/upload/image 记下上传顺序，其余 404（拿不到 /object_info 时按可选输入处理） */
+function fakeComfyUpload() {
+  const uploads: string[] = []
+  const realFetch = globalThis.fetch
+  globalThis.fetch = (async (url: any) => {
+    if (String(url).endsWith('/upload/image')) {
+      const name = `up_${uploads.length + 1}.png`
+      uploads.push(name)
+      return new Response(JSON.stringify({ name, subfolder: '', type: 'input' }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+    }
+    return new Response('{}', { status: 404 })
+  }) as typeof fetch
+  return { uploads, restore: () => { globalThis.fetch = realFetch } }
+}
+
+const cfg = (model: string) => ({ provider: 'comfyui', baseUrl: 'http://127.0.0.1:8188', apiKey: '', model, settings: null })
+
+test('MiniMax H3 reference-to-video: scene + character + prop images all become <Picture N> references, @names become tags', async () => {
+  const fake = fakeComfyUpload()
+  try {
+    // 前端的参考图顺序：场景、角色、道具；@名字 已解析成 @图片N名字
+    const req = await new ComfyUIVideoAdapter().buildGenerateRequest(cfg('minimax-h3-32g'), {
+      id: 1, duration: 5, aspectRatio: '16:9', resolution: '720p',
+      prompt: '@图片2张三坐在@图片1街边算命摊前，对@图片3李四说：今天宜出行。',
+      referenceImageUrls: JSON.stringify([PNG, PNG2, PNG3]),
+    })
+    const wf = req.body.prompt
+    const r2v = wf['104']
+    assert.equal(r2v.class_type, 'MiniMaxH3ReferenceToVideo')
+    // 三张参考图按顺序接到 ref_image_0..2，多余的 LoadImage 已裁掉
+    assert.deepEqual([0, 1, 2].map((i) => wf[r2v.inputs[`ref_images.ref_image_${i}`][0]].inputs.image), ['up_1.png', 'up_2.png', 'up_3.png'])
+    assert.equal(r2v.inputs['ref_images.ref_image_3'], undefined)
+    assert.ok(!wf['73'], '没用到的参考图节点被裁掉')
+    assert.match(r2v.inputs.prompt, /^参考图：<Picture 1>、<Picture 2>、<Picture 3>（/)
+    assert.match(r2v.inputs.prompt, /<Picture 2>张三坐在<Picture 1>街边算命摊前，对<Picture 3>李四说/)
+    assert.doesNotMatch(r2v.inputs.prompt, /@图片/)
+    // 没有首帧 / 尾帧：两个引导节点短路，采样直接用参考图条件
+    assert.ok(!wf['105'] && !wf['106'] && !wf['52'] && !wf['53'])
+    assert.deepEqual(wf['16'].inputs.conditioning, ['104', 0])
+    assert.equal(fake.uploads.length, 3)
+  } finally {
+    fake.restore()
+  }
+})
+
+test('MiniMax H3 reference-to-video: previous shot end frame is anchored as the first frame while character references stay', async () => {
+  const fake = fakeComfyUpload()
+  try {
+    const req = await new ComfyUIVideoAdapter().buildGenerateRequest(cfg('minimax-h3-r2v'), {
+      id: 2, duration: 5, aspectRatio: '9:16', resolution: '720p', prompt: '@图片2张三转身离开',
+      firstFrameUrl: PNG, referenceImageUrls: JSON.stringify([PNG2, PNG3]),
+    })
+    const wf = req.body.prompt
+    assert.equal(wf['105'].class_type, 'MiniMaxH3AddGuide')
+    assert.equal(wf['105'].inputs.frame_idx, 0)
+    assert.deepEqual(wf['105'].inputs.positive, ['104', 0])
+    assert.ok(wf['52'], '首帧图片节点保留')
+    assert.ok(!wf['106'], '没有尾帧：尾帧引导短路')
+    assert.deepEqual(wf['16'].inputs.conditioning, ['105', 0])
+    assert.ok(wf['104'].inputs['ref_images.ref_image_1'], '角色参考图仍然在')
+    assert.equal(wf['104'].inputs.width, 768)
+    assert.equal(wf['104'].inputs.height, 1344)
+    assert.match(wf['104'].inputs.prompt, /<Picture 2>张三转身离开/)
+    assert.equal(wf['9'].inputs.steps, 20)
+  } finally {
+    fake.restore()
+  }
+})
+
+test('MiniMax H3 reference-to-video: no images at all is plain text-to-video; first + last frame both anchored', () => {
+  const t = getComfyTemplate('video', 'minimax-h3-96g')!
+  const textOnly = renderComfyWorkflow(t.workflow, { prompt: '雨夜街头', seed: 1, width: 1344, height: 768, frames: 124, fps: 24 })
+  assert.ok(!Object.values<any>(textOnly).some((n) => n.class_type === 'LoadImage' || n.class_type === 'MiniMaxH3AddGuide'))
+  assert.deepEqual(textOnly['16'].inputs.conditioning, ['104', 0])
+  assert.equal(Object.keys(textOnly['104'].inputs).filter((k) => k.startsWith('ref_images.')).length, 0)
+  const both = renderComfyWorkflow(t.workflow, { prompt: 'x', seed: 1, width: 1344, height: 768, frames: 124, fps: 24, first_frame: 'a.png', last_frame: 'b.png', reference_image_1: 'c.png' })
+  assert.equal(both['106'].inputs.frame_idx, -1)
+  assert.deepEqual(both['106'].inputs.positive, ['105', 0])
+  assert.deepEqual(both['16'].inputs.conditioning, ['106', 0])
+  assert.deepEqual(both['104'].inputs['ref_images.ref_image_0'], ['70', 0])
+})
+
+test('<Picture N> conversion: only for existing references, header lists them, nothing added without references', () => {
+  assert.equal(toMiniMaxH3PictureTags('@图片1张三', 0), '@图片1张三')
+  const out = toMiniMaxH3PictureTags('@图片1张三和@图片4王五', 2)
+  assert.match(out, /^参考图：<Picture 1>、<Picture 2>（/)
+  assert.match(out, /<Picture 1>张三和@图片4王五$/, '超出参考图数量的标记不乱改')
+})
+
+test('original MiniMax H3 first/last-frame templates say they ignore character references', () => {
+  for (const id of ['minimax-h3-fl2v', 'minimax-h3-fl2v-turbo-8step', 'minimax-h3-fl2v-turbo-4step']) {
+    const t = getComfyTemplate('video', id)!
+    assert.match(t.description, /不引用角色 \/ 场景参考图/)
+    assert.equal(t.workflow['104'].class_type, 'MiniMaxH3ImageToVideo')
+  }
+  const r2v = getComfyTemplate('video', 'minimax-h3-r2v')!
+  assert.deepEqual(r2v.files.map((f) => f.file).sort(), [
+    'minimax_h3_audio_vae_fp32.safetensors', 'minimax_h3_ref2va_int8_convrot.safetensors', 'minimax_h3_video_vae_fp16.safetensors', 'qwen3vl_32b_minimax_h3_int8_convrot.safetensors',
+  ])
+  for (const f of r2v.files) assert.ok(FILE_META[f.file]?.sha256, f.file)
+})
+
+test('old ComfyUI without the H3 guide node: tells the user to update ComfyUI, not to install a plugin', () => {
+  const msg = new ComfyUIVideoAdapter().describeError(400, JSON.stringify({ error: { type: 'missing_node_type', message: "Node 'MiniMaxH3AddGuide' not found.", extra_info: { class_type: 'MiniMaxH3AddGuide' } } }))
+  assert.match(String(msg), /^ComfyUI 缺少节点 MiniMaxH3AddGuide：.*更新到最新版.*0\.34\.0/)
 })

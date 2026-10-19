@@ -97,6 +97,15 @@ export const FILE_META: Record<string, FileMeta> = {
   'minimax_h3_audio_vae_fp32.safetensors': { bytes: 605254808, sha256: '8e505d95dd1561d47abd43d4238fd40d9bb1ae9e147ed0a4cba778d76ae4db48' },
   'minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors': { bytes: 1956193000, sha256: '2339acdf19bfe123f46b971ea35d367a84adb85de43627e1eceafa5a5b2b111e' },
   'minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors': { bytes: 1956192992, sha256: 'c396a9a06f58399e9df9754b18299818d84a2ddd371724ba48fe4a41221437dc' },
+  // 参考图生视频（Ref2VA）
+  'minimax_h3_ref2va_bf16.safetensors': { bytes: 66280487368, sha256: 'e32c54c1a7b4f5f397f195cea267ccb18806303bb665678c4bee60953bdf3026' },
+  'minimax_h3_ref2va_int8_convrot.safetensors': { bytes: 34038894550, sha256: '9eef934046a0671bc8a5daf87100705e1478419c574cfde70c50fbe6885f76a9' },
+  'minimax_h3_ref2va_pruned_int8_convrot.safetensors': { bytes: 20970379616, sha256: '9255f52b6677845ad238f20dfaafa94727053694127ab7f255c048f0f9365779' },
+  'minimax_h3_ref2va_pruned_fp8_scaled.safetensors': { bytes: 20958205608, sha256: 'f86f2f79ebd2d76eb8eeb46091e83982e6ff51d255747e7b16e92834b392b8e9' },
+  'MiniMax-H3-Ref2VA-Pruned-Q3_K_M.gguf': { bytes: 8902845536, sha256: '6e22b83e7c2213018ab0e66542633564fc6ffc05df25ed6fce2285716f335e58' },
+  'MiniMax-H3-Ref2VA-Pruned-Q4_K_M.gguf': { bytes: 11564180576, sha256: 'a67ff28c56f0bcf05f7a5edb2d215f2dce5c302587d4caf748e2e61e1ffea736' },
+  'MiniMax-H3-Ref2VA-Pruned-Q5_K_M.gguf': { bytes: 14068966496, sha256: 'dd220ed3888317740af9cc9b84baaf14c4d2e330ec89f2f445a758c21f4e98c5' },
+  'minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors': { bytes: 1956193000, sha256: '5b9ab5ade15d0775676d01a907268a69a1468dc6033b3b0d3ded5502f3ebb84c' },
 }
 
 export const SOURCE_LABELS: Record<SourceLabel, string> = {
