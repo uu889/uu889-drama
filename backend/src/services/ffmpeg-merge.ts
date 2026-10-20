@@ -11,6 +11,8 @@ import { logTaskError, logTaskStart, logTaskSuccess } from '../utils/task-logger
 import { extractVideoPoster } from '../utils/video-poster.js'
 import { ffmpeg, checkFfmpegSuite } from '../utils/ffmpeg.js'
 import { DATA_ROOT, STORAGE_ROOT } from '../utils/paths.js'
+import { mixBackgroundMusic, type BgmOptions } from './bgm.js'
+import { getAbsolutePath } from '../utils/storage.js'
 
 function toAbsPath(relativePath: string): string {
   if (path.isAbsolute(relativePath)) return relativePath
@@ -21,9 +23,9 @@ function toAbsPath(relativePath: string): string {
 /**
  * 拼接一集的镜头视频。
  * 优先使用视频生成产物，兼容历史的 composedVideoUrl 数据。
- * 传入 storyboardIds 时只拼接所选镜头（仍按镜号顺序）。
+ * 传入 storyboardIds 时只拼接所选镜头（仍按镜号顺序）；传入 bgm 时拼接后混入背景音乐。
  */
-export async function mergeEpisodeVideos(episodeId: number, dramaId: number, storyboardIds?: number[]): Promise<number> {
+export async function mergeEpisodeVideos(episodeId: number, dramaId: number, storyboardIds?: number[], bgm?: BgmOptions | null): Promise<number> {
   let storyboards = await db.select().from(schema.storyboards)
     .where(eq(schema.storyboards.episodeId, episodeId))
     .orderBy(schema.storyboards.storyboardNumber)
@@ -57,16 +59,20 @@ export async function mergeEpisodeVideos(episodeId: number, dramaId: number, sto
 
   const videos = clips.map(c => c.url)
 
-  logTaskStart('MergeTask', 'episode-merge', { episodeId, dramaId, clips: videos.length })
+  if (bgm && !fs.existsSync(getAbsolutePath(bgm.path))) {
+    throw new Error('背景音乐文件不存在（可能已从曲库删除），请重新选择')
+  }
+
+  logTaskStart('MergeTask', 'episode-merge', { episodeId, dramaId, clips: videos.length, bgm: bgm?.path })
 
   // 创建 merge 记录
   const ts = now()
   const res = await db.insert(schema.videoMerges).values({
     episodeId,
     dramaId,
-    title: `Episode ${episodeId} Merge`,
+    title: bgm ? `Episode ${episodeId} Merge · BGM ${path.basename(bgm.path).replace(/^[0-9a-z]{6,}-/, '')}` : `Episode ${episodeId} Merge`,
     provider: 'ffmpeg',
-    model: 'ffmpeg-concat-h264-aac',
+    model: bgm ? 'ffmpeg-concat-h264-aac+bgm' : 'ffmpeg-concat-h264-aac',
     status: 'processing',
     scenes: JSON.stringify(videos),
     createdAt: ts,
@@ -74,7 +80,7 @@ export async function mergeEpisodeVideos(episodeId: number, dramaId: number, sto
   const mergeId = getInsertId(res)
 
   // 异步执行
-  doMerge(mergeId, episodeId, videos).catch(async err => {
+  doMerge(mergeId, episodeId, videos, bgm || null).catch(async err => {
     logTaskError('MergeTask', 'episode-merge', { mergeId, episodeId, error: err.message })
     console.error(`[Merge] Failed:`, err)
     await db.update(schema.videoMerges)
@@ -85,7 +91,7 @@ export async function mergeEpisodeVideos(episodeId: number, dramaId: number, sto
   return mergeId
 }
 
-async function doMerge(mergeId: number, episodeId: number, videos: string[]) {
+async function doMerge(mergeId: number, episodeId: number, videos: string[], bgm: BgmOptions | null) {
   // 生成 concat 列表文件
   const listDir = path.join(STORAGE_ROOT, 'temp')
   fs.mkdirSync(listDir, { recursive: true })
@@ -101,6 +107,8 @@ async function doMerge(mergeId: number, episodeId: number, videos: string[]) {
   fs.mkdirSync(outputDir, { recursive: true })
   const outputFilename = `${uuid()}.mp4`
   const outputPath = path.join(outputDir, outputFilename)
+  // 要混背景音乐时先拼到临时文件，混完再写到最终位置
+  const concatPath = bgm ? path.join(outputDir, `${uuid()}.concat.mp4`) : outputPath
 
   await new Promise<void>((resolve, reject) => {
     ffmpeg()
@@ -116,7 +124,7 @@ async function doMerge(mergeId: number, episodeId: number, videos: string[]) {
         '-b:a', '192k',
         '-movflags', '+faststart',
       ])
-      .output(outputPath)
+      .output(concatPath)
       .on('end', () => resolve())
       .on('error', (err) => reject(err))
       .run()
@@ -125,6 +133,20 @@ async function doMerge(mergeId: number, episodeId: number, videos: string[]) {
 
   // 清理临时文件
   fs.unlinkSync(listPath)
+
+  let bgmError = ''
+  if (bgm) {
+    try {
+      await mixBackgroundMusic(concatPath, outputPath, bgm)
+      fs.rmSync(concatPath, { force: true })
+    } catch (err: any) {
+      // 混音失败不丢掉拼接结果：保留无背景音乐的成片并提示原因
+      bgmError = err?.message || String(err)
+      logTaskError('MergeTask', 'bgm-mix', { mergeId, episodeId, error: bgmError })
+      fs.rmSync(outputPath, { force: true })
+      fs.renameSync(concatPath, outputPath)
+    }
+  }
 
   // 获取时长
   const duration = await getVideoDuration(outputPath)
@@ -136,7 +158,7 @@ async function doMerge(mergeId: number, episodeId: number, videos: string[]) {
 
   // 更新 merge 记录
   await db.update(schema.videoMerges)
-    .set({ status: 'completed', mergedUrl: mergedRelative, duration, completedAt: now() })
+    .set({ status: 'completed', mergedUrl: mergedRelative, duration, completedAt: now(), ...(bgmError ? { errorMsg: `成片已生成，但没有混入背景音乐：${bgmError}`, model: 'ffmpeg-concat-h264-aac' } : {}) })
     .where(eq(schema.videoMerges.id, mergeId))
 
   // 更新 episode

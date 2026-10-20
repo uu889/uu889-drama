@@ -1006,7 +1006,12 @@
       "confirmNote": "Generation will start shot by shot with the above config; failed tasks can be retried later via \"Retry failed\".",
       "confirmStart": "Start ({n})",
       "selectMissing": "Select without video",
-      "aspectRatio": "Aspect Ratio"
+      "aspectRatio": "Aspect Ratio",
+      "historyPicked": "Selected {time}",
+      "deletePicked": "Delete selected",
+      "deleteHistoryTitle": "Delete video",
+      "deleteHistoryMessage": "Delete the video generated at {time}?",
+      "deleteHistoryCurrent": "This is the main video of this shot. After deleting it, the newest other video is used instead; if there is none, the shot goes back to \"not generated\"."
     },
     "inspector": {
       "videoPromptPlaceholder": "Reference assets with {'@'}character / {'@'}scene — auto-mapped to reference images on generation; then describe motion and camera per time segment…",
@@ -1186,6 +1191,51 @@
         "bottom": "Bottom",
         "top": "Top"
       }
+    },
+    "bgm": {
+      "title": "Background music",
+      "hintOff": "Mix a music track into the export",
+      "hintOn": "Mixed in when merging: loops if shorter than the film, cut if longer",
+      "pick": "Choose music from the library",
+      "emptyLibrary": "Library is empty — upload music first",
+      "upload": "Upload music",
+      "uploading": "Uploading…",
+      "uploaded": "Added to the library",
+      "uploadFailed": "Upload failed",
+      "remove": "Remove from library",
+      "removed": "Removed from the library",
+      "volume": "Volume",
+      "duck": "Duck under speech",
+      "duckTip": "The music gets quieter whenever there is dialogue, narration or sound effects, and comes back afterwards",
+      "fade": "Fade in / out",
+      "withBgm": "With background music",
+      "pickFirst": "Choose or upload background music first (or turn it off)"
+    },
+    "systemVoice": {
+      "enable": "System voice (system stories)",
+      "tip": "Turn on when the protagonist is bound to a \"system\": it becomes a voice-only character, and script rewriting, shot breakdown, AI prompts and video generation all include its dialogue / announcements.",
+      "scope": "Whole project",
+      "name": "Name",
+      "namePlaceholder": "System",
+      "defaultName": "System",
+      "chime": "Chime",
+      "voice": "Voice",
+      "presets": {
+        "cold": "a cold, crisp synthetic voice, gender-neutral leaning female, with a slight metallic echo",
+        "male": "a low, steady robotic male voice, every word clear, light reverb",
+        "cute": "a lively, playful synthetic girl voice, quick and a little cutesy",
+        "deep": "a commanding deep voice with a vast echo, as if from above"
+      },
+      "presetNames": {
+        "cold": "Cold synthetic",
+        "male": "Robotic male",
+        "cute": "Playful girl",
+        "deep": "Commanding deep"
+      },
+      "panel": "Show a holographic panel when it speaks (light only, no text)",
+      "hint": "Lines written as \"{name}: \\\"…\\\"\" or 【Ding! …】 in a shot are treated as the system: the chime plays, then it speaks in the voice above, and nobody on screen moves their lips. With subtitles, system lines are bracketed and cyan. Needs a video model that generates audio (e.g. Seedance, Veo, Grok); local Wan 2.2 has no audio. Regenerate prompts / videos after changing this.",
+      "saveFailed": "Could not save the system voice setting",
+      "enabledToast": "System voice is on: script rewriting, shot breakdown, prompts and videos will now include \"{name}\""
     }
   },
   "errors": {

@@ -1006,7 +1006,12 @@
       "confirmNote": "Die Generierung startet Shot für Shot mit obiger Konfiguration; fehlgeschlagene Aufgaben lassen sich später über „Fehlgeschlagene wiederholen“ erneut starten.",
       "confirmStart": "Starten ({n})",
       "selectMissing": "Ohne Video auswählen",
-      "aspectRatio": "Seitenverhältnis"
+      "aspectRatio": "Seitenverhältnis",
+      "historyPicked": "Ausgewählt {time}",
+      "deletePicked": "Auswahl löschen",
+      "deleteHistoryTitle": "Video löschen",
+      "deleteHistoryMessage": "Das um {time} erzeugte Video löschen?",
+      "deleteHistoryCurrent": "Das ist das Hauptvideo dieser Einstellung. Danach wird das neueste andere Video verwendet; gibt es keins, gilt die Einstellung wieder als „nicht erzeugt“."
     },
     "inspector": {
       "videoPromptPlaceholder": "Assets mit {'@'}Figur / {'@'}Szene referenzieren — wird beim Generieren automatisch auf Referenzbilder abgebildet; danach Bewegung und Kamera pro Zeitabschnitt beschreiben…",
@@ -1186,6 +1191,51 @@
         "bottom": "Unten",
         "top": "Oben"
       }
+    },
+    "bgm": {
+      "title": "Hintergrundmusik",
+      "hintOff": "Beim Export Musik untermischen",
+      "hintOn": "Wird beim Zusammenfügen gemischt: kürzere Musik wird wiederholt, längere gekürzt",
+      "pick": "Musik aus der Bibliothek wählen",
+      "emptyLibrary": "Bibliothek ist leer – zuerst Musik hochladen",
+      "upload": "Musik hochladen",
+      "uploading": "Wird hochgeladen…",
+      "uploaded": "Zur Bibliothek hinzugefügt",
+      "uploadFailed": "Upload fehlgeschlagen",
+      "remove": "Aus Bibliothek entfernen",
+      "removed": "Aus der Bibliothek entfernt",
+      "volume": "Lautstärke",
+      "duck": "Bei Sprache absenken",
+      "duckTip": "Bei Dialog, Erzählung oder Effekten wird die Musik leiser und danach wieder lauter",
+      "fade": "Ein-/Ausblenden",
+      "withBgm": "Mit Hintergrundmusik",
+      "pickFirst": "Zuerst Hintergrundmusik wählen oder hochladen (oder ausschalten)"
+    },
+    "systemVoice": {
+      "enable": "Systemstimme (System-Storys)",
+      "tip": "Einschalten, wenn der Protagonist an ein „System“ gebunden ist: Es wird zur reinen Sprechrolle, und Drehbuch, Shot-Aufteilung, KI-Prompts und Videoerzeugung enthalten seine Dialoge / Ansagen.",
+      "scope": "Ganzes Projekt",
+      "name": "Name",
+      "namePlaceholder": "System",
+      "defaultName": "System",
+      "chime": "Signalton",
+      "voice": "Stimme",
+      "presets": {
+        "cold": "eine kühle, klare Synthesestimme, neutral mit leicht weiblicher Färbung und metallischem Hall",
+        "male": "eine tiefe, ruhige Roboter-Männerstimme, jedes Wort deutlich, leichter Hall",
+        "cute": "eine lebhafte, verspielte Synthie-Mädchenstimme, schnell und etwas niedlich",
+        "deep": "eine gebieterische tiefe Stimme mit weitem Hall, wie von oben"
+      },
+      "presetNames": {
+        "cold": "Kühl synthetisch",
+        "male": "Roboter-Mann",
+        "cute": "Verspieltes Mädchen",
+        "deep": "Gebieterisch tief"
+      },
+      "panel": "Beim Sprechen Hologramm-Panel einblenden (nur Licht, kein Text)",
+      "hint": "Zeilen wie „{name}: „…““ oder 【Ding! …】 in einer Einstellung gelten als System: erst der Signalton, dann die Stimme oben, niemand im Bild bewegt die Lippen. Untertitel zeigen Systemzeilen in 【】 und Cyan. Erfordert ein Videomodell mit Ton (z. B. Seedance, Veo, Grok); lokales Wan 2.2 hat keinen Ton. Nach Änderungen Prompts / Videos neu erzeugen.",
+      "saveFailed": "Systemstimme konnte nicht gespeichert werden",
+      "enabledToast": "Systemstimme ist an: Drehbuch, Shots, Prompts und Videos enthalten jetzt „{name}“"
     }
   },
   "errors": {

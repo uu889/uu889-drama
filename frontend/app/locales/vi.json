@@ -1006,7 +1006,12 @@
       "confirmNote": "Quá trình tạo sẽ lần lượt bắt đầu cho từng cảnh quay với cấu hình trên; tác vụ thất bại có thể thử lại sau qua \"Thử lại mục lỗi\".",
       "confirmStart": "Bắt đầu ({n})",
       "selectMissing": "Chọn mục chưa có video",
-      "aspectRatio": "Tỷ lệ khung hình"
+      "aspectRatio": "Tỷ lệ khung hình",
+      "historyPicked": "Đã chọn {time}",
+      "deletePicked": "Xóa mục đã chọn",
+      "deleteHistoryTitle": "Xóa video",
+      "deleteHistoryMessage": "Xóa video tạo lúc {time}?",
+      "deleteHistoryCurrent": "Đây là video chính của cảnh này. Sau khi xóa sẽ dùng video khác mới nhất; nếu không còn video nào, cảnh trở về \"chưa tạo\"."
     },
     "inspector": {
       "videoPromptPlaceholder": "Tham chiếu tài nguyên bằng {'@'}nhân vật / {'@'}cảnh — tự ánh xạ thành ảnh tham chiếu khi tạo; sau đó mô tả chuyển động và máy quay theo từng khoảng thời gian…",
@@ -1186,6 +1191,51 @@
         "bottom": "Dưới",
         "top": "Trên"
       }
+    },
+    "bgm": {
+      "title": "Nhạc nền",
+      "hintOff": "Trộn một bản nhạc khi xuất",
+      "hintOn": "Trộn khi ghép: ngắn hơn thì lặp lại, dài hơn thì cắt",
+      "pick": "Chọn nhạc trong thư viện",
+      "emptyLibrary": "Thư viện trống — hãy tải nhạc lên trước",
+      "upload": "Tải nhạc lên",
+      "uploading": "Đang tải lên…",
+      "uploaded": "Đã thêm vào thư viện",
+      "uploadFailed": "Tải lên thất bại",
+      "remove": "Xóa khỏi thư viện",
+      "removed": "Đã xóa khỏi thư viện",
+      "volume": "Âm lượng",
+      "duck": "Tự giảm khi có lời thoại",
+      "duckTip": "Khi có lời thoại, lời dẫn hoặc hiệu ứng, nhạc nền nhỏ lại rồi to lên sau đó",
+      "fade": "Fade in / out",
+      "withBgm": "Có nhạc nền",
+      "pickFirst": "Hãy chọn hoặc tải nhạc nền trước (hoặc tắt nhạc nền)"
+    },
+    "systemVoice": {
+      "enable": "Giọng hệ thống (truyện hệ thống)",
+      "tip": "Bật khi nhân vật chính gắn với một \"hệ thống\": hệ thống thành nhân vật chỉ có giọng, và viết lại kịch bản, chia cảnh, prompt AI và tạo video đều có lời thoại / thông báo của hệ thống.",
+      "scope": "Toàn dự án",
+      "name": "Tên gọi",
+      "namePlaceholder": "Hệ thống",
+      "defaultName": "Hệ thống",
+      "chime": "Âm báo",
+      "voice": "Giọng",
+      "presets": {
+        "cold": "giọng tổng hợp lạnh và rõ, trung tính hơi nữ, có tiếng vọng kim loại nhẹ",
+        "male": "giọng nam máy móc trầm và đều, rõ từng chữ, hơi vang",
+        "cute": "giọng thiếu nữ điện tử lanh lợi, nhanh và hơi nũng nịu",
+        "deep": "giọng trầm uy nghiêm, vang rộng như vọng từ trên cao"
+      },
+      "presetNames": {
+        "cold": "Giọng điện tử lạnh",
+        "male": "Giọng nam máy",
+        "cute": "Thiếu nữ lanh lợi",
+        "deep": "Trầm uy nghiêm"
+      },
+      "panel": "Hiện bảng hologram khi nói (chỉ ánh sáng, không chữ)",
+      "hint": "Câu viết \"{name}: 「…」\" hoặc 【Ting! …】 trong cảnh được coi là hệ thống: phát âm báo rồi nói bằng giọng trên, không ai trên hình mấp máy môi. Phụ đề hiển thị trong 【】 màu xanh lam. Cần mô hình video có âm thanh (Seedance, Veo, Grok…); Wan 2.2 cục bộ không có âm thanh. Đổi xong hãy tạo lại prompt / video.",
+      "saveFailed": "Không lưu được cài đặt giọng hệ thống",
+      "enabledToast": "Đã bật giọng hệ thống: kịch bản, chia cảnh, prompt và video sẽ có \"{name}\""
     }
   },
   "errors": {

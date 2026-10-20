@@ -41,6 +41,9 @@ export const dramaAPI = {
   create: (data: any) => api.post('/dramas', data),
   update: (id: number, data: any) => api.put(`/dramas/${id}`, data),
   del: (id: number) => api.del(`/dramas/${id}`),
+  /** 系统音（系统流的「系统」角色），项目级设置 */
+  getSystemVoice: (id: number) => api.get(`/dramas/${id}/system-voice`),
+  saveSystemVoice: (id: number, data: any) => api.put(`/dramas/${id}/system-voice`, data),
 }
 
 export const episodeAPI = {
@@ -126,7 +129,12 @@ export const uploadAPI = {
   audio: (f: File) => uploadReq<{ url: string; path: string }>('/upload/audio', f),
 }
 export const mergeAPI = {
-  merge: (epId: number, storyboardIds?: number[]) => api.post(`/merge/episodes/${epId}/merge`, storyboardIds?.length ? { storyboard_ids: storyboardIds } : {}),
+  merge: (epId: number, storyboardIds?: number[], bgm?: { path: string; volume: number; duck: boolean; fade: boolean }) =>
+    api.post(`/merge/episodes/${epId}/merge`, { ...(storyboardIds?.length ? { storyboard_ids: storyboardIds } : {}), ...(bgm ? { bgm } : {}) }),
+  /** 背景音乐曲库 */
+  bgmList: () => api.get<any[]>('/merge/bgm'),
+  bgmUpload: (f: File) => uploadReq<{ path: string; name: string; duration: number }>('/merge/bgm', f),
+  bgmDelete: (path: string) => api.del(`/merge/bgm?path=${encodeURIComponent(path)}`),
   status: (epId: number) => api.get(`/merge/episodes/${epId}/merge`),
   list: (epId: number) => api.get<any[]>(`/merge/episodes/${epId}/merges`),
 }

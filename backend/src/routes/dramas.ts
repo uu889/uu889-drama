@@ -3,6 +3,7 @@ import { and, eq, isNull, like, desc } from 'drizzle-orm'
 import { db, getInsertId, schema } from '../db/index.js'
 import { success, badRequest, notFound, created, now } from '../utils/response.js'
 import { toSnakeCase, toSnakeCaseArray } from '../utils/transform.js'
+import { getDramaSystemVoice, saveDramaSystemVoice } from '../services/system-voice.js'
 
 const app = new Hono()
 
@@ -125,6 +126,19 @@ app.put('/:id', async (c) => {
   if (body.metadata !== undefined) updates.metadata = body.metadata
   await db.update(schema.dramas).set(updates).where(eq(schema.dramas.id, id))
   return success(c)
+})
+
+// GET /dramas/:id/system-voice — 系统音（系统流的「系统」角色）设置
+app.get('/:id/system-voice', async (c) => {
+  return success(c, await getDramaSystemVoice(Number(c.req.param('id'))))
+})
+
+// PUT /dramas/:id/system-voice — 保存系统音设置（存在 dramas.metadata.system_voice）
+app.put('/:id/system-voice', async (c) => {
+  const body = await c.req.json().catch(() => ({}))
+  const saved = await saveDramaSystemVoice(Number(c.req.param('id')), body)
+  if (!saved) return badRequest(c, '项目不存在')
+  return success(c, saved)
 })
 
 // DELETE /dramas/:id - Soft delete

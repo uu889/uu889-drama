@@ -1006,7 +1006,12 @@
       "confirmNote": "La génération démarrera plan par plan avec la configuration ci-dessus ; les tâches en échec pourront être relancées ensuite via « Relancer les échecs ».",
       "confirmStart": "Lancer ({n})",
       "selectMissing": "Sélectionner ceux sans vidéo",
-      "aspectRatio": "Format d'image"
+      "aspectRatio": "Format d'image",
+      "historyPicked": "Sélection {time}",
+      "deletePicked": "Supprimer la sélection",
+      "deleteHistoryTitle": "Supprimer la vidéo",
+      "deleteHistoryMessage": "Supprimer la vidéo générée à {time} ?",
+      "deleteHistoryCurrent": "C’est la vidéo principale de ce plan. Après suppression, la vidéo la plus récente restante est utilisée ; s’il n’y en a pas, le plan redevient « non généré »."
     },
     "inspector": {
       "videoPromptPlaceholder": "Référencez les ressources avec {'@'}personnage / {'@'}scène — elles sont automatiquement associées aux images de référence lors de la génération ; décrivez ensuite le mouvement et la caméra par segment temporel…",
@@ -1186,6 +1191,51 @@
         "bottom": "Bas",
         "top": "Haut"
       }
+    },
+    "bgm": {
+      "title": "Musique de fond",
+      "hintOff": "Mixer une musique lors de l’export",
+      "hintOn": "Mixée à l’assemblage : répétée si plus courte, coupée si plus longue",
+      "pick": "Choisir dans la bibliothèque",
+      "emptyLibrary": "Bibliothèque vide — importez d’abord une musique",
+      "upload": "Importer une musique",
+      "uploading": "Import…",
+      "uploaded": "Ajoutée à la bibliothèque",
+      "uploadFailed": "Échec de l’import",
+      "remove": "Retirer de la bibliothèque",
+      "removed": "Retirée de la bibliothèque",
+      "volume": "Volume",
+      "duck": "Baisser pendant les dialogues",
+      "duckTip": "La musique baisse dès qu’il y a dialogue, narration ou effets, puis remonte",
+      "fade": "Fondu entrée / sortie",
+      "withBgm": "Avec musique de fond",
+      "pickFirst": "Choisissez ou importez d’abord une musique (ou désactivez-la)"
+    },
+    "systemVoice": {
+      "enable": "Voix du système (récits à système)",
+      "tip": "À activer quand le héros est lié à un « système » : il devient un personnage purement vocal, et la réécriture, le découpage, les prompts IA et la génération vidéo incluent ses dialogues / annonces.",
+      "scope": "Tout le projet",
+      "name": "Nom",
+      "namePlaceholder": "Système",
+      "defaultName": "Système",
+      "chime": "Signal",
+      "voice": "Voix",
+      "presets": {
+        "cold": "une voix de synthèse froide et nette, neutre tirant vers le féminin, léger écho métallique",
+        "male": "une voix masculine robotique grave et posée, chaque mot net, légère réverb",
+        "cute": "une voix de fille synthétique vive et espiègle, rapide et un peu mignonne",
+        "deep": "une voix grave et impérieuse avec un vaste écho, comme venue d’en haut"
+      },
+      "presetNames": {
+        "cold": "Synthé froide",
+        "male": "Homme robot",
+        "cute": "Fille espiègle",
+        "deep": "Grave impérieuse"
+      },
+      "panel": "Afficher un panneau holographique quand il parle (lumière seule, sans texte)",
+      "hint": "Les lignes « {name} : « … » » ou 【Ding ! …】 d’un plan sont traitées comme le système : le signal retentit, puis la voix ci-dessus parle, personne à l’écran ne bouge les lèvres. En sous-titres, elles sont entre 【】 et en cyan. Nécessite un modèle vidéo qui génère du son (Seedance, Veo, Grok…) ; Wan 2.2 local n’a pas de son. Régénérez prompts / vidéos après modification.",
+      "saveFailed": "Impossible d’enregistrer la voix du système",
+      "enabledToast": "Voix du système activée : réécriture, découpage, prompts et vidéos incluront « {name} »"
     }
   },
   "errors": {

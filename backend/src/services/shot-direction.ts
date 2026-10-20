@@ -12,8 +12,8 @@
  */
 
 export interface DialogueLine {
-  /** dialogue = 角色台词；narration = 旁白（画外音） */
-  kind: 'dialogue' | 'narration'
+  /** dialogue = 角色台词；narration = 旁白（画外音）；system = 系统流的「系统」（画外电子音，开启系统音时才会出现） */
+  kind: 'dialogue' | 'narration' | 'system'
   speaker: string
   text: string
   /** 估算说话秒数 */
@@ -50,6 +50,24 @@ const NARRATION_RE = /^(旁白|画外音|旁述|narration|narrator|voice-?over|v
 const NARRATION_INLINE_RE = /(旁白|画外音|narration|narrator|voice-?over|ナレーション|내레이션)\s*[:：]\s*([^\n【]+)/gi
 const CLAUSE_BREAK_RE = /[。！？!?；;，,\n】\]]/
 
+/** 剧本里系统说话的常见叫法 */
+export const COMMON_SYSTEM_NAMES = ['系统', '系统音', '系统提示', '系统提示音', '系统播报', '系统声音', 'System']
+
+/** 开启系统音时，代表系统说话的名字（自定义名在内，长的在前）；没开返回 [] */
+export function systemNamesFor(sv: { enabled?: boolean; name?: string } | null | undefined): string[] {
+  if (!sv?.enabled) return []
+  return [...new Set([sv.name || '', ...COMMON_SYSTEM_NAMES].filter(Boolean))].sort((a, b) => b.length - a.length)
+}
+
+/** 说话人是不是系统（「神豪系统」「系统冷冷地」都算） */
+export function isSystemSpeaker(speaker: string | null | undefined, names: string[]): boolean {
+  const s = String(speaker || '').trim()
+  if (!s || !names.length) return false
+  return names.some((n) => s === n || s.startsWith(n) || (n.length >= 2 && s.includes(n)))
+}
+
+function escapeRe(s: string) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') }
+
 /** 一句话的说话秒数 */
 export function speechSeconds(text: string): number {
   const cjk = (text.match(CJK_RE) || []).length
@@ -79,10 +97,19 @@ function cleanSpeaker(raw: string, knownNames: string[]): string {
  * 从分镜描述中按出现顺序解析台词与旁白。
  * 支持：小明说：「…」 / 小明：「…」 / Ming says: "…" / 小明は言う：「…」 / 小明이 말한다: 「…」 / 旁白：… / Narration: …
  */
-export function parseShotDialogue(description: string | null | undefined, knownNames: string[] = []): DialogueLine[] {
+export function parseShotDialogue(
+  description: string | null | undefined,
+  knownNames: string[] = [],
+  opts: { systemNames?: string[]; systemLabel?: string } = {},
+): DialogueLine[] {
   const text = String(description || '')
   if (!text.trim()) return []
   const found: Array<DialogueLine & { at: number }> = []
+  const systemNames = (opts.systemNames || []).filter(Boolean)
+  const systemLabel = opts.systemLabel || systemNames[0] || ''
+  // 系统名也当作已知说话人（「系统播报：「…」」取到「系统」）
+  if (systemNames.length) knownNames = [...knownNames, ...systemNames]
+  const covered: Array<[number, number]> = []
 
   // 1. 引号台词：引号前（同一分句内）必须有说话标记或冒号
   for (let i = 0; i < text.length; i++) {
@@ -114,15 +141,32 @@ export function parseShotDialogue(description: string | null | undefined, knownN
         }
         if (best && bestAt >= 0) speaker = best
       }
+      const isSystem = !isNarration && isSystemSpeaker(speaker, systemNames)
       found.push({
         at: i,
-        kind: isNarration ? 'narration' : 'dialogue',
-        speaker,
+        kind: isNarration ? 'narration' : isSystem ? 'system' : 'dialogue',
+        speaker: isSystem ? systemLabel : speaker,
         text: quote,
         seconds: speechSeconds(quote),
       })
+      covered.push([start, end])
     }
     i = end
+  }
+
+  // 1b. 系统流常见的不带引号写法：【系统：……】【叮！……】 / 系统播报：……（只在开启系统音时识别）
+  if (systemNames.length) {
+    const inQuote = (at: number) => covered.some(([a, b]) => at >= a && at <= b)
+    const alt = systemNames.map(escapeRe).join('|')
+    const push = (at: number, raw: string) => {
+      const line = raw.trim().replace(/^[「『“"]|[」』”"]$/g, '').replace(/[。.]+$/, '').trim()
+      if (line && !inQuote(at)) found.push({ at, kind: 'system', speaker: systemLabel, text: line, seconds: speechSeconds(line) })
+    }
+    for (const m of text.matchAll(new RegExp(`【\\s*(?:${alt})[^【】:：]{0,6}[:：]([^【】]+)】`, 'g'))) push(m.index ?? 0, m[1])
+    for (const m of text.matchAll(/【\s*(叮[^【】]+)】/g)) push(m.index ?? 0, m[1])
+    for (const m of text.matchAll(new RegExp(`(?:^|[\\s。！？!?；;，,】])(?:${alt})(?:播报|提示音?|音|声音)?\\s*[:：]\\s*([^\\n【「『“"][^\\n【]*)`, 'g'))) {
+      push((m.index ?? 0) + 1, m[1])
+    }
   }
 
   // 2. 不带引号的旁白：旁白：内容（带引号的已在上一步处理）
@@ -208,6 +252,15 @@ export interface ShotDirectionInput {
   prompt: string
   hasStylePreset?: boolean
   options: { dialogueLock?: boolean; appearanceLock?: boolean; continuity?: boolean }
+  /** 系统音（系统流）：开启时分镜里系统的台词按画外电子音处理 */
+  systemVoice?: { enabled: boolean; name: string; voice: string; chime: string; panel: boolean } | null
+}
+
+/** 系统音说明（本镜有系统台词时附加） */
+function systemVoiceBlock(sv: NonNullable<ShotDirectionInput['systemVoice']>, zh: boolean): string {
+  return zh
+    ? `【系统音】${sv.name === '系统' ? '系统是主角绑定的金手指' : `${sv.name}是主角绑定的系统`}，只有声音、不在画面里：${sv.name}每次开口前先响起${sv.chime}，声音为${sv.voice}，清晰响亮、不被环境音盖住；${sv.name}说话时画面中任何人都不动嘴，主角做出听到${sv.name}声音的反应（愣住、眼神变化、微微侧头）。${sv.panel ? `${sv.name}说话时主角面前浮现半透明蓝色全息系统面板，只有科幻光效与图标，面板上不出现任何文字。` : ''}`
+    : `[System voice] ${sv.name} is the system bound to the protagonist — a voice only, never on screen. Every time it speaks, ${sv.chime} plays first, then a clear, prominent ${sv.voice} that is not buried under ambient sound. Nobody on screen moves their lips while ${sv.name} speaks; the protagonist reacts to hearing it (pauses, eyes shift, head tilts).${sv.panel ? ' A translucent blue holographic system panel appears in front of the protagonist while it speaks: sci-fi light effects and icons only, no text.' : ''}`
 }
 
 function clip(text: string | null | undefined, max: number): string {
@@ -231,10 +284,13 @@ export function buildShotDirectives(input: ShotDirectionInput): string {
   const ref = (name: string) => tokens[name] || name
   const blocks: string[] = []
   const duration = Math.max(1, Math.round(input.duration || 0))
+  const sv = input.systemVoice?.enabled ? input.systemVoice : null
+  const sysNames = systemNamesFor(sv)
+  const allLines = parseShotDialogue(input.description, names, { systemNames: sysNames, systemLabel: sv?.name })
 
   // ── 台词控制 ──
   if (input.options.dialogueLock !== false) {
-    const plan = planDialogue(parseShotDialogue(input.description, names))
+    const plan = planDialogue(allLines)
     if (!plan.lines.length) {
       blocks.push(zh
         ? '【台词控制】本段没有任何台词和旁白：所有人物全程不开口说话、不做说话口型，只有动作、表情与环境音。'
@@ -242,7 +298,11 @@ export function buildShotDirectives(input: ShotDirectionInput): string {
     } else {
       const idle = Math.max(0, Math.round((duration - plan.speechSeconds) * 10) / 10)
       const list = plan.lines.map((l, i) => {
-        const who = l.kind === 'narration' ? (zh ? '旁白（画外音）' : 'Narration (voice-over)') : ref(l.speaker || (zh ? '角色' : 'Character'))
+        const who = l.kind === 'narration'
+          ? (zh ? '旁白（画外音）' : 'Narration (voice-over)')
+          : l.kind === 'system'
+            ? (zh ? `${l.speaker}（画外电子音）` : `${l.speaker} (off-screen synthetic voice)`)
+            : ref(l.speaker || (zh ? '角色' : 'Character'))
         return zh ? `${i + 1}. ${who}：「${l.text}」（约 ${l.seconds} 秒）` : `${i + 1}. ${who}: "${l.text}" (~${l.seconds}s)`
       })
       const hasNarration = plan.lines.some((l) => l.kind === 'narration')
@@ -264,9 +324,12 @@ export function buildShotDirectives(input: ShotDirectionInput): string {
     }
   }
 
+  // ── 系统音 ──
+  if (sv && allLines.some((l) => l.kind === 'system')) blocks.push(systemVoiceBlock(sv, zh))
+
   // ── 人物外观 / 场景 / 画风 一致 ──
   if (input.options.appearanceLock !== false) {
-    const chars = input.characters.filter((c) => c.name)
+    const chars = input.characters.filter((c) => c.name && !(sv && sysNames.includes(c.name)))
     if (chars.length) {
       const rows = chars.map((c) => {
         const desc = [clip(c.appearance, 90), clip(c.styling, 70)].filter(Boolean).join(zh ? '；' : '; ')

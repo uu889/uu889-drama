@@ -18,7 +18,8 @@ import { imagePromptTools } from './tools/image-prompt-tools.js'
 import { loadAgentSkills, skillWorkspaces } from './skills.js'
 import { loadAgentPromptFile, loadBasePromptFile } from './prompts.js'
 import { buildLanguageDirective } from './language.js'
-import { getContentLanguageFromRC } from './context.js'
+import { getContentLanguageFromRC, getDramaId } from './context.js'
+import { getDramaSystemVoice, systemVoiceAgentDirective } from '../services/system-voice.js'
 import { createAiaskChatFetch, createClaudeFetch } from './aiask-chat.js'
 
 /**
@@ -403,7 +404,11 @@ function buildInstructions(type: string) {
     const baseInstructions = promptFile?.instructions || defaults.instructions
     const skillInstructions = await loadAgentSkills(type, lang)
     const languageDirective = buildLanguageDirective(lang)
-    return [baseInstructions, skillInstructions, languageDirective]
+    // 项目开启了系统音（系统流）：告诉 Agent 系统是画外电子音，台词格式统一
+    const systemDirective = await getDramaSystemVoice(getDramaId(requestContext))
+      .then(sv => systemVoiceAgentDirective(type, sv, lang))
+      .catch(() => '')
+    return [baseInstructions, skillInstructions, systemDirective, languageDirective]
       .filter(Boolean)
       .join('\n\n')
   }

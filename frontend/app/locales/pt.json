@@ -1006,7 +1006,12 @@
       "confirmNote": "A geração começará plano a plano com a configuração acima; tarefas com falha podem ser repetidas depois em \"Repetir falhas\".",
       "confirmStart": "Iniciar ({n})",
       "selectMissing": "Selecionar os sem vídeo",
-      "aspectRatio": "Proporção"
+      "aspectRatio": "Proporção",
+      "historyPicked": "Selecionado {time}",
+      "deletePicked": "Excluir seleção",
+      "deleteHistoryTitle": "Excluir vídeo",
+      "deleteHistoryMessage": "Excluir o vídeo gerado às {time}?",
+      "deleteHistoryCurrent": "Este é o vídeo principal deste plano. Depois de excluí-lo, o outro vídeo mais recente passa a ser usado; se não houver, o plano volta a \"não gerado\"."
     },
     "inspector": {
       "videoPromptPlaceholder": "Referencie recursos com {'@'}personagem / {'@'}cenário — mapeados automaticamente para imagens de referência na geração; depois descreva movimento e câmera por trecho de tempo…",
@@ -1186,6 +1191,51 @@
         "bottom": "Embaixo",
         "top": "Em cima"
       }
+    },
+    "bgm": {
+      "title": "Música de fundo",
+      "hintOff": "Misture uma música ao exportar",
+      "hintOn": "Misturada ao juntar: repete se for mais curta e é cortada se for mais longa",
+      "pick": "Escolher da biblioteca",
+      "emptyLibrary": "Biblioteca vazia — envie uma música primeiro",
+      "upload": "Enviar música",
+      "uploading": "Enviando…",
+      "uploaded": "Adicionada à biblioteca",
+      "uploadFailed": "Falha no envio",
+      "remove": "Remover da biblioteca",
+      "removed": "Removida da biblioteca",
+      "volume": "Volume",
+      "duck": "Abaixar durante falas",
+      "duckTip": "A música abaixa quando há fala, narração ou efeitos e volta depois",
+      "fade": "Fade in / out",
+      "withBgm": "Com música de fundo",
+      "pickFirst": "Escolha ou envie uma música de fundo primeiro (ou desative)"
+    },
+    "systemVoice": {
+      "enable": "Voz do sistema (histórias de sistema)",
+      "tip": "Ative quando o protagonista está ligado a um \"sistema\": ele vira um personagem só de voz, e a reescrita, a decupagem, os prompts de IA e a geração de vídeo incluem seus diálogos / anúncios.",
+      "scope": "Projeto inteiro",
+      "name": "Nome",
+      "namePlaceholder": "Sistema",
+      "defaultName": "Sistema",
+      "chime": "Aviso",
+      "voice": "Voz",
+      "presets": {
+        "cold": "uma voz sintética fria e nítida, neutra puxando para feminina, com leve eco metálico",
+        "male": "uma voz masculina robótica grave e calma, cada palavra clara, leve reverberação",
+        "cute": "uma voz de garota sintética animada e brincalhona, rápida e um pouco fofa",
+        "deep": "uma voz grave e imponente com eco amplo, como vinda do alto"
+      },
+      "presetNames": {
+        "cold": "Sintética fria",
+        "male": "Homem robô",
+        "cute": "Garota brincalhona",
+        "deep": "Grave imponente"
+      },
+      "panel": "Mostrar painel holográfico quando fala (só luz, sem texto)",
+      "hint": "Falas como \"{name}: «…»\" ou 【Ding! …】 num plano são tratadas como o sistema: toca o aviso e depois fala com a voz acima; ninguém na tela mexe os lábios. Nas legendas ficam entre 【】 e em ciano. Requer um modelo de vídeo com áudio (Seedance, Veo, Grok…); o Wan 2.2 local não tem áudio. Gere prompts / vídeos de novo após mudar.",
+      "saveFailed": "Não foi possível salvar a voz do sistema",
+      "enabledToast": "Voz do sistema ativada: reescrita, decupagem, prompts e vídeos vão incluir \"{name}\""
     }
   },
   "errors": {

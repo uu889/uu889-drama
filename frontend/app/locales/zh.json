@@ -1006,7 +1006,12 @@
       "confirmNote": "将按以上配置逐镜头发起生成；失败的任务之后可点「重试失败」一键重跑。",
       "confirmStart": "开始生成 ({n})",
       "selectMissing": "选未生成",
-      "aspectRatio": "画面比例"
+      "aspectRatio": "画面比例",
+      "historyPicked": "已选 {time}",
+      "deletePicked": "删除所选",
+      "deleteHistoryTitle": "删除历史视频",
+      "deleteHistoryMessage": "删除 {time} 生成的这条视频记录？",
+      "deleteHistoryCurrent": "这是本分镜正在使用的主视频。删除后改用最新的另一条历史视频；没有其他视频时，本分镜变回「未生成」。"
     },
     "inspector": {
       "videoPromptPlaceholder": "用 {'@'}角色名 / {'@'}场景名 引用参考素材，生成时自动映射为参考图片；再按时间段描述画面运动与镜头…",
@@ -1186,6 +1191,51 @@
         "bottom": "底部",
         "top": "顶部"
       }
+    },
+    "bgm": {
+      "title": "背景音乐",
+      "hintOff": "拼接导出时可混入一首背景音乐",
+      "hintOn": "拼接时混入：比成片短会循环，长了会截断",
+      "pick": "选择曲库里的音乐",
+      "emptyLibrary": "曲库是空的，先上传音乐",
+      "upload": "上传音乐",
+      "uploading": "上传中…",
+      "uploaded": "已加入曲库",
+      "uploadFailed": "上传失败",
+      "remove": "从曲库删除",
+      "removed": "已从曲库删除",
+      "volume": "音量",
+      "duck": "说话时自动压低",
+      "duckTip": "有台词、旁白或音效时，背景音乐自动变小，停下后再回升",
+      "fade": "淡入淡出",
+      "withBgm": "带背景音乐",
+      "pickFirst": "先选择或上传一首背景音乐（或关掉背景音乐）"
+    },
+    "systemVoice": {
+      "enable": "系统音（系统流）",
+      "tip": "剧里主角绑定了「系统」时打开：系统当成一个只有声音的角色，剧本改写、分镜拆解、AI 生成提示词和生成视频都会带上系统的对话 / 播报声音。",
+      "scope": "整个项目",
+      "name": "叫法",
+      "namePlaceholder": "系统",
+      "defaultName": "系统",
+      "chime": "提示音",
+      "voice": "声音",
+      "presets": {
+        "cold": "冰冷清晰的机械电子合成音，中性偏女声，略带金属回响",
+        "male": "低沉平稳的机械电子男声，字字清晰，略带混响",
+        "cute": "活泼俏皮的电子少女音，语速轻快，带一点卖萌的语气",
+        "deep": "威严浑厚的低音，带空旷回响，像从高处传来"
+      },
+      "presetNames": {
+        "cold": "冰冷电子女声",
+        "male": "机械男声",
+        "cute": "俏皮少女音",
+        "deep": "威严低音"
+      },
+      "panel": "系统说话时浮现全息面板（只有光效，不出文字）",
+      "hint": "分镜里写成「{name}：「台词」」或【叮！……】都会识别成系统：先响提示音，再用上面的声音说，画面里没人动嘴；加字幕时系统台词用【】和青蓝色。需要视频模型能出声音（如 Seedance、Veo、Grok），本地 Wan 2.2 没有音轨。改了之后重新生成提示词 / 视频才生效。",
+      "saveFailed": "系统音设置保存失败",
+      "enabledToast": "已开启系统音：之后的剧本改写、分镜拆解、提示词和视频都会带上「{name}」的声音"
     }
   },
   "errors": {

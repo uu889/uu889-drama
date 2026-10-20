@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { buildShotDirectives } from '../services/shot-direction.js'
+import { getEpisodeSystemVoice } from '../services/system-voice.js'
 import { withTaskProgress } from '../services/task-progress.js'
 import { eq } from 'drizzle-orm'
 import { db, schema } from '../db/index.js'
@@ -50,6 +51,7 @@ async function buildStoryboardDirectives(
     previousFrame: frameMode && previous ? { mode: frameMode, index: Number(direction.previous_frame_index) || 1 } : null,
     prompt,
     hasStylePreset: extra.hasStylePreset,
+    systemVoice: await getEpisodeSystemVoice(sb.episodeId),
     options: {
       dialogueLock: direction.dialogue_lock !== false,
       appearanceLock: direction.appearance_lock !== false,

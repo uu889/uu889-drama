@@ -12,7 +12,7 @@ import os from 'os'
 import path from 'path'
 import { ffmpeg, checkFfmpegSuite } from '../utils/ffmpeg.js'
 import { getAbsolutePath } from '../utils/storage.js'
-import { parseShotDialogue, type DialogueLine } from './shot-direction.js'
+import { parseShotDialogue, systemNamesFor, type DialogueLine } from './shot-direction.js'
 
 export const SUBTITLE_STYLES = ['classic', 'yellow', 'box', 'shadow', 'pink'] as const
 export type SubtitleStyle = typeof SUBTITLE_STYLES[number]
@@ -32,7 +32,12 @@ export interface SubtitleCue {
   end: number
   /** 已按画面宽度换好行（最多两行） */
   lines: string[]
+  /** 系统流的「系统」台词：用【】括起来、青蓝色 */
+  system?: boolean
 }
+
+/** 系统台词的字色（各样式通用） */
+export const SYSTEM_SUBTITLE_COLOR = '0x7FE8FF'
 
 /** 请求里的 subtitle 参数 → 规范化选项；没开字幕返回 null */
 export function normalizeSubtitleOptions(raw: unknown): SubtitleOptions | null {
@@ -104,21 +109,27 @@ function chunkLine(text: string, maxEm: number): string[][] {
  */
 export function buildSubtitleCues(lines: DialogueLine[], videoSeconds: number, opts: Pick<SubtitleOptions, 'speaker'>, maxEm = 18): SubtitleCue[] {
   const items = lines
-    .map((l) => ({ ...l, text: (opts.speaker && l.kind === 'dialogue' && l.speaker ? `${l.speaker}：${l.text}` : l.text).replace(/\s+/g, ' ').trim() }))
+    .map((l) => ({
+      ...l,
+      text: (l.kind === 'system'
+        ? `【${l.text.replace(/^【|】$/g, '')}】`
+        : opts.speaker && l.kind === 'dialogue' && l.speaker ? `${l.speaker}：${l.text}` : l.text
+      ).replace(/\s+/g, ' ').trim(),
+    }))
     .filter((l) => l.text)
   if (!items.length || !(videoSeconds > 0)) return []
   // 原始时间轴
-  const raw: Array<{ start: number; dur: number; text: string }> = []
+  const raw: Array<{ start: number; dur: number; text: string; system?: boolean }> = []
   let t = LEAD
   items.forEach((l, i) => {
     if (i > 0) t += l.speaker === items[i - 1].speaker ? SAME_SPEAKER_GAP : TURN_GAP
     const dur = Math.max(MIN_CUE, l.seconds)
-    raw.push({ start: t, dur, text: l.text })
+    raw.push({ start: t, dur, text: l.text, ...(l.kind === 'system' ? { system: true } : {}) })
     t += dur
   })
   const usable = Math.max(0.5, videoSeconds - 0.15)
   // 放得下：按估算时长；放不下（台词比镜头长）：开场和停顿压到很短，每句至少留够阅读时间，剩下的按长短分
-  let timed: Array<{ start: number; dur: number; text: string }>
+  let timed: Array<{ start: number; dur: number; text: string; system?: boolean }>
   if (t <= usable) {
     timed = raw
   } else {
@@ -131,7 +142,7 @@ export function buildSubtitleCues(lines: DialogueLine[], videoSeconds: number, o
     let at = lead
     timed = raw.map((r) => {
       const dur = base + (rest * r.dur) / sum
-      const item = { start: at, dur, text: r.text }
+      const item = { ...r, start: at, dur }
       at += dur + gap
       return item
     })
@@ -143,7 +154,7 @@ export function buildSubtitleCues(lines: DialogueLine[], videoSeconds: number, o
     let at = r.start
     for (const c of chunks) {
       const d = (r.dur * textWidthEm(c.join(''))) / total
-      cues.push({ start: round2(at), end: round2(Math.min(usable, at + d)), lines: c })
+      cues.push({ start: round2(at), end: round2(Math.min(usable, at + d)), lines: c, ...(r.system ? { system: true } : {}) })
       at += d
     }
   }
@@ -286,7 +297,7 @@ export function buildDrawtextFilter(cues: SubtitleCue[], opts: SubtitleOptions, 
         `textfile=${filterPath(layout.textFile(ci, li, text))}`,
         'expansion=none',
         `fontsize=${fs}`,
-        `fontcolor=${spec.color}`,
+        `fontcolor=${cue.system ? SYSTEM_SUBTITLE_COLOR : spec.color}`,
         'x=(w-text_w)/2',
         `y=${y}`,
       ]
@@ -381,7 +392,11 @@ export async function burnSubtitles(relativeVideo: string, lines: DialogueLine[]
   }
 }
 
-/** 分镜描述 + 角色名 → 台词 */
-export function storyboardDialogue(description: string | null | undefined, characterNames: string[]): DialogueLine[] {
-  return parseShotDialogue(description, characterNames)
+/** 分镜描述 + 角色名 → 台词（传入开启的系统音时，系统的台词标成 system） */
+export function storyboardDialogue(
+  description: string | null | undefined,
+  characterNames: string[],
+  systemVoice?: { enabled?: boolean; name?: string } | null,
+): DialogueLine[] {
+  return parseShotDialogue(description, characterNames, { systemNames: systemNamesFor(systemVoice), systemLabel: systemVoice?.name })
 }

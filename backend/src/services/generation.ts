@@ -16,6 +16,7 @@ import { formatBytes, formatEta, setTaskProgress, stagePercent, type TaskProgres
 import { maybeTranslatePrompt, needsTranslation, shouldTranslatePrompt } from './prompt-translate.js'
 import { getDramaStyleKey } from './style-preset.js'
 import { burnSubtitles, normalizeSubtitleOptions, storyboardDialogue } from './subtitles.js'
+import { getEpisodeSystemVoice } from './system-voice.js'
 import { logTaskError, logTaskPayload, logTaskProgress, logTaskStart, logTaskSuccess, logTaskWarn, redactUrl } from '../utils/task-logger.js'
 
 type TaskType = 'image' | 'video'
@@ -733,7 +734,7 @@ async function maybeBurnSubtitles(record: SysTaskRecord, localPath: string): Pro
     const links = await db.select().from(schema.storyboardCharacters).where(eq(schema.storyboardCharacters.storyboardId, sb.id))
     const ids = new Set(links.map((l) => l.characterId))
     const names = ids.size ? (await db.select().from(schema.characters)).filter((c) => ids.has(c.id)).map((c) => c.name).filter(Boolean) as string[] : []
-    const lines = storyboardDialogue(sb.description, names)
+    const lines = storyboardDialogue(sb.description, names, await getEpisodeSystemVoice(sb.episodeId))
     if (!lines.length) {
       setTaskProgress(record.id, { stage: 'saving', message: '本镜没有台词 / 旁白，不加字幕' })
       return null

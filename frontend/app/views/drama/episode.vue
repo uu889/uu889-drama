@@ -771,21 +771,39 @@
               <div class="video-player-history-head">
                 <span>{{ t('episode.vid.history') }}</span>
                 <span class="video-player-history-count">{{ sbVideoHistory.length }}</span>
+                <span v-if="selectedHistory" class="video-player-history-picked">
+                  {{ t('episode.vid.historyPicked', { time: formatHistoryTime(taskCreatedAt(selectedHistory)) }) }}
+                </span>
+                <button
+                  v-if="selectedHistory"
+                  type="button"
+                  class="btn btn-sm btn-ghost video-history-del-picked"
+                  :title="t('episode.vid.deleteRecord')"
+                  @click="askRemoveHistoryVideo(selectedHistory)"
+                >
+                  <Trash2 :size="12" />
+                  {{ t('episode.vid.deletePicked') }}
+                </button>
               </div>
-              <div class="video-player-history-list">
+              <div class="video-player-history-list" role="listbox" :aria-label="t('episode.vid.history')">
                 <div
                   v-for="h in sbVideoHistory"
                   :key="h.id"
-                  :class="['video-history-item', { current: isCurrentVideo(h), viewing: !!previewVideoUrl && previewVideoUrl === taskVideoPath(h) }]"
-                  role="button"
+                  :class="['video-history-item', { current: isCurrentVideo(h), selected: selectedHistoryId === h.id }]"
+                  role="option"
+                  :aria-selected="selectedHistoryId === h.id"
                   tabindex="0"
                   @click="previewHistoryVideo(h)"
                   @keydown.enter.prevent="previewHistoryVideo(h)"
+                  @keydown.delete.prevent="askRemoveHistoryVideo(h)"
                 >
                   <video :src="'/' + taskVideoPath(h)" :poster="posterOf('/' + taskVideoPath(h)) || undefined" preload="none" muted playsinline tabindex="-1" />
                   <span class="video-history-time">{{ formatHistoryTime(taskCreatedAt(h)) }}</span>
                   <span v-if="isCurrentVideo(h)" class="video-history-badge">{{ t('episode.vid.current') }}</span>
-                  <button v-else type="button" class="video-history-del" :title="t('episode.vid.deleteRecord')" @click.stop="removeHistoryVideo(h)">×</button>
+                  <span v-if="selectedHistoryId === h.id" class="video-history-check" aria-hidden="true">
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </span>
+                  <button type="button" class="video-history-del" :title="t('episode.vid.deleteRecord')" @click.stop="askRemoveHistoryVideo(h)">×</button>
                 </div>
               </div>
             </div>
@@ -851,6 +869,41 @@
                     <div v-if="continuityStatus" :class="['video-continuity-status', 'is-' + continuityStatus.kind]">
                       <img v-if="continuityStatus.image" :src="continuityStatus.image" alt="" @click="openImageViewer(continuityStatus.image, continuityStatus.text)" />
                       <span>{{ continuityStatus.text }}</span>
+                    </div>
+                    <label class="video-direction-toggle" :title="t('episode.systemVoice.tip')">
+                      <input :checked="systemVoice.enabled" type="checkbox" @change="setSystemVoiceEnabled($event.target.checked)" />
+                      <span>{{ t('episode.systemVoice.enable') }}</span>
+                      <span class="video-direction-scope">{{ t('episode.systemVoice.scope') }}</span>
+                    </label>
+                    <div v-if="systemVoice.enabled" ref="systemVoiceOptsEl" class="video-subtitle-opts system-voice-opts">
+                      <div class="video-subtitle-row">
+                        <label class="video-subtitle-field sv-name">
+                          <span>{{ t('episode.systemVoice.name') }}</span>
+                          <input v-model="systemVoice.name" class="input input-sm" maxlength="20" :placeholder="t('episode.systemVoice.namePlaceholder')" @change="saveSystemVoice" />
+                        </label>
+                        <label class="video-subtitle-field">
+                          <span>{{ t('episode.systemVoice.chime') }}</span>
+                          <input v-model="systemVoice.chime" class="input input-sm" maxlength="40" @change="saveSystemVoice" />
+                        </label>
+                      </div>
+                      <label class="video-subtitle-field sv-voice">
+                        <span>{{ t('episode.systemVoice.voice') }}</span>
+                        <input v-model="systemVoice.voice" class="input input-sm" maxlength="80" @change="saveSystemVoice" />
+                      </label>
+                      <div class="sv-presets" role="group" :aria-label="t('episode.systemVoice.voice')">
+                        <button
+                          v-for="vp in SYSTEM_VOICE_PRESETS"
+                          :key="vp"
+                          type="button"
+                          :class="['sv-preset', { active: systemVoice.voice === t('episode.systemVoice.presets.' + vp) }]"
+                          @click="systemVoice.voice = t('episode.systemVoice.presets.' + vp); saveSystemVoice()"
+                        >{{ t('episode.systemVoice.presetNames.' + vp) }}</button>
+                      </div>
+                      <label class="video-direction-toggle is-sub">
+                        <input v-model="systemVoice.panel" type="checkbox" @change="saveSystemVoice" />
+                        <span>{{ t('episode.systemVoice.panel') }}</span>
+                      </label>
+                      <div class="video-subtitle-hint">{{ t('episode.systemVoice.hint', { name: systemVoice.name || t('episode.systemVoice.defaultName') }) }}</div>
                     </div>
                     <label class="video-direction-toggle" :title="t('episode.subtitle.tip')">
                       <input v-model="videoSubtitle.enabled" type="checkbox" />
@@ -1006,6 +1059,8 @@
                   <div class="merge-card-meta">
                     <span class="mono">{{ formatHistoryTime(m.created_at) }}</span>
                     <span v-if="m.duration">· {{ m.duration }}s</span>
+                    <span v-if="String(m.model || '').includes('+bgm')" class="merge-card-bgm" :title="t('episode.bgm.withBgm')"><Music :size="11" /></span>
+                    <span v-else-if="m.status === 'completed' && m.error_msg" class="merge-card-warn" :title="m.error_msg">!</span>
                     <a
                       v-if="m.status === 'completed' && m.merged_url"
                       :href="'/' + m.merged_url"
@@ -1020,6 +1075,51 @@
                 </div>
               </div>
               <div v-else class="export-merge-empty">{{ t('episode.export.empty') }}</div>
+            </div>
+
+            <!-- 背景音乐：拼接时混入（可选） -->
+            <div :class="['export-section', 'export-bgm', { on: mergeBgm.enabled }]">
+              <div class="export-section-head export-bgm-head">
+                <label class="export-bgm-switch">
+                  <input v-model="mergeBgm.enabled" type="checkbox" />
+                  <Music :size="13" />
+                  <span class="export-section-title">{{ t('episode.bgm.title') }}</span>
+                </label>
+                <span class="dim export-bgm-hint">{{ mergeBgm.enabled ? t('episode.bgm.hintOn') : t('episode.bgm.hintOff') }}</span>
+              </div>
+              <div v-if="mergeBgm.enabled" class="export-bgm-body">
+                <div class="export-bgm-row">
+                  <select v-model="mergeBgm.path" class="input input-sm export-bgm-select" :aria-label="t('episode.bgm.pick')">
+                    <option value="">{{ bgmLibrary.length ? t('episode.bgm.pick') : t('episode.bgm.emptyLibrary') }}</option>
+                    <option v-for="b in bgmLibrary" :key="b.path" :value="b.path">{{ b.name }}{{ b.duration ? ` · ${formatBgmDuration(b.duration)}` : '' }}</option>
+                  </select>
+                  <button class="btn btn-sm" type="button" :disabled="bgmUploading" @click="bgmFileInput?.click()">
+                    <Loader2 v-if="bgmUploading" :size="12" class="animate-spin" />
+                    <Upload v-else :size="12" />
+                    {{ bgmUploading ? t('episode.bgm.uploading') : t('episode.bgm.upload') }}
+                  </button>
+                  <input ref="bgmFileInput" type="file" accept=".mp3,.wav,.m4a,.aac,.ogg,.flac,audio/*" hidden @change="onBgmFile" />
+                  <button v-if="mergeBgm.path" class="btn btn-sm btn-ghost btn-icon" type="button" :title="t('episode.bgm.remove')" @click="removeBgmFromLibrary">
+                    <Trash2 :size="12" />
+                  </button>
+                </div>
+                <audio v-if="mergeBgm.path" :key="mergeBgm.path" :src="'/' + mergeBgm.path" controls preload="none" class="export-bgm-audio" />
+                <div class="export-bgm-row export-bgm-opts">
+                  <label class="export-bgm-vol">
+                    <span>{{ t('episode.bgm.volume') }}</span>
+                    <input v-model.number="mergeBgm.volume" type="range" min="5" max="100" step="5" />
+                    <span class="mono">{{ mergeBgm.volume }}%</span>
+                  </label>
+                  <label class="video-direction-toggle" :title="t('episode.bgm.duckTip')">
+                    <input v-model="mergeBgm.duck" type="checkbox" />
+                    <span>{{ t('episode.bgm.duck') }}</span>
+                  </label>
+                  <label class="video-direction-toggle">
+                    <input v-model="mergeBgm.fade" type="checkbox" />
+                    <span>{{ t('episode.bgm.fade') }}</span>
+                  </label>
+                </div>
+              </div>
             </div>
 
             <!-- 下方:镜头素材(可勾选) -->
@@ -1517,6 +1617,14 @@
       </div>
 
       <ConfirmDialog
+        :open="historyDelete.open"
+        :title="t('episode.vid.deleteHistoryTitle')"
+        :message="historyDelete.isCurrent ? t('episode.vid.deleteHistoryCurrent') : t('episode.vid.deleteHistoryMessage', { time: historyDelete.time })"
+        :loading="historyDelete.loading"
+        @confirm="confirmRemoveHistoryVideo"
+        @cancel="historyDelete.open = false"
+      />
+      <ConfirmDialog
         :open="assetDelete.open"
         :title="t('episode.delete.title', { type: assetDeleteTypeLabel })"
         :message="t('episode.delete.message', { type: assetDeleteTypeLabel, name: assetDeleteName })"
@@ -1534,7 +1642,7 @@ import { toast } from 'vue-sonner'
 import { useI18n } from 'vue-i18n'
 import {
   Users, FileText, FolderKanban, Clapperboard, Download, Loader2,
-  Plus, X, ListTodo, CircleHelp,
+  Plus, X, ListTodo, CircleHelp, Trash2, Music, Upload, Bot,
 } from 'lucide-vue-next'
 import { api, dramaAPI, episodeAPI, storyboardAPI, characterAPI, sceneAPI, propAPI, taskAPI, mergeAPI, aiConfigAPI, uploadAPI } from '~/composables/useApi'
 import { startTour, autoTour } from '~/composables/useTour'
@@ -1552,6 +1660,39 @@ const dramaId = Number(route.params.id)
 const episodeNumber = Number(route.params.episodeNumber)
 
 const drama = ref(null), episode = ref(null), chars = ref([]), scenes = ref([]), propItems = ref([]), sbs = ref([]), mergeData = ref(null)
+// ===== 系统音（系统流的「系统」角色）：项目级设置，存在后端 dramas.metadata =====
+const SYSTEM_VOICE_PRESETS = ['cold', 'male', 'cute', 'deep']
+const systemVoice = reactive({ enabled: false, name: '', voice: '', chime: '', panel: true })
+const systemVoiceOptsEl = ref(null)
+let systemVoiceLoadedFor = null
+async function loadSystemVoice(id) {
+  if (!id || systemVoiceLoadedFor === id) return
+  systemVoiceLoadedFor = id
+  try { Object.assign(systemVoice, await dramaAPI.getSystemVoice(id) || {}) } catch { systemVoiceLoadedFor = null }
+}
+watch(() => drama.value?.id, id => loadSystemVoice(id), { immediate: true })
+async function saveSystemVoice() {
+  const id = drama.value?.id
+  if (!id) return
+  try {
+    Object.assign(systemVoice, await dramaAPI.saveSystemVoice(id, { ...systemVoice }) || {})
+  } catch (e) { toastError(e, { fallback: 'episode.systemVoice.saveFailed' }) }
+}
+async function setSystemVoiceEnabled(on) {
+  systemVoice.enabled = !!on
+  await saveSystemVoice()
+  if (on) {
+    toast.success(t('episode.systemVoice.enabledToast', { name: systemVoice.name || t('episode.systemVoice.defaultName') }))
+    nextTick(() => { try { systemVoiceOptsEl.value?.scrollIntoView({ block: 'nearest' }) } catch {} })
+  }
+}
+/** 系统音开启时，角色表里名叫「系统」的只有声音：不需要出图 */
+function isSystemVoiceCharacter(char) {
+  if (!systemVoice.enabled) return false
+  const n = String(char?.name || '').trim()
+  return !!n && (n === systemVoice.name || ['系统', '系统音', '系统提示', '系统提示音', '系统播报', '系统声音', 'System'].includes(n))
+}
+
 // 工作台面板位置记忆（按剧集隔离）：仅页面刷新(reload)时恢复到上次所在步骤；
 // 从列表/详情页点击进入时始终默认「剧本」面板
 const PANEL_STORE_KEY = `uu889:workbench:panel:${dramaId}:${episodeNumber}`
@@ -1606,6 +1747,75 @@ function toggleSelectAllExport() {
 async function loadExportMerges() {
   if (!epId.value) return
   try { exportMerges.value = await mergeAPI.list(epId.value) || [] } catch { /* 静默 */ }
+  loadBgmLibrary()
+}
+
+// ===== 拼接导出的背景音乐（曲库在后端 static/bgm，选择与音量等记在本机）=====
+const BGM_STORE_KEY = 'uu889:merge-bgm'
+const BGM_DEFAULTS = { enabled: false, path: '', volume: 30, duck: true, fade: true }
+function readBgmPrefs() {
+  try {
+    const v = JSON.parse(localStorage.getItem(BGM_STORE_KEY) || 'null')
+    if (v && typeof v === 'object') {
+      const vol = Number(v.volume)
+      return {
+        enabled: v.enabled === true,
+        path: typeof v.path === 'string' ? v.path : '',
+        volume: Number.isFinite(vol) ? Math.min(100, Math.max(5, Math.round(vol))) : BGM_DEFAULTS.volume,
+        duck: v.duck !== false,
+        fade: v.fade !== false,
+      }
+    }
+  } catch { /* 静默 */ }
+  return { ...BGM_DEFAULTS }
+}
+const mergeBgm = reactive(readBgmPrefs())
+watch(mergeBgm, v => { try { localStorage.setItem(BGM_STORE_KEY, JSON.stringify(v)) } catch { /* 静默 */ } }, { deep: true })
+const bgmLibrary = ref([])
+const bgmUploading = ref(false)
+const bgmFileInput = ref(null)
+
+async function loadBgmLibrary() {
+  try {
+    bgmLibrary.value = await mergeAPI.bgmList() || []
+    // 记住的音乐已经从曲库删掉了：清空选择
+    if (mergeBgm.path && !bgmLibrary.value.some(b => b.path === mergeBgm.path)) mergeBgm.path = ''
+  } catch { /* 静默 */ }
+}
+
+function formatBgmDuration(sec) {
+  const n = Math.round(Number(sec) || 0)
+  return `${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`
+}
+
+async function onBgmFile(e) {
+  const file = e.target?.files?.[0]
+  if (e.target) e.target.value = ''
+  if (!file) return
+  bgmUploading.value = true
+  try {
+    const item = await mergeAPI.bgmUpload(file)
+    await loadBgmLibrary()
+    if (item?.path) mergeBgm.path = item.path
+    toast.success(t('episode.bgm.uploaded'))
+  } catch (err) {
+    toastError(err, { fallback: 'episode.bgm.uploadFailed' })
+  } finally {
+    bgmUploading.value = false
+  }
+}
+
+async function removeBgmFromLibrary() {
+  const p = mergeBgm.path
+  if (!p) return
+  try {
+    await mergeAPI.bgmDelete(p)
+    mergeBgm.path = ''
+    await loadBgmLibrary()
+    toast.success(t('episode.bgm.removed'))
+  } catch (err) {
+    toastError(err, { fallback: 'common.deleteFailed' })
+  }
 }
 
 const scriptStep = ref(storedPanel ? (storedPanel.scriptStep === 0 ? 0 : 1) : 0)
@@ -2130,7 +2340,7 @@ function isNarratorCharacter(char) {
   return ['旁白', '画外音', 'narrator', 'ナレーター', 'ナレーション', '내레이션', '해설'].some(k => text.includes(k))
 }
 
-const visualChars = computed(() => chars.value.filter(c => !isNarratorCharacter(c)))
+const visualChars = computed(() => chars.value.filter(c => !isNarratorCharacter(c) && !isSystemVoiceCharacter(c)))
 const lockedVideoConfigId = computed(() => episode.value?.video_config_id || episode.value?.videoConfigId || null)
 // 集视频分辨率：顶栏直接修改（持久化 episodes.resolution，生成任务按此值锁定）。
 // 内部统一存 480p/720p/1080p 三档，界面按当前选中的视频模型显示厂商原生档位
@@ -3197,6 +3407,10 @@ function hasVid(s) { return !!getVideoUrl(s) }
 // ===== 分镜视频历史（一个分镜可能生成多个视频,sys_task 留存全部记录）=====
 const sbVideoHistory = ref([])
 const previewVideoUrl = ref('') // 正在预览的历史视频(相对路径);空 = 预览当前主视频
+// 历史视频里当前选中的那条（点哪条选哪条，删除 / 设为主视频都针对它）
+const selectedHistoryId = ref(null)
+const selectedHistory = computed(() => sbVideoHistory.value.find(h => h.id === selectedHistoryId.value) || null)
+const historyDelete = reactive({ open: false, loading: false, task: null, isCurrent: false, time: '' })
 
 // 注意:/tasks 返回原始行(camelCase),/episodes/:id/generation-tasks 返回 snake_case,两种命名都兼容
 function taskVideoPath(t) { return t?.local_path || t?.localPath || t?.result_url || t?.resultUrl || '' }
@@ -3205,18 +3419,24 @@ function isCurrentVideo(t) { const p = taskVideoPath(t); return !!p && p === get
 
 async function loadSbVideoHistory() {
   previewVideoUrl.value = ''
+  selectedHistoryId.value = null
   if (!selectedSb.value?.id) { sbVideoHistory.value = []; return }
+  const sbId = selectedSb.value.id
   try {
-    const rows = await taskAPI.list({ type: 'video', storyboard_id: selectedSb.value.id })
+    const rows = await taskAPI.list({ type: 'video', storyboard_id: sbId })
+    if (selectedSb.value?.id !== sbId) return
     sbVideoHistory.value = (Array.isArray(rows) ? rows : [])
       .filter(t => t.status === 'completed' && taskVideoPath(t))
       .sort((a, b) => taskCreatedAt(b).localeCompare(taskCreatedAt(a)))
   } catch { sbVideoHistory.value = [] }
+  // 默认选中正在使用的主视频
+  selectedHistoryId.value = sbVideoHistory.value.find(isCurrentVideo)?.id ?? null
 }
 
 watch(() => [selectedSb.value?.id, getVideoUrl(selectedSb.value)], () => { loadSbVideoHistory() })
 
 function previewHistoryVideo(t) {
+  selectedHistoryId.value = t.id
   previewVideoUrl.value = isCurrentVideo(t) ? '' : taskVideoPath(t)
 }
 
@@ -3231,13 +3451,49 @@ async function setAsMainVideo() {
   } catch (e) { toastError(e, { fallback: 'episode.vid.setMainFailed' }) }
 }
 
-async function removeHistoryVideo(t) {
+function askRemoveHistoryVideo(task) {
+  if (!task) return
+  Object.assign(historyDelete, {
+    open: true,
+    loading: false,
+    task,
+    isCurrent: isCurrentVideo(task),
+    time: formatHistoryTime(taskCreatedAt(task)),
+  })
+}
+
+async function confirmRemoveHistoryVideo() {
+  const task = historyDelete.task
+  const sb = selectedSb.value
+  if (!task || !sb) { historyDelete.open = false; return }
+  historyDelete.loading = true
   try {
-    await taskAPI.del(t.id)
-    sbVideoHistory.value = sbVideoHistory.value.filter(x => x.id !== t.id)
-    if (previewVideoUrl.value === taskVideoPath(t)) previewVideoUrl.value = ''
+    const wasCurrent = isCurrentVideo(task)
+    await taskAPI.del(task.id)
+    const removedAt = sbVideoHistory.value.findIndex(x => x.id === task.id)
+    const rest = sbVideoHistory.value.filter(x => x.id !== task.id)
+    if (wasCurrent) {
+      // 删掉的是正在用的主视频：改用最新的另一条，没有就清空
+      const next = rest[0] ? taskVideoPath(rest[0]) : null
+      await storyboardAPI.update(sb.id, { video_url: next })
+      sb.video_url = next
+      sb.videoUrl = next
+    }
+    sbVideoHistory.value = rest
+    if (previewVideoUrl.value === taskVideoPath(task)) previewVideoUrl.value = ''
+    // 选中挪到删掉那条的下一条（没有就上一条）
+    if (selectedHistoryId.value === task.id || wasCurrent) {
+      const pick = rest.length ? rest[Math.min(Math.max(removedAt, 0), rest.length - 1)] : null
+      selectedHistoryId.value = pick?.id ?? null
+      previewVideoUrl.value = pick && !isCurrentVideo(pick) ? taskVideoPath(pick) : ''
+    }
+    historyDelete.open = false
     toast.success(t('episode.vid.historyDeleted'))
-  } catch (e) { toastError(e, { fallback: 'common.deleteFailed' }) }
+  } catch (e) {
+    toastError(e, { fallback: 'common.deleteFailed' })
+  } finally {
+    historyDelete.loading = false
+  }
 }
 
 function formatHistoryTime(iso) {
@@ -3487,6 +3743,7 @@ function readSubtitlePrefs() {
   try { return { ...SUBTITLE_DEFAULTS, ...(JSON.parse(localStorage.getItem(SUBTITLE_STORE_KEY) || 'null') || {}) } } catch { return { ...SUBTITLE_DEFAULTS } }
 }
 const videoSubtitle = reactive(readSubtitlePrefs())
+
 // 勾选「加字幕」后把展开的选项滚进可视区（选项区在底栏里单独滚动）
 const subtitleOptsEl = ref(null)
 watch(() => videoSubtitle.enabled, (on) => {
@@ -3651,8 +3908,13 @@ async function doMerge(ids) {
     toast.error(t('episode.export.selectFirst'))
     return
   }
+  let bgm
+  if (mergeBgm.enabled) {
+    if (!mergeBgm.path) { toast.error(t('episode.bgm.pickFirst')); return }
+    bgm = { path: mergeBgm.path, volume: mergeBgm.volume / 100, duck: mergeBgm.duck, fade: mergeBgm.fade }
+  }
   try {
-    await mergeAPI.merge(epId.value, storyboardIds)
+    await mergeAPI.merge(epId.value, storyboardIds, bgm)
     toast.success(t('episode.export.mergingToast'))
   } catch (e) {
     toastError(e, { fallback: 'episode.export.mergeFailed' })
@@ -3663,7 +3925,9 @@ async function doMerge(ids) {
     if (mergeData.value?.status === 'completed' || mergeData.value?.status === 'failed') {
       clearInterval(poll)
       if (mergeData.value.status === 'completed') {
-        toast.success(t('episode.export.mergeDone'))
+        const warn = mergeData.value?.error_msg || mergeData.value?.errorMsg
+        if (warn) toast.warning(warn)
+        else toast.success(t('episode.export.mergeDone'))
         loadExportMerges()
       } else {
         toastError(mergeData.value?.error_msg || mergeData.value?.errorMsg, { fallback: 'episode.export.mergeFailed' })
@@ -5016,13 +5280,36 @@ onMounted(() => setTimeout(() => autoTour('episode', EPISODE_TOUR, t), 900))
   object-fit: cover;
   display: block;
 }
-.video-history-item.current {
-  border-color: var(--accent);
-}
-.video-history-item.viewing {
+.video-history-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* 选中的那条：橙色描边 + 光晕 + 右下角勾；「当前」只用角标表示，不再占用描边 */
+.video-history-item.selected {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-glow);
 }
+.video-history-check {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 15px;
+  height: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.35);
+}
+.video-player-history-picked {
+  margin-left: auto;
+  color: var(--text-3);
+  font-size: 10.5px;
+  font-weight: 500;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+.video-history-del-picked { gap: 4px; color: var(--danger, #d14343); }
+.video-history-del-picked:hover { background: var(--danger-bg, rgba(209,67,67,0.1)); }
 .video-history-time {
   position: absolute;
   left: 4px;
@@ -5047,7 +5334,7 @@ onMounted(() => setTimeout(() => autoTour('episode', EPISODE_TOUR, t), 900))
 }
 .video-history-del {
   position: absolute;
-  right: 3px;
+  left: 3px;
   top: 3px;
   width: 16px;
   height: 16px;
@@ -5957,6 +6244,23 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
 .export-section-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .export-section-title { font-size: 13px; font-weight: 800; color: var(--text-0); }
 .export-merge-strip { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; }
+.export-bgm { flex: none; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-raised); }
+.export-bgm.on { border-color: var(--accent-border, var(--accent)); }
+.export-bgm-head { margin-bottom: 0; flex-wrap: wrap; }
+.export-bgm.on .export-bgm-head { margin-bottom: 10px; }
+.export-bgm-switch { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: var(--text-1); }
+.export-bgm-switch input { accent-color: var(--accent); }
+.export-bgm-hint { font-size: 11px; }
+.export-bgm-body { display: flex; flex-direction: column; gap: 8px; }
+.export-bgm-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.export-bgm-select { flex: 1 1 220px; min-width: 0; max-width: 420px; }
+.export-bgm-audio { width: 100%; max-width: 520px; height: 32px; }
+.export-bgm-opts { gap: 16px; }
+.export-bgm-vol { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-1); }
+.export-bgm-vol input { width: 140px; accent-color: var(--accent); }
+.export-bgm-vol .mono { min-width: 34px; color: var(--text-2); }
+.merge-card-bgm { display: inline-flex; align-items: center; color: var(--accent); }
+.merge-card-warn { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; border-radius: 50%; background: var(--warning-bg, rgba(229,160,0,.15)); color: var(--warning, #b7791f); font-size: 10px; font-weight: 800; cursor: help; }
 .merge-card {
   flex: 0 0 auto;
   width: 260px;
@@ -6446,6 +6750,14 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
 .video-direction-toggle { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-1); cursor: pointer; }
 .video-direction-toggle input { accent-color: var(--accent); }
 .video-direction-toggle.is-sub { padding-left: 18px; }
+.video-direction-scope { margin-left: auto; padding: 0 6px; border-radius: 999px; background: var(--overlay-track); color: var(--text-3); font-size: 10px; white-space: nowrap; }
+.system-voice-opts .input { flex: 1; min-width: 0; }
+.sv-name { flex: 0 1 46%; }
+.sv-voice { flex: none; }
+.sv-presets { display: flex; flex-wrap: wrap; gap: 4px; }
+.sv-preset { padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px; background: transparent; color: var(--text-2); font-size: 11px; cursor: pointer; }
+.sv-preset:hover { border-color: var(--border-strong); color: var(--text-1); }
+.sv-preset.active { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
 .video-subtitle-opts { display: flex; flex-direction: column; gap: 6px; padding: 2px 0 2px 18px; }
 .video-subtitle-styles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
 .sub-style { display: flex; flex-direction: column; align-items: stretch; gap: 2px; padding: 3px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-1, transparent); cursor: pointer; color: var(--text-2); min-width: 0; }
