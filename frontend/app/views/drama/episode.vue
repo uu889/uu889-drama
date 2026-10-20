@@ -93,20 +93,20 @@
             :key="item.key"
             :class="['pipe-item pipe-item-sub', {
               active: activeSubStepKey === item.key,
-              done: sectionState(section.id) === 'done',
-              doing: sectionState(section.id) === 'active',
+              done: subStepState(section.id, item.key) === 'done',
+              doing: subStepState(section.id, item.key) === 'active',
             }]"
             :title="sidebarCollapsed ? item.label : undefined"
             @click="goSubStep(item.key)"
           >
-            <span class="pipe-icon" :class="sectionState(section.id) === 'done' ? 'icon-done' : activeSubStepKey === item.key ? 'icon-active' : ''">
+            <span class="pipe-icon" :class="subStepState(section.id, item.key) === 'done' ? 'icon-done' : activeSubStepKey === item.key ? 'icon-active' : ''">
               <!-- 收起态：始终显示步骤图标，进行中用右上角小脉冲点表达 -->
               <template v-if="sidebarCollapsed">
                 <component :is="item.icon" :size="12" />
-                <span v-if="sectionState(section.id) === 'active'" class="pipe-mini-pulse" />
+                <span v-if="subStepState(section.id, item.key) === 'active'" class="pipe-mini-pulse" />
               </template>
-              <svg v-else-if="sectionState(section.id) === 'done'" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-              <span v-else-if="sectionState(section.id) === 'active'" class="pipe-item-pulse" />
+              <svg v-else-if="subStepState(section.id, item.key) === 'done'" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span v-else-if="subStepState(section.id, item.key) === 'active'" class="pipe-item-pulse" />
               <component v-else :is="item.icon" :size="11" />
             </span>
             <span class="pipe-copy">
@@ -856,7 +856,7 @@
                       <input v-model="videoSubtitle.enabled" type="checkbox" />
                       <span>{{ t('episode.subtitle.enable') }}</span>
                     </label>
-                    <div v-if="videoSubtitle.enabled" class="video-subtitle-opts">
+                    <div v-if="videoSubtitle.enabled" ref="subtitleOptsEl" class="video-subtitle-opts">
                       <div class="video-subtitle-styles" role="radiogroup" :aria-label="t('episode.subtitle.style')">
                         <button
                           v-for="st in SUBTITLE_STYLES"
@@ -2609,6 +2609,27 @@ function sectionState(sectionId) {
   return (hasProgress || isCurrent) ? 'active' : 'pending'
 }
 
+// 侧栏子步骤各自的状态：资产全部出图就打勾，不必等视频也做完（以前子步骤跟随整个「制作」环节）
+function subStepState(sectionId, key) {
+  if (sectionId === 'export') return 'none'
+  const done = key === 'script:raw'
+    ? !!(rawContent.value || scriptContent.value)
+    : key === 'script:rewrite'
+      ? mainStageDone('script')
+      : key === 'prod:assets'
+        ? mainStageDone('assets')
+        : mainStageDone('videos')
+  if (done) return 'done'
+  const hasProgress = key === 'script:raw'
+    ? false
+    : key === 'script:rewrite'
+      ? !!rawContent.value
+      : key === 'prod:assets'
+        ? assetTotalCount.value > 0
+        : !!(sbs.value.length || shotVidCount.value)
+  return (hasProgress || activeSubStepKey.value === key) ? 'active' : 'pending'
+}
+
 const activeMainStage = computed(() => {
   if (panel.value === 'export') return 'export'
   if (panel.value === 'production') {
@@ -3466,6 +3487,12 @@ function readSubtitlePrefs() {
   try { return { ...SUBTITLE_DEFAULTS, ...(JSON.parse(localStorage.getItem(SUBTITLE_STORE_KEY) || 'null') || {}) } } catch { return { ...SUBTITLE_DEFAULTS } }
 }
 const videoSubtitle = reactive(readSubtitlePrefs())
+// 勾选「加字幕」后把展开的选项滚进可视区（选项区在底栏里单独滚动）
+const subtitleOptsEl = ref(null)
+watch(() => videoSubtitle.enabled, (on) => {
+  if (!on) return
+  nextTick(() => { try { subtitleOptsEl.value?.scrollIntoView({ block: 'nearest' }) } catch {} })
+})
 watch(videoSubtitle, v => { try { localStorage.setItem(SUBTITLE_STORE_KEY, JSON.stringify(v)) } catch { /* 静默 */ } }, { deep: true })
 /** 批量接戏链中排队、尚未提交的镜头 */
 const chainQueuedIds = new Set()
@@ -5399,7 +5426,10 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
 .video-inspector-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding: 16px 18px 18px; }
 /* 时长参数 + 生成操作常驻底部：不随检查器滚动 */
 .video-inspector-footer {
-  flex: none;
+  /* 可收缩：导演 / 字幕选项展开后太高时，选项区自己滚动，时长 + 生成按钮始终可见、可点 */
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: 72%;
   display: flex;
   flex-direction: column;
   gap: 7px;
@@ -6406,7 +6436,8 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
 .asset-progress { width: 100%; }
 
 /* 镜头导演：台词计时 / 锁定开关 / 接戏状态 */
-.video-direction-card { display: flex; flex-direction: column; gap: 6px; }
+.video-direction-card { display: flex; flex-direction: column; gap: 6px; flex: 0 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-right: 2px; }
+.video-inspector-footer > :not(.video-direction-card) { flex: none; }
 .video-timing { border-radius: 8px; padding: 7px 9px; font-size: 11.5px; background: var(--bg-1); border: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px; }
 .video-timing.is-ok { border-color: var(--success, #30a46c); }
 .video-timing.is-too_long, .video-timing.is-too_short { border-color: var(--warning, #e5a000); background: var(--warning-bg, rgba(229, 160, 0, 0.08)); }
@@ -6415,22 +6446,23 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
 .video-direction-toggle { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-1); cursor: pointer; }
 .video-direction-toggle input { accent-color: var(--accent); }
 .video-direction-toggle.is-sub { padding-left: 18px; }
-.video-subtitle-opts { display: flex; flex-direction: column; gap: 8px; padding: 2px 0 2px 18px; }
-.video-subtitle-styles { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; }
-.sub-style { display: flex; flex-direction: column; align-items: stretch; gap: 4px; padding: 4px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-1, transparent); cursor: pointer; color: var(--text-2); }
+.video-subtitle-opts { display: flex; flex-direction: column; gap: 6px; padding: 2px 0 2px 18px; }
+.video-subtitle-styles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+.sub-style { display: flex; flex-direction: column; align-items: stretch; gap: 2px; padding: 3px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-1, transparent); cursor: pointer; color: var(--text-2); min-width: 0; }
 .sub-style.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); color: var(--text-1); }
-.sub-sample { display: flex; align-items: flex-end; justify-content: center; height: 34px; padding-bottom: 5px; border-radius: 5px; font-size: 12px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #5b6b7d, #a3907a 60%, #3d4a5a); }
+.sub-sample { display: flex; align-items: flex-end; justify-content: center; height: 24px; padding-bottom: 3px; border-radius: 4px; font-size: 11px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #5b6b7d, #a3907a 60%, #3d4a5a); }
 .sub-sample-classic { text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; }
 .sub-sample-yellow { color: #ffd84d; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; }
-.sub-sample i { font-style: normal; }
-.sub-sample-box i { background: rgba(0, 0, 0, .58); padding: 1px 5px; border-radius: 2px; }
+.sub-sample i { font-style: normal; white-space: nowrap; }
+.sub-sample-box i { background: rgba(0, 0, 0, .58); padding: 0 3px; border-radius: 2px; }
 .sub-sample-shadow { text-shadow: 2px 2px 2px rgba(0, 0, 0, .8); }
 .sub-sample-pink { text-shadow: -1.5px -1.5px 0 #ff3d7f, 1.5px -1.5px 0 #ff3d7f, -1.5px 1.5px 0 #ff3d7f, 1.5px 1.5px 0 #ff3d7f; }
-.sub-name { font-size: 11px; text-align: center; line-height: 1.2; }
-.video-subtitle-row { display: flex; gap: 8px; flex-wrap: wrap; }
-.video-subtitle-field { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-2); }
-.video-subtitle-field select { min-width: 72px; }
-.video-subtitle-hint { font-size: 11px; color: var(--text-3, var(--text-2)); line-height: 1.5; }
+.sub-name { font-size: 10.5px; text-align: center; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.video-subtitle-row { display: flex; gap: 8px; }
+.video-subtitle-field { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-2); }
+.video-subtitle-field > span { white-space: nowrap; }
+.video-subtitle-field select { flex: 1; min-width: 0; }
+.video-subtitle-hint { font-size: 10.5px; color: var(--text-3, var(--text-2)); line-height: 1.45; }
 .video-continuity-status { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-2); line-height: 1.4; padding-left: 18px; }
 .video-continuity-status img { width: 52px; height: 30px; object-fit: cover; border-radius: 4px; cursor: zoom-in; flex-shrink: 0; }
 .video-continuity-status.is-waiting { color: var(--warning, #b7791f); }
