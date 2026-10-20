@@ -47,6 +47,8 @@ export const dramaAPI = {
 }
 
 export const episodeAPI = {
+  /** 批量高清化本集分镜视频 */
+  upscale: (id: number, data: any) => api.post<{ created: any[]; skipped: any[] }>(`/episodes/${id}/upscale`, data),
   create: (data: any) => api.post('/episodes', data),
   update: (id: number, data: any) => api.put(`/episodes/${id}`, data),
   del: (id: number) => api.del(`/episodes/${id}`),
@@ -62,6 +64,9 @@ export const episodeAPI = {
 }
 
 export const storyboardAPI = {
+  /** 视频高清化：engine auto / ai / fast，target 1080p / 1440p / 2160p */
+  upscale: (id: number, data: { engine: string; target: string }) => api.post<{ task_id: number }>(`/storyboards/${id}/upscale`, data),
+  upscaleInfo: (episodeId?: number) => api.get(`/storyboards/upscale-info${episodeId ? `?episode_id=${episodeId}` : ''}`),
   create: (data: any) => api.post('/storyboards', data),
   update: (id: number, data: any) => api.put(`/storyboards/${id}`, data),
   del: (id: number) => api.del(`/storyboards/${id}`),

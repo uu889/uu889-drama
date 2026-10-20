@@ -227,7 +227,14 @@ interface WanTierOpts {
   fast?: boolean
   steps: number
   maxShortEdge: number
+  /** 同一显存档位的第二个模板：模板 ID 后缀（如 '-720p' → wan2.2-i2v-14b-12g-720p） */
+  idSuffix?: string
+  /** 分块解码（VAEDecodeTiled）：小显存出高分辨率时 VAE 解码不爆显存 */
+  tiledDecode?: boolean
 }
+
+/** 小显存分块解码（ComfyUI 自带 VAEDecodeTiled，空间 512 / 时间 64 帧一块） */
+const TILED_DECODE = { tile_size: 512, overlap: 64, temporal_size: 64, temporal_overlap: 8 }
 
 /** Wan 2.2 I2V 14B 双专家两段采样（可选 GGUF 加载器 / 4 步加速 LoRA） */
 function wanI2vTierWorkflow(o: WanTierOpts): Record<string, any> {
@@ -274,13 +281,15 @@ function wanI2vTierWorkflow(o: WanTierOpts): Record<string, any> {
       },
       _meta: { title: '采样（低噪声段）' },
     },
-    '8': { class_type: 'VAEDecode', inputs: { samples: ['58', 0], vae: ['39', 0] } },
+    '8': o.tiledDecode
+      ? { class_type: 'VAEDecodeTiled', inputs: { samples: ['58', 0], vae: ['39', 0], ...TILED_DECODE }, _meta: { title: '分块解码（省显存）' } }
+      : { class_type: 'VAEDecode', inputs: { samples: ['58', 0], vae: ['39', 0] } },
     ...SAVE_VIDEO(['8', 0]),
   }
 }
 
 function wanI2vTier(o: WanTierOpts): ComfyWorkflowTemplate {
-  const id = `wan2.2-i2v-14b-${o.vram}g`
+  const id = `wan2.2-i2v-14b-${o.vram}g${o.idSuffix || ''}`
   return {
     id,
     kind: 'video',
@@ -309,6 +318,14 @@ export const COMFY_VRAM_TEMPLATES: ComfyWorkflowTemplate[] = [
     description: `适合 RTX 3060 12G / 4070 / 5070 等。14B 图生视频的 GGUF Q4_K_S 量化版（每个约 8.7 GB）+ lightx2v 4 步加速 LoRA，画质明显好于 5B；最高 480p（16:9 为 864×480），每段采样只有 2 步所以很快。电脑内存建议 32GB 以上（两个模型在内存和显存之间轮换）。${GGUF_NOTE}${TIER_NOTE}`,
     descriptionEn: `For 12 GB cards (RTX 3060 12G / 4070 / 5070). 14B image-to-video as GGUF Q4_K_S (~8.7 GB each) plus the lightx2v 4-step LoRA; up to 480p (864×480 at 16:9). 32 GB+ system RAM recommended. ${GGUF_NOTE_EN} ${TIER_NOTE_EN}`,
     models: I2V14B.q4, textEncoder: UMT5, gguf: true, fast: true, steps: 4, maxShortEdge: 480,
+  }),
+  wanI2vTier({
+    vram: 12,
+    idSuffix: '-720p',
+    label: '【12G 显存】Wan 2.2 图生视频 14B · GGUF Q4 + 4 步加速 + 分块解码（720p，慢）',
+    description: `12G 卡出 720p（16:9 为 1280×720，Wan 2.2 原生最高档，再高不会更清晰）：同样的 GGUF Q4_K_S + 4 步加速，VAE 改成分块解码，模型放不下的部分由 ComfyUI 自动在内存和显存之间调度，比 480p 慢 2~3 倍。电脑内存建议 48GB 以上；仍显存不足时启动 ComfyUI 加 --reserve-vram 1 或 --lowvram。批量生成会自动一个一个交给 ComfyUI，并在每个视频之间释放显存。${GGUF_NOTE}${TIER_NOTE}`,
+    descriptionEn: `720p on 12 GB cards (1280×720 at 16:9, Wan 2.2's native top resolution): same GGUF Q4_K_S + 4-step LoRA with tiled VAE decoding; ComfyUI streams what doesn't fit between RAM and VRAM, 2–3× slower than 480p. 48 GB+ system RAM recommended; if VRAM still runs out start ComfyUI with --reserve-vram 1 or --lowvram. Batches are handed to ComfyUI one at a time with VRAM freed between videos. ${GGUF_NOTE_EN} ${TIER_NOTE_EN}`,
+    models: I2V14B.q4, textEncoder: UMT5, gguf: true, fast: true, steps: 4, maxShortEdge: 720, tiledDecode: true,
   }),
   wanI2vTier({
     vram: 16,
@@ -406,10 +423,12 @@ interface H3TierOpts {
   turbo?: boolean
   steps: number
   maxShortEdge: number
+  /** 同一显存档位的第二个模板：模板 ID 后缀（如 '-768p' → minimax-h3-12g-768p） */
+  idSuffix?: string
 }
 
 function h3Tier(o: H3TierOpts): ComfyWorkflowTemplate {
-  const id = `minimax-h3-${o.vram}g`
+  const id = `minimax-h3-${o.vram}g${o.idSuffix || ''}`
   const steps = o.turbo ? 4 : o.steps
   return {
     id,
@@ -441,6 +460,14 @@ export const COMFY_H3_VRAM_TEMPLATES: ComfyWorkflowTemplate[] = [
     description: `适合 RTX 3060 12G / 4070 / 5070 等。剪枝版 GGUF Q3_K_M（约 8.9 GB）+ 4 步 Turbo LoRA，最高 480p（16:9 为 864×480），画质和声音比完整版弱，适合出草稿。${H3_GGUF_NOTE}${H3_TIER_NOTE}`,
     descriptionEn: `For 12 GB cards (RTX 3060 12G / 4070 / 5070). Pruned GGUF Q3_K_M (~8.9 GB) plus the 4-step Turbo LoRA, up to 480p (864×480 at 16:9); weaker picture and audio than the full model, good for drafts. ${H3_GGUF_NOTE_EN} ${H3_TIER_NOTE_EN}`,
     unet: H3_TIER_FILES.ggufQ3, clip: H3_TIER_FILES.clipNvfp4, videoVae: H3_TIER_FILES.vaeInt8, gguf: true, turbo: true, steps: 8, maxShortEdge: 480,
+  }),
+  h3Tier({
+    vram: 12,
+    idSuffix: '-768p',
+    label: '【12G 显存】MiniMax H3 音画同出 · 剪枝 GGUF Q4 + 4 步加速（768p，慢）',
+    description: `12G 卡出原生 768p（16:9 为 1344×768）：用 16G 档同款剪枝版 GGUF Q4_K_M（约 11.6 GB，比 Q3 清楚），放不下的部分由 ComfyUI 在内存和显存之间调度，比 480p 慢不少。电脑内存建议 64GB 以上；批量生成会自动一个一个交给 ComfyUI、每个视频之间先释放显存，避免一次塞太多把 ComfyUI 挤崩；仍显存不足时启动 ComfyUI 加 --reserve-vram 1 或 --lowvram，单镜控制在 10 秒以内。${H3_GGUF_NOTE}${H3_TIER_NOTE}`,
+    descriptionEn: `Native 768p on 12 GB cards (1344×768 at 16:9) with the 16 GB tier's pruned GGUF Q4_K_M (~11.6 GB, sharper than Q3); ComfyUI streams what doesn't fit between RAM and VRAM, noticeably slower than 480p. 64 GB+ system RAM recommended; batches are handed to ComfyUI one at a time with VRAM freed between videos; if VRAM still runs out start ComfyUI with --reserve-vram 1 or --lowvram and keep shots under 10 s. ${H3_GGUF_NOTE_EN} ${H3_TIER_NOTE_EN}`,
+    unet: H3_TIER_FILES.ggufQ4, clip: H3_TIER_FILES.clipNvfp4, videoVae: H3_TIER_FILES.vaeInt8, gguf: true, turbo: true, steps: 8, maxShortEdge: 768,
   }),
   h3Tier({
     vram: 16,

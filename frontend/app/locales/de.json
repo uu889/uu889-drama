@@ -506,7 +506,15 @@
         "modelsEmpty": "Noch keine Dateien in diesem Ordner",
         "pickedModel": "Standardmodell: {name}",
         "pickedSampler": "Sampler: {name}",
-        "copiedName": "Kopiert: {name}"
+        "copiedName": "Kopiert: {name}",
+        "queueTitle": "Lokale Warteschlange",
+        "queueConcurrent": "Gleichzeitig gesendete Aufgaben",
+        "queueOne": "1 (empfohlen: nächste nach Abschluss der vorherigen)",
+        "freeBetween": "VRAM zwischen Videos freigeben",
+        "freeAuto": "Automatisch (Vorlagen bis 16 GB)",
+        "freeOn": "Immer zwischen Videos",
+        "freeOff": "Nie (schneller)",
+        "queueHint": "Stapel gehen einzeln an ComfyUI / SD WebUI / Fooocus auf demselben Rechner, damit ComfyUI nicht mit Aufgaben überflutet wird, der VRAM ausgeht und es beendet wird; beendet sich ComfyUI mittendrin, geht es nach dem Neustart automatisch weiter. Auf großen Karten 2 für mehr Tempo."
       },
       "fooocus": {
         "hint": "Benötigt Fooocus-API (Port 8888, nicht die Fooocus-Weboberfläche). Referenzen werden als Image Prompts gesendet (max. 4).",
@@ -1236,6 +1244,44 @@
       "hint": "Zeilen wie „{name}: „…““ oder 【Ding! …】 in einer Einstellung gelten als System: erst der Signalton, dann die Stimme oben, niemand im Bild bewegt die Lippen. Untertitel zeigen Systemzeilen in 【】 und Cyan. Erfordert ein Videomodell mit Ton (z. B. Seedance, Veo, Grok); lokales Wan 2.2 hat keinen Ton. Nach Änderungen Prompts / Videos neu erzeugen.",
       "saveFailed": "Systemstimme konnte nicht gespeichert werden",
       "enabledToast": "Systemstimme ist an: Drehbuch, Shots, Prompts und Videos enthalten jetzt „{name}“"
+    },
+    "upscale": {
+      "one": "Hochskalieren",
+      "oneTip": "Dieses Video auf 1080p oder mehr hochskalieren (Original bleibt im Verlauf)",
+      "batch": "Stapel hochskalieren",
+      "batchSelected": "Auswahl hochskalieren ({n})",
+      "batchTip": "Erzeugte Shot-Videos auf 1080p oder mehr hochskalieren; ausreichend große werden übersprungen",
+      "titleOne": "Video hochskalieren",
+      "titleBatch": "Stapel hochskalieren · {n} Shots",
+      "target": "Zielauflösung",
+      "targets": {
+        "1080p": "1080p Full HD",
+        "1440p": "1440p 2K",
+        "2160p": "2160p 4K"
+      },
+      "engine": "Methode",
+      "engines": {
+        "auto": "Automatisch",
+        "ai": "KI-Superauflösung (ComfyUI)",
+        "fast": "Schnell hochskalieren (FFmpeg)"
+      },
+      "engineDesc": {
+        "auto": "KI-Superauflösung, wenn ComfyUI ein Upscale-Modell hat, sonst (oder bei Fehler) schnelles Hochskalieren",
+        "ai": "Ein Upscale-Modell in ComfyUI (z. B. RealESRGAN x2) ergänzt Details Bild für Bild – am schärfsten; in der Warteschlange mit der Videoerzeugung, einige Minuten pro 5 s",
+        "fast": "Lanczos + Schärfen, in Sekunden fertig ohne GPU; begrenzter Detailgewinn"
+      },
+      "checking": "Upscale-Modelle in ComfyUI werden geprüft…",
+      "aiReady": "KI-Superauflösung bereit, Modell {model}",
+      "noComfy": "Keine aktive ComfyUI-Konfiguration: Automatisch nutzt schnelles Hochskalieren",
+      "comfyDown": "ComfyUI nicht erreichbar: Automatisch nutzt schnelles Hochskalieren, KI wartet auf den Start",
+      "noModel": "ComfyUI hat noch kein Upscale-Modell, Automatisch nutzt schnelles Hochskalieren. Für KI-Superauflösung:",
+      "note": "Das hochskalierte Video wird als neuer Verlaufseintrag gespeichert und zum aktuellen Video; das Original bleibt erhalten und lässt sich im Verlauf zurückholen. Videos mit Untertiteln werden samt Untertiteln skaliert. Beim Zusammenfügen werden unterschiedliche Auflösungen angeglichen.",
+      "start": "Hochskalieren starten",
+      "noneToDo": "Keine Videos zum Hochskalieren",
+      "started": "{n} Video(s) werden hochskaliert",
+      "skipped": "{n} übersprungen: {reason}",
+      "done": "Video hochskaliert",
+      "failed": "Hochskalieren fehlgeschlagen"
     }
   },
   "errors": {

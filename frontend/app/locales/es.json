@@ -506,7 +506,15 @@
         "modelsEmpty": "Aún no hay archivos en esta carpeta",
         "pickedModel": "Modelo predeterminado: {name}",
         "pickedSampler": "Sampler: {name}",
-        "copiedName": "Copiado: {name}"
+        "copiedName": "Copiado: {name}",
+        "queueTitle": "Cola local",
+        "queueConcurrent": "Tareas enviadas a la vez",
+        "queueOne": "1 (recomendado: la siguiente al terminar la anterior)",
+        "freeBetween": "Liberar VRAM entre vídeos",
+        "freeAuto": "Automático (plantillas de 16 GB o menos)",
+        "freeOn": "Siempre entre vídeos",
+        "freeOff": "Nunca (más rápido)",
+        "queueHint": "Los lotes se envían de una en una a ComfyUI / SD WebUI / Fooocus del mismo ordenador para no saturar ComfyUI hasta quedarse sin VRAM y cerrarse; si ComfyUI se cierra a mitad, la generación continúa sola al reiniciarlo. En tarjetas grandes usa 2 para ir más rápido."
       },
       "fooocus": {
         "hint": "Requiere Fooocus-API (puerto 8888, no la web de Fooocus). Las referencias se envían como Image Prompts (máx. 4).",
@@ -1236,6 +1244,44 @@
       "hint": "Las líneas «{name}: «…»» o 【¡Ding! …】 de un plano se tratan como el sistema: suena el aviso y luego habla con la voz de arriba; nadie en pantalla mueve los labios. En subtítulos van entre 【】 y en cian. Requiere un modelo de vídeo con audio (Seedance, Veo, Grok…); Wan 2.2 local no tiene audio. Regenera prompts / vídeos tras cambiarlo.",
       "saveFailed": "No se pudo guardar la voz del sistema",
       "enabledToast": "Voz del sistema activada: reescritura, desglose, prompts y vídeos incluirán «{name}»"
+    },
+    "upscale": {
+      "one": "Mejorar",
+      "oneTip": "Escalar este vídeo a 1080p o más (el original queda en el historial)",
+      "batch": "Mejorar en lote",
+      "batchSelected": "Mejorar selección ({n})",
+      "batchTip": "Escalar los vídeos generados a 1080p o más; los que ya tienen suficiente resolución se omiten",
+      "titleOne": "Mejorar vídeo",
+      "titleBatch": "Mejora en lote · {n} planos",
+      "target": "Resolución objetivo",
+      "targets": {
+        "1080p": "1080p Full HD",
+        "1440p": "1440p 2K",
+        "2160p": "2160p 4K"
+      },
+      "engine": "Método",
+      "engines": {
+        "auto": "Automático",
+        "ai": "Superresolución IA (ComfyUI)",
+        "fast": "Escalado rápido (FFmpeg)"
+      },
+      "engineDesc": {
+        "auto": "Superresolución IA si ComfyUI tiene un modelo de escalado; si no (o si falla), escalado rápido",
+        "ai": "Un modelo de escalado en ComfyUI (p. ej. RealESRGAN x2) recupera detalle fotograma a fotograma — lo más nítido; en cola con la generación de vídeo, unos minutos por 5 s",
+        "fast": "Lanczos + enfoque, en segundos y sin GPU; mejora de detalle limitada"
+      },
+      "checking": "Comprobando los modelos de escalado de ComfyUI…",
+      "aiReady": "Superresolución IA lista, modelo {model}",
+      "noComfy": "No hay configuración de ComfyUI activa: Automático usará escalado rápido",
+      "comfyDown": "ComfyUI no responde: Automático usa escalado rápido; IA espera a que arranque",
+      "noModel": "ComfyUI aún no tiene modelo de escalado; Automático usará escalado rápido. Para superresolución IA:",
+      "note": "El vídeo escalado se guarda como una nueva entrada del historial y pasa a ser el actual; el original se conserva y puedes volver a él desde el historial. Los vídeos con subtítulos se escalan con ellos. Al unir, los planos con resoluciones distintas se igualan.",
+      "start": "Empezar",
+      "noneToDo": "No hay vídeos que mejorar",
+      "started": "Mejorando {n} vídeo(s)",
+      "skipped": "{n} omitido(s): {reason}",
+      "done": "Vídeo mejorado",
+      "failed": "Error al mejorar"
     }
   },
   "errors": {

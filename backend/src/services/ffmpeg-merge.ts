@@ -12,6 +12,7 @@ import { extractVideoPoster } from '../utils/video-poster.js'
 import { ffmpeg, checkFfmpegSuite } from '../utils/ffmpeg.js'
 import { DATA_ROOT, STORAGE_ROOT } from '../utils/paths.js'
 import { mixBackgroundMusic, type BgmOptions } from './bgm.js'
+import { probeVideo } from './video-upscale.js'
 import { getAbsolutePath } from '../utils/storage.js'
 
 function toAbsPath(relativePath: string): string {
@@ -110,25 +111,24 @@ async function doMerge(mergeId: number, episodeId: number, videos: string[], bgm
   // 要混背景音乐时先拼到临时文件，混完再写到最终位置
   const concatPath = bgm ? path.join(outputDir, `${uuid()}.concat.mp4`) : outputPath
 
+  // 镜头分辨率 / 帧率 / 有无声音不一致（部分镜头高清化到 1080p、Wan 16fps 和 H3 24fps 混用、Wan 没有音轨）时，
+  // concat 分离器会把时长和画面拼乱：改用 concat 滤镜，逐段统一尺寸 / 帧率，没声音的段补静音
+  const plan = await planConcat(videos.map(toAbsPath))
+  const encode = ['-c:v', 'libx264', '-preset', 'medium', '-crf', '23', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-ar', '48000', '-b:a', '192k', '-movflags', '+faststart']
+
   await new Promise<void>((resolve, reject) => {
-    ffmpeg()
-      .input(listPath)
-      .inputOptions(['-f', 'concat', '-safe', '0'])
-      .outputOptions([
-        '-fflags', '+genpts',
-        '-c:v', 'libx264',
-        '-preset', 'medium',
-        '-crf', '23',
-        '-c:a', 'aac',
-        '-ar', '48000',
-        '-b:a', '192k',
-        '-movflags', '+faststart',
-      ])
+    const cmd: any = ffmpeg()
+    if (plan) {
+      for (const f of videos.map(toAbsPath)) cmd.input(f)
+      cmd.complexFilter(plan.filter).outputOptions(['-map', '[v]', ...(plan.audio ? ['-map', '[a]'] : []), ...encode])
+    } else {
+      cmd.input(listPath).inputOptions(['-f', 'concat', '-safe', '0']).outputOptions(['-fflags', '+genpts', ...encode])
+    }
+    cmd
       .output(concatPath)
       .on('end', () => resolve())
-      .on('error', (err) => reject(err))
+      .on('error', (err: any) => reject(err))
       .run()
-
   })
 
   // 清理临时文件
@@ -167,6 +167,53 @@ async function doMerge(mergeId: number, episodeId: number, videos: string[], bgm
     .where(eq(schema.episodes.id, episodeId))
 
   logTaskSuccess('MergeTask', 'episode-merge', { mergeId, episodeId, output: mergedRelative, duration, clips: videos.length })
+}
+
+/**
+ * 各镜头不一致时的 concat 滤镜图（输入 i 为第 i 个镜头）；尺寸、帧率、有无声音都一致时返回 null（走更快的 concat 分离器）
+ */
+export async function planConcat(files: string[]): Promise<{ filter: string; audio: boolean } | null> {
+  const infos = await Promise.all(files.map((f) => probeVideo(f).catch(() => null)))
+  if (files.length < 2 || infos.some((i) => !i)) return null
+  const list = infos as Awaited<ReturnType<typeof probeVideo>>[]
+  const vf = await uniformVideoFilters(files, list)
+  const audioMixed = new Set(list.map((i) => i.hasAudio)).size > 1
+  if (!vf.length && !audioMixed) return null
+  const big = list.reduce((a, b) => (b.width * b.height > a.width * a.height ? b : a))
+  const w = Math.round(big.width / 2) * 2
+  const h = Math.round(big.height / 2) * 2
+  const fps = Math.max(...list.map((i) => Math.round(i.fps * 100) / 100).filter((f) => f > 0), 24)
+  const audio = list.some((i) => i.hasAudio)
+  const parts: string[] = []
+  const pairs: string[] = []
+  list.forEach((info, i) => {
+    parts.push(`[${i}:v]scale=${w}:${h}:force_original_aspect_ratio=decrease:flags=lanczos,pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1,fps=${fps},format=yuv420p[v${i}]`)
+    if (audio) {
+      parts.push(info.hasAudio
+        ? `[${i}:a]aformat=sample_rates=48000:channel_layouts=stereo,apad,atrim=0:${info.duration.toFixed(3)}[a${i}]`
+        : `anullsrc=r=48000:cl=stereo,atrim=0:${info.duration.toFixed(3)}[a${i}]`)
+    }
+    pairs.push(audio ? `[v${i}][a${i}]` : `[v${i}]`)
+  })
+  parts.push(`${pairs.join('')}concat=n=${list.length}:v=1:a=${audio ? 1 : 0}[v]${audio ? '[a]' : ''}`)
+  return { filter: parts.join(';'), audio }
+}
+
+/** 各镜头尺寸 / 帧率不一致时的统一滤镜（一致时返回 []） */
+export async function uniformVideoFilters(files: string[], probed?: Awaited<ReturnType<typeof probeVideo>>[]): Promise<string[]> {
+  const infos = probed || (await Promise.all(files.map((f) => probeVideo(f).catch(() => null)))).filter(Boolean) as Awaited<ReturnType<typeof probeVideo>>[]
+  if (infos.length < 2) return []
+  const sizes = new Set(infos.map((i) => `${i.width}x${i.height}`))
+  const fpsSet = new Set(infos.map((i) => Math.round(i.fps * 100) / 100).filter((f) => f > 0))
+  const filters: string[] = []
+  if (sizes.size > 1) {
+    const big = infos.reduce((a, b) => (b.width * b.height > a.width * a.height ? b : a))
+    const w = Math.round(big.width / 2) * 2
+    const h = Math.round(big.height / 2) * 2
+    filters.push(`scale=${w}:${h}:force_original_aspect_ratio=decrease:flags=lanczos`, `pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2:color=black`, 'setsar=1')
+  }
+  if (fpsSet.size > 1) filters.push(`fps=${Math.max(...fpsSet)}`)
+  return filters
 }
 
 function getVideoDuration(filePath: string): Promise<number> {

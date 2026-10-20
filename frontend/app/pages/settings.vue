@@ -737,6 +737,27 @@
               </span>
             </label>
             <div class="field">
+              <span class="field-label">{{ t('settings.cfg.local.queueTitle') }}</span>
+              <div class="queue-row">
+                <label class="queue-item">
+                  <span>{{ t('settings.cfg.local.queueConcurrent') }}</span>
+                  <select v-model="cfgForm.max_concurrent" class="input">
+                    <option value="">{{ t('settings.cfg.local.queueOne') }}</option>
+                    <option v-for="n in [2, 3, 4]" :key="n" :value="n">{{ n }}</option>
+                  </select>
+                </label>
+                <label v-if="isComfyForm && cfgForm.service_type === 'video'" class="queue-item">
+                  <span>{{ t('settings.cfg.local.freeBetween') }}</span>
+                  <select v-model="cfgForm.free_vram_between" class="input">
+                    <option value="">{{ t('settings.cfg.local.freeAuto') }}</option>
+                    <option value="on">{{ t('settings.cfg.local.freeOn') }}</option>
+                    <option value="off">{{ t('settings.cfg.local.freeOff') }}</option>
+                  </select>
+                </label>
+              </div>
+              <span class="field-hint">{{ t('settings.cfg.local.queueHint') }}</span>
+            </div>
+            <div class="field">
               <span class="field-label">{{ t('settings.cfg.styleModels.title') }}</span>
               <StyleModelsPanel
                 v-model:enabled="cfgForm.style_models_enabled"
@@ -998,9 +1019,9 @@ const AIASK_SITE_URL = 'https://aiask.me'
 const aiaskApiKey = ref('')
 const aiaskSaving = ref(false)
 // 本地服务（ComfyUI / SD WebUI / Fooocus）专属参数存后端 settings JSON，接口上以顶层字段读写
-const LOCAL_SETTING_FIELDS = ['comfyui_workflow', 'comfyui_template', 'comfyui_fps', 'comfyui_steps', 'comfyui_cfg', 'comfyui_negative_prompt', 'prompt_template', 'image_base_size', 'image_steps', 'image_cfg_scale', 'image_sampler', 'image_negative_prompt', 'fooocus_performance', 'fooocus_styles']
+const LOCAL_SETTING_FIELDS = ['max_concurrent', 'comfyui_workflow', 'comfyui_template', 'comfyui_fps', 'comfyui_steps', 'comfyui_cfg', 'comfyui_negative_prompt', 'prompt_template', 'image_base_size', 'image_steps', 'image_cfg_scale', 'image_sampler', 'image_negative_prompt', 'fooocus_performance', 'fooocus_styles']
 // 布尔设置单独处理：自动绑定默认开；中文翻译默认值按服务类型（本地生图开、ComfyUI 视频关）
-const EMPTY_CFG_FORM = { name: '', provider: '', api_key: '', base_url: '', models: [], service_type: 'text', priority: 0, temperature: '', ...Object.fromEntries(LOCAL_SETTING_FIELDS.map(k => [k, ''])), comfyui_auto_bind: true, prompt_translate: true, style_models_enabled: false, style_models: {}, model_install: null, style_models_auto_download: false, download_prefer_mirror: false, civitai_token: '', hf_token: '' }
+const EMPTY_CFG_FORM = { name: '', provider: '', api_key: '', base_url: '', models: [], service_type: 'text', priority: 0, temperature: '', ...Object.fromEntries(LOCAL_SETTING_FIELDS.map(k => [k, ''])), comfyui_auto_bind: true, free_vram_between: '', prompt_translate: true, style_models_enabled: false, style_models: {}, model_install: null, style_models_auto_download: false, download_prefer_mirror: false, civitai_token: '', hf_token: '' }
 const cfgForm = reactive({ ...EMPTY_CFG_FORM })
 const LOCAL_BASE_URLS = { comfyui: 'http://127.0.0.1:8188', sdwebui: 'http://127.0.0.1:7860', fooocus: 'http://127.0.0.1:8888' }
 const FOOOCUS_PERFORMANCE = ['Speed', 'Quality', 'Extreme Speed', 'Lightning', 'Hyper-SD']
@@ -1361,6 +1382,7 @@ function startEditCfg(c) {
     ...Object.fromEntries(LOCAL_SETTING_FIELDS.map(k => [k, c[k] ?? ''])),
     comfyui_workflow: formatWorkflow(c.comfyui_workflow),
     comfyui_auto_bind: c.comfyui_auto_bind !== false,
+    free_vram_between: c.free_vram_between === true ? 'on' : c.free_vram_between === false ? 'off' : '',
     prompt_translate: typeof c.prompt_translate === 'boolean' ? c.prompt_translate : c.service_type !== 'video',
     style_models_enabled: c.style_models_enabled === true,
     style_models: parseStyleModels(c.style_models),
@@ -1416,6 +1438,8 @@ function localSettingsPayload() {
     .map(([k, row]) => [k, Object.fromEntries(Object.entries(row || {}).map(([f, v]) => [f, String(v ?? '').trim()]).filter(([, v]) => v))])
     .filter(([, row]) => Object.keys(row).length))
   const promptParams = () => ({
+    // 本地显卡排队：同时提交几个任务（空 = 1）
+    max_concurrent: num(cfgForm.max_concurrent),
     prompt_template: text(cfgForm.prompt_template),
     prompt_translate: !!cfgForm.prompt_translate,
     style_models_enabled: !!cfgForm.style_models_enabled,
@@ -1436,7 +1460,10 @@ function localSettingsPayload() {
       comfyui_negative_prompt: text(cfgForm.comfyui_negative_prompt),
       ...promptParams(),
       ...(cfgForm.service_type === 'video'
-        ? { comfyui_fps: num(cfgForm.comfyui_fps), comfyui_steps: num(cfgForm.comfyui_steps), comfyui_cfg: num(cfgForm.comfyui_cfg) }
+        ? {
+            comfyui_fps: num(cfgForm.comfyui_fps), comfyui_steps: num(cfgForm.comfyui_steps), comfyui_cfg: num(cfgForm.comfyui_cfg),
+            free_vram_between: cfgForm.free_vram_between === 'on' ? true : cfgForm.free_vram_between === 'off' ? false : '',
+          }
         : imageParams()),
     }
   }
@@ -2539,4 +2566,7 @@ onBeforeUnmount(stopUsagePoll)
   border-bottom: 1px solid var(--border);
   animation: scaleIn 0.18s var(--ease-out);
 }
+.queue-row { display: flex; flex-wrap: wrap; gap: 10px 16px; }
+.queue-item { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-1); }
+.queue-item .input { width: auto; min-width: 120px; }
 </style>

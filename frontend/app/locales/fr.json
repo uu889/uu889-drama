@@ -506,7 +506,15 @@
         "modelsEmpty": "Aucun fichier dans ce dossier",
         "pickedModel": "Modèle par défaut : {name}",
         "pickedSampler": "Sampler : {name}",
-        "copiedName": "Copié : {name}"
+        "copiedName": "Copié : {name}",
+        "queueTitle": "File locale",
+        "queueConcurrent": "Tâches envoyées à la fois",
+        "queueOne": "1 (recommandé : la suivante après la précédente)",
+        "freeBetween": "Libérer la VRAM entre les vidéos",
+        "freeAuto": "Auto (modèles de 16 Go et moins)",
+        "freeOn": "Toujours entre les vidéos",
+        "freeOff": "Jamais (plus rapide)",
+        "queueHint": "Les lots sont envoyés une tâche à la fois à ComfyUI / SD WebUI / Fooocus sur le même ordinateur, pour ne pas saturer ComfyUI jusqu’au manque de VRAM et à la fermeture ; si ComfyUI se ferme en cours, la génération reprend automatiquement après son redémarrage. Mettez 2 sur les grosses cartes pour aller plus vite."
       },
       "fooocus": {
         "hint": "Nécessite Fooocus-API (port 8888, pas l’interface web Fooocus). Les références sont envoyées en Image Prompts (4 max).",
@@ -1236,6 +1244,44 @@
       "hint": "Les lignes « {name} : « … » » ou 【Ding ! …】 d’un plan sont traitées comme le système : le signal retentit, puis la voix ci-dessus parle, personne à l’écran ne bouge les lèvres. En sous-titres, elles sont entre 【】 et en cyan. Nécessite un modèle vidéo qui génère du son (Seedance, Veo, Grok…) ; Wan 2.2 local n’a pas de son. Régénérez prompts / vidéos après modification.",
       "saveFailed": "Impossible d’enregistrer la voix du système",
       "enabledToast": "Voix du système activée : réécriture, découpage, prompts et vidéos incluront « {name} »"
+    },
+    "upscale": {
+      "one": "Améliorer",
+      "oneTip": "Agrandir cette vidéo en 1080p ou plus (l’original reste dans l’historique)",
+      "batch": "Améliorer en lot",
+      "batchSelected": "Améliorer la sélection ({n})",
+      "batchTip": "Agrandir les vidéos générées en 1080p ou plus ; celles déjà assez grandes sont ignorées",
+      "titleOne": "Améliorer la vidéo",
+      "titleBatch": "Amélioration en lot · {n} plans",
+      "target": "Résolution cible",
+      "targets": {
+        "1080p": "1080p Full HD",
+        "1440p": "1440p 2K",
+        "2160p": "2160p 4K"
+      },
+      "engine": "Méthode",
+      "engines": {
+        "auto": "Automatique",
+        "ai": "Super-résolution IA (ComfyUI)",
+        "fast": "Agrandissement rapide (FFmpeg)"
+      },
+      "engineDesc": {
+        "auto": "Super-résolution IA si ComfyUI a un modèle d’agrandissement, sinon (ou en cas d’échec) agrandissement rapide",
+        "ai": "Un modèle d’agrandissement dans ComfyUI (ex. RealESRGAN x2) restaure les détails image par image — le plus net ; en file avec la génération vidéo, quelques minutes pour 5 s",
+        "fast": "Lanczos + netteté, en quelques secondes sans GPU ; gain de détail limité"
+      },
+      "checking": "Vérification des modèles d’agrandissement de ComfyUI…",
+      "aiReady": "Super-résolution IA prête, modèle {model}",
+      "noComfy": "Aucune configuration ComfyUI active : Automatique utilisera l’agrandissement rapide",
+      "comfyDown": "ComfyUI injoignable : Automatique bascule sur l’agrandissement rapide, l’IA attend son démarrage",
+      "noModel": "ComfyUI n’a pas encore de modèle d’agrandissement, Automatique utilisera l’agrandissement rapide. Pour la super-résolution IA :",
+      "note": "La vidéo agrandie est enregistrée comme nouvelle entrée de l’historique et devient la vidéo actuelle ; l’original est conservé et récupérable dans l’historique. Les vidéos sous-titrées sont agrandies avec leurs sous-titres. Les plans de résolutions différentes sont harmonisés à l’assemblage.",
+      "start": "Lancer",
+      "noneToDo": "Aucune vidéo à améliorer",
+      "started": "Amélioration de {n} vidéo(s)",
+      "skipped": "{n} ignorée(s) : {reason}",
+      "done": "Vidéo améliorée",
+      "failed": "Échec de l’amélioration"
     }
   },
   "errors": {

@@ -506,7 +506,15 @@
         "modelsEmpty": "이 폴더에는 아직 파일이 없습니다",
         "pickedModel": "기본 모델: {name}",
         "pickedSampler": "샘플러: {name}",
-        "copiedName": "복사됨: {name}"
+        "copiedName": "복사됨: {name}",
+        "queueTitle": "로컬 대기열",
+        "queueConcurrent": "동시에 보내는 작업 수",
+        "queueOne": "1(권장: 이전 작업이 끝나면 다음 작업)",
+        "freeBetween": "영상 사이 VRAM 해제",
+        "freeAuto": "자동(16G 이하 템플릿에서 해제)",
+        "freeOn": "매번 해제",
+        "freeOff": "해제 안 함(더 빠름)",
+        "queueHint": "일괄 생성 시 같은 컴퓨터의 ComfyUI / SD WebUI / Fooocus에 작업을 하나씩 보내고 이전 작업이 끝나면 다음을 자동으로 보냅니다. 한꺼번에 몰려 VRAM 부족이나 ComfyUI 종료가 생기는 것을 막고, 도중에 ComfyUI가 종료되면 다시 시작한 뒤 자동으로 이어서 생성합니다. VRAM이 넉넉하면 2로 올려 더 빠르게 할 수 있습니다."
       },
       "fooocus": {
         "hint": "Fooocus-API(포트 8888, Fooocus 웹 UI 아님)가 필요합니다. 참조 이미지는 Image Prompt로 전송됩니다(최대 4장).",
@@ -1236,6 +1244,44 @@
       "hint": "컷에 \"{name}: 「…」\" 또는 【띵! …】으로 쓴 부분을 시스템으로 인식합니다. 알림음 뒤 위의 목소리로 말하고, 화면 속 인물은 입을 움직이지 않습니다. 자막에서는 【】와 하늘색으로 표시됩니다. 소리를 생성하는 영상 모델(Seedance, Veo, Grok 등)이 필요하며 로컬 Wan 2.2에는 오디오가 없습니다. 바꾼 뒤에는 프롬프트/영상을 다시 생성하세요.",
       "saveFailed": "시스템 음성 설정을 저장하지 못했습니다",
       "enabledToast": "시스템 음성을 켰습니다. 이후 대본·컷 분할·프롬프트·영상에 \"{name}\"의 목소리가 들어갑니다"
+    },
+    "upscale": {
+      "one": "고화질화",
+      "oneTip": "이 영상을 1080p 이상으로 키웁니다(원본은 기록에 남음)",
+      "batch": "일괄 고화질화",
+      "batchSelected": "선택 고화질화 ({n})",
+      "batchTip": "생성된 컷 영상을 1080p 이상으로 키웁니다. 이미 충분한 것은 건너뜀",
+      "titleOne": "영상 고화질화",
+      "titleBatch": "일괄 고화질화 · {n}컷",
+      "target": "목표 해상도",
+      "targets": {
+        "1080p": "1080p 풀HD",
+        "1440p": "1440p 2K",
+        "2160p": "2160p 4K"
+      },
+      "engine": "방식",
+      "engines": {
+        "auto": "자동",
+        "ai": "AI 초해상(ComfyUI)",
+        "fast": "빠른 확대(FFmpeg)"
+      },
+      "engineDesc": {
+        "auto": "ComfyUI와 확대 모델이 있으면 AI 초해상, 없으면(또는 실패 시) 빠른 확대",
+        "ai": "ComfyUI의 확대 모델(RealESRGAN x2 등)로 프레임마다 디테일 복원, 가장 선명. 영상 생성과 같은 대기열, 5초에 몇 분",
+        "fast": "Lanczos 확대 + 샤프닝, 몇 초면 끝나고 GPU 불필요, 선명도 향상은 제한적"
+      },
+      "checking": "ComfyUI 확대 모델 확인 중…",
+      "aiReady": "AI 초해상 사용 가능: {model}",
+      "noComfy": "활성 ComfyUI 설정이 없습니다. \"자동\"은 빠른 확대를 사용합니다",
+      "comfyDown": "ComfyUI에 연결할 수 없습니다. \"자동\"은 빠른 확대, \"AI 초해상\"은 실행을 기다립니다",
+      "noModel": "ComfyUI에 확대 모델이 없습니다. \"자동\"은 빠른 확대를 사용합니다. AI 초해상을 쓰려면:",
+      "note": "확대된 영상은 새 기록으로 저장되고 현재 영상이 됩니다. 원본은 남아 있어 언제든 기록에서 되돌릴 수 있습니다. 자막이 있는 영상은 자막째 확대됩니다. 병합 시 해상도가 다른 컷도 자동으로 맞춥니다.",
+      "start": "고화질화 시작",
+      "noneToDo": "고화질화할 영상이 없습니다",
+      "started": "영상 {n}개 고화질화 시작",
+      "skipped": "{n}개 건너뜀: {reason}",
+      "done": "고화질화 완료",
+      "failed": "고화질화 실패"
     }
   },
   "errors": {

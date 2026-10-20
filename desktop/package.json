@@ -1,7 +1,7 @@
 {
   "name": "uu889-drama-desktop",
   "productName": "UU889Drama",
-  "version": "1.0.23",
+  "version": "1.0.24",
   "private": true,
   "description": "UU889-Drama 桌面版（Electron 壳）",
   "author": "UU889",

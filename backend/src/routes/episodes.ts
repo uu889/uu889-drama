@@ -8,6 +8,7 @@ import { toSnakeCaseArray, toSnakeCase } from '../utils/transform.js'
 import { getActiveConfigId } from '../services/ai.js'
 import { EXTRACT_TARGETS, getExtractionStatus, startExtraction, type ExtractTarget } from '../services/extraction.js'
 import { getVideoPromptBatchStatus, startVideoPromptBatch } from '../services/video-prompts.js'
+import { startEpisodeUpscale } from '../services/video-upscale.js'
 
 const app = new Hono()
 
@@ -158,6 +159,13 @@ app.post('/:id/generate-video-prompts', async (c) => {
   if (result.total === -1) return success(c, { status: 'running', already_running: true })
   if (!result.started) return success(c, { status: 'idle', total: 0 })
   return success(c, { status: 'running', total: result.total })
+})
+
+// POST /episodes/:id/upscale — 批量高清化本集分镜视频（storyboard_ids 可选；低于目标分辨率的才处理）
+app.post('/:id/upscale', async (c) => {
+  const body = await c.req.json().catch(() => ({}))
+  const ids = Array.isArray(body.storyboard_ids) ? body.storyboard_ids.map(Number).filter(Boolean) : undefined
+  return success(c, await startEpisodeUpscale(Number(c.req.param('id')), body, ids))
 })
 
 // GET /episodes/:id/video-prompts-status — 查询批量视频提示词任务状态

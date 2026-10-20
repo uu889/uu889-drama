@@ -46,6 +46,11 @@ const IMAGE_PARAM_RULES: Record<string, SettingRule> = {
   image_cfg_scale: { kind: 'number', min: 0, max: 30 },
 }
 
+/** 本地显卡排队（gpu-queue.ts）：同一台机器同时提交几个任务，默认 1 */
+const QUEUE_RULES: Record<string, SettingRule> = {
+  max_concurrent: { kind: 'number', min: 1, max: 8, integer: true },
+}
+
 /** 视觉风格 → 本地模型（三个本地服务都支持，默认关） */
 const STYLE_MODEL_RULES: Record<string, SettingRule> = {
   style_models_enabled: { kind: 'boolean', default: false },
@@ -68,6 +73,9 @@ const PROVIDER_SETTING_RULES: Record<string, Record<string, SettingRule>> = {
     comfyui_negative_prompt: { kind: 'text', max: 4000 },
     prompt_template: { kind: 'text', max: 4000 },
     prompt_translate: { kind: 'boolean', default: null },
+    // 视频之间释放显存：不设置 = 自动（16G 及以下的内置模板释放）
+    free_vram_between: { kind: 'boolean', default: null },
+    ...QUEUE_RULES,
     ...IMAGE_PARAM_RULES,
     ...STYLE_MODEL_RULES,
   },
@@ -76,6 +84,7 @@ const PROVIDER_SETTING_RULES: Record<string, Record<string, SettingRule>> = {
     image_sampler: { kind: 'text', max: 100 },
     prompt_template: { kind: 'text', max: 4000 },
     prompt_translate: { kind: 'boolean', default: null },
+    ...QUEUE_RULES,
     ...IMAGE_PARAM_RULES,
     ...STYLE_MODEL_RULES,
   },
@@ -85,6 +94,7 @@ const PROVIDER_SETTING_RULES: Record<string, Record<string, SettingRule>> = {
     prompt_translate: { kind: 'boolean', default: null },
     fooocus_performance: { kind: 'text', max: 50 },
     fooocus_styles: { kind: 'text', max: 1000 },
+    ...QUEUE_RULES,
     ...STYLE_MODEL_RULES,
   },
 }

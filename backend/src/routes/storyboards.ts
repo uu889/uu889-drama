@@ -6,6 +6,7 @@ import { toSnakeCase } from '../utils/transform.js'
 import { logTaskPayload, logTaskStart, logTaskSuccess } from '../utils/task-logger.js'
 import { extractVideoEndFrame } from '../utils/video-poster.js'
 import { existingEndFrame, storyboardTiming } from '../services/storyboard-timing.js'
+import { startUpscale, upscaleInfo } from '../services/video-upscale.js'
 
 const app = new Hono()
 
@@ -117,6 +118,22 @@ app.post('/', async (c) => {
 })
 
 // PUT /storyboards/:id
+// GET /storyboards/upscale-info?episode_id= — 高清化弹窗：AI 超分是否可用、ComfyUI 里有哪些放大模型
+app.get('/upscale-info', async (c) => {
+  const ep = Number(c.req.query('episode_id')) || null
+  return success(c, await upscaleInfo(ep))
+})
+
+// POST /storyboards/:id/upscale — 把当前视频高清化（engine: auto / ai / fast，target: 1080p / 1440p / 2160p）
+app.post('/:id/upscale', async (c) => {
+  const body = await c.req.json().catch(() => ({}))
+  try {
+    return success(c, { task_id: await startUpscale(Number(c.req.param('id')), body) })
+  } catch (err: any) {
+    return badRequest(c, err.message)
+  }
+})
+
 app.put('/:id', async (c) => {
   const id = Number(c.req.param('id'))
   const body = await c.req.json()

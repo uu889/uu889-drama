@@ -506,7 +506,15 @@
         "modelsEmpty": "这个目录里还没有文件",
         "pickedModel": "已设为默认模型：{name}",
         "pickedSampler": "采样器已设为 {name}",
-        "copiedName": "已复制文件名：{name}"
+        "copiedName": "已复制文件名：{name}",
+        "queueTitle": "本机排队",
+        "queueConcurrent": "同时交给它的任务数",
+        "queueOne": "1（推荐，一个完成再交下一个）",
+        "freeBetween": "视频之间释放显存",
+        "freeAuto": "自动（16G 及以下的模板释放）",
+        "freeOn": "每个视频之间都释放",
+        "freeOff": "不释放（更快）",
+        "queueHint": "批量生成时，同一台电脑上的 ComfyUI / SD WebUI / Fooocus 一次只交一个任务，前一个完成后自动提交下一个，避免一次塞太多导致显存不足、ComfyUI 退出；ComfyUI 中途退出时，重新启动后会自动接着生成。显存大、想更快可以改成 2。"
       },
       "fooocus": {
         "hint": "需运行 Fooocus-API（默认端口 8888，不是 Fooocus 网页版）；模型填 checkpoint 文件名或 default。分镜参考图会作为「图片提示」发送（最多 4 张）。",
@@ -1236,6 +1244,44 @@
       "hint": "分镜里写成「{name}：「台词」」或【叮！……】都会识别成系统：先响提示音，再用上面的声音说，画面里没人动嘴；加字幕时系统台词用【】和青蓝色。需要视频模型能出声音（如 Seedance、Veo、Grok），本地 Wan 2.2 没有音轨。改了之后重新生成提示词 / 视频才生效。",
       "saveFailed": "系统音设置保存失败",
       "enabledToast": "已开启系统音：之后的剧本改写、分镜拆解、提示词和视频都会带上「{name}」的声音"
+    },
+    "upscale": {
+      "one": "高清化",
+      "oneTip": "把这个视频放大到 1080p 等更高分辨率（原视频保留在历史视频里）",
+      "batch": "批量高清化",
+      "batchSelected": "高清化所选 ({n})",
+      "batchTip": "把已生成的分镜视频放大到 1080p 等更高分辨率；已经够高的会跳过",
+      "titleOne": "视频高清化",
+      "titleBatch": "批量高清化 · {n} 个分镜",
+      "target": "目标分辨率",
+      "targets": {
+        "1080p": "1080p 全高清",
+        "1440p": "1440p 2K",
+        "2160p": "2160p 4K"
+      },
+      "engine": "方式",
+      "engines": {
+        "auto": "自动",
+        "ai": "AI 超分（ComfyUI）",
+        "fast": "快速放大（FFmpeg）"
+      },
+      "engineDesc": {
+        "auto": "有 ComfyUI 和放大模型就用 AI 超分，否则（或 AI 失败）用快速放大",
+        "ai": "用 ComfyUI 里的放大模型（如 RealESRGAN x2）逐帧补细节，最清晰；和生成视频一起排队，5 秒视频几分钟",
+        "fast": "Lanczos 放大 + 锐化，几秒出结果、不占显卡，清晰度提升有限"
+      },
+      "checking": "正在检查 ComfyUI 的放大模型…",
+      "aiReady": "AI 超分可用，将使用放大模型 {model}",
+      "noComfy": "没有启用的 ComfyUI 配置：「自动」会用快速放大",
+      "comfyDown": "ComfyUI 现在连不上：「自动」会改用快速放大，「AI 超分」会等它启动",
+      "noModel": "ComfyUI 里还没有放大模型，「自动」会用快速放大。要用 AI 超分：",
+      "note": "放大后的视频另存为新的一条历史视频并设为当前视频，原视频保留，随时可以在历史视频里切回去；带字幕的视频连字幕一起放大。拼接导出时分辨率不一致的镜头会自动统一。",
+      "start": "开始高清化",
+      "noneToDo": "没有可以高清化的视频",
+      "started": "已开始高清化 {n} 个视频",
+      "skipped": "跳过 {n} 个：{reason}",
+      "done": "视频高清化完成",
+      "failed": "高清化失败"
     }
   },
   "errors": {

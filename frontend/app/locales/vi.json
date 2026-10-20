@@ -506,7 +506,15 @@
         "modelsEmpty": "Thư mục này chưa có tệp",
         "pickedModel": "Model mặc định: {name}",
         "pickedSampler": "Sampler: {name}",
-        "copiedName": "Đã chép: {name}"
+        "copiedName": "Đã chép: {name}",
+        "queueTitle": "Hàng chờ cục bộ",
+        "queueConcurrent": "Số tác vụ gửi cùng lúc",
+        "queueOne": "1 (khuyên dùng: xong cái trước mới gửi cái sau)",
+        "freeBetween": "Giải phóng VRAM giữa các video",
+        "freeAuto": "Tự động (mẫu 16G trở xuống)",
+        "freeOn": "Luôn giải phóng",
+        "freeOff": "Không giải phóng (nhanh hơn)",
+        "queueHint": "Khi tạo hàng loạt, ComfyUI / SD WebUI / Fooocus trên cùng máy chỉ nhận từng tác vụ một, xong cái trước mới tự gửi cái sau, tránh dồn quá nhiều gây thiếu VRAM và ComfyUI bị thoát; nếu ComfyUI thoát giữa chừng, khởi động lại là tự tạo tiếp. Card lớn có thể chọn 2 cho nhanh hơn."
       },
       "fooocus": {
         "hint": "Cần Fooocus-API (cổng 8888, không phải giao diện web Fooocus). Ảnh tham chiếu được gửi dạng Image Prompt (tối đa 4).",
@@ -1236,6 +1244,44 @@
       "hint": "Câu viết \"{name}: 「…」\" hoặc 【Ting! …】 trong cảnh được coi là hệ thống: phát âm báo rồi nói bằng giọng trên, không ai trên hình mấp máy môi. Phụ đề hiển thị trong 【】 màu xanh lam. Cần mô hình video có âm thanh (Seedance, Veo, Grok…); Wan 2.2 cục bộ không có âm thanh. Đổi xong hãy tạo lại prompt / video.",
       "saveFailed": "Không lưu được cài đặt giọng hệ thống",
       "enabledToast": "Đã bật giọng hệ thống: kịch bản, chia cảnh, prompt và video sẽ có \"{name}\""
+    },
+    "upscale": {
+      "one": "Nâng nét",
+      "oneTip": "Phóng video này lên 1080p trở lên (video gốc vẫn trong lịch sử)",
+      "batch": "Nâng nét hàng loạt",
+      "batchSelected": "Nâng nét mục đã chọn ({n})",
+      "batchTip": "Phóng các video cảnh đã tạo lên 1080p trở lên; video đã đủ nét sẽ bỏ qua",
+      "titleOne": "Nâng nét video",
+      "titleBatch": "Nâng nét hàng loạt · {n} cảnh",
+      "target": "Độ phân giải đích",
+      "targets": {
+        "1080p": "1080p Full HD",
+        "1440p": "1440p 2K",
+        "2160p": "2160p 4K"
+      },
+      "engine": "Cách làm",
+      "engines": {
+        "auto": "Tự động",
+        "ai": "Siêu phân giải AI (ComfyUI)",
+        "fast": "Phóng nhanh (FFmpeg)"
+      },
+      "engineDesc": {
+        "auto": "Có ComfyUI và mô hình phóng thì dùng AI, nếu không (hoặc AI lỗi) thì phóng nhanh",
+        "ai": "Mô hình phóng trong ComfyUI (vd. RealESRGAN x2) bù chi tiết từng khung, nét nhất; xếp hàng cùng tạo video, vài phút cho 5 giây",
+        "fast": "Lanczos + làm nét, vài giây là xong, không cần GPU; cải thiện chi tiết có hạn"
+      },
+      "checking": "Đang kiểm tra mô hình phóng của ComfyUI…",
+      "aiReady": "Siêu phân giải AI sẵn sàng, dùng {model}",
+      "noComfy": "Không có cấu hình ComfyUI đang bật: \"Tự động\" sẽ phóng nhanh",
+      "comfyDown": "Không kết nối được ComfyUI: \"Tự động\" chuyển sang phóng nhanh, \"AI\" sẽ chờ nó khởi động",
+      "noModel": "ComfyUI chưa có mô hình phóng, \"Tự động\" sẽ phóng nhanh. Để dùng siêu phân giải AI:",
+      "note": "Video đã phóng được lưu thành một bản mới trong lịch sử và đặt làm video hiện tại; video gốc vẫn giữ, có thể đổi lại trong lịch sử. Video có phụ đề sẽ được phóng cùng phụ đề. Khi ghép, các cảnh khác độ phân giải được tự đồng bộ.",
+      "start": "Bắt đầu",
+      "noneToDo": "Không có video để nâng nét",
+      "started": "Đang nâng nét {n} video",
+      "skipped": "Bỏ qua {n}: {reason}",
+      "done": "Đã nâng nét video",
+      "failed": "Nâng nét thất bại"
     }
   },
   "errors": {

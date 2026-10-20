@@ -506,7 +506,15 @@
         "modelsEmpty": "No files in this folder yet",
         "pickedModel": "Default model set to {name}",
         "pickedSampler": "Sampler set to {name}",
-        "copiedName": "Copied: {name}"
+        "copiedName": "Copied: {name}",
+        "queueTitle": "Local queue",
+        "queueConcurrent": "Tasks sent at once",
+        "queueOne": "1 (recommended: next one after the previous finishes)",
+        "freeBetween": "Free VRAM between videos",
+        "freeAuto": "Auto (templates of 16 GB and below)",
+        "freeOn": "Always between videos",
+        "freeOff": "Never (faster)",
+        "queueHint": "Batches go to ComfyUI / SD WebUI / Fooocus on the same computer one task at a time, so ComfyUI is not flooded into running out of VRAM and quitting; if ComfyUI quits mid-task, generation resumes automatically once it is restarted. Use 2 on large cards for more speed."
       },
       "fooocus": {
         "hint": "Requires Fooocus-API (port 8888, not the Fooocus web UI). Use a checkpoint file name or default as the model. Shot references are sent as Image Prompts (up to 4).",
@@ -1236,6 +1244,44 @@
       "hint": "Lines written as \"{name}: \\\"…\\\"\" or 【Ding! …】 in a shot are treated as the system: the chime plays, then it speaks in the voice above, and nobody on screen moves their lips. With subtitles, system lines are bracketed and cyan. Needs a video model that generates audio (e.g. Seedance, Veo, Grok); local Wan 2.2 has no audio. Regenerate prompts / videos after changing this.",
       "saveFailed": "Could not save the system voice setting",
       "enabledToast": "System voice is on: script rewriting, shot breakdown, prompts and videos will now include \"{name}\""
+    },
+    "upscale": {
+      "one": "Upscale",
+      "oneTip": "Upscale this video to 1080p or higher (the original stays in the history)",
+      "batch": "Batch upscale",
+      "batchSelected": "Upscale selected ({n})",
+      "batchTip": "Upscale generated shot videos to 1080p or higher; ones already high enough are skipped",
+      "titleOne": "Upscale video",
+      "titleBatch": "Batch upscale · {n} shots",
+      "target": "Target resolution",
+      "targets": {
+        "1080p": "1080p Full HD",
+        "1440p": "1440p 2K",
+        "2160p": "2160p 4K"
+      },
+      "engine": "Method",
+      "engines": {
+        "auto": "Auto",
+        "ai": "AI super-resolution (ComfyUI)",
+        "fast": "Fast upscale (FFmpeg)"
+      },
+      "engineDesc": {
+        "auto": "AI super-resolution when ComfyUI has an upscale model, otherwise (or if AI fails) fast upscale",
+        "ai": "An upscale model in ComfyUI (e.g. RealESRGAN x2) restores detail frame by frame — sharpest; queued with video generation, a few minutes per 5 s",
+        "fast": "Lanczos scaling + sharpening, done in seconds without the GPU; limited gain in detail"
+      },
+      "checking": "Checking ComfyUI upscale models…",
+      "aiReady": "AI super-resolution ready, using {model}",
+      "noComfy": "No active ComfyUI config: Auto will use fast upscale",
+      "comfyDown": "ComfyUI is not reachable: Auto falls back to fast upscale, AI waits for it to start",
+      "noModel": "ComfyUI has no upscale model yet, Auto will use fast upscale. For AI super-resolution:",
+      "note": "The upscaled video is saved as a new history entry and becomes the current video; the original is kept and you can switch back in the history. Subtitled videos are upscaled with their subtitles. Shots with different resolutions are unified when merging.",
+      "start": "Start upscaling",
+      "noneToDo": "No videos to upscale",
+      "started": "Upscaling {n} video(s)",
+      "skipped": "Skipped {n}: {reason}",
+      "done": "Video upscaled",
+      "failed": "Upscaling failed"
     }
   },
   "errors": {

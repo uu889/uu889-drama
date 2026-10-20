@@ -17,6 +17,9 @@ import { maybeTranslatePrompt, needsTranslation, shouldTranslatePrompt } from '.
 import { getDramaStyleKey } from './style-preset.js'
 import { burnSubtitles, normalizeSubtitleOptions, storyboardDialogue } from './subtitles.js'
 import { getEpisodeSystemVoice } from './system-voice.js'
+import { acquireGpuLane, gpuLaneKey, laneLimit, laneNeedsFree, releaseGpuLane } from './gpu-queue.js'
+import { freeComfyMemory, shouldFreeVramBetween, waitComfyAlive } from './adapters/comfyui-common.js'
+import { resolveComfyTemplate } from './adapters/comfyui-templates.js'
 import { logTaskError, logTaskPayload, logTaskProgress, logTaskStart, logTaskSuccess, logTaskWarn, redactUrl } from '../utils/task-logger.js'
 
 type TaskType = 'image' | 'video'
@@ -200,7 +203,39 @@ function parseTaskParams(raw: string | null | undefined): Record<string, any> {
   }
 }
 
+/**
+ * 本地显卡排队（gpu-queue.ts）：同一台机器上的 ComfyUI / SD WebUI / Fooocus 前一个任务结束才提交下一个；
+ * 轮到 ComfyUI 任务时先确认 ComfyUI 还活着（前一个任务可能把它带崩了），小显存模板在两个视频之间先释放显存。
+ */
+async function enterGpuLane(id: number, config: AIConfig, type: TaskType, model: string | null | undefined) {
+  const key = gpuLaneKey(config)
+  if (!key) return
+  await acquireGpuLane(key, id, {
+    limit: laneLimit(config),
+    kind: type,
+    onPosition: (position, running) => setTaskProgress(id, {
+      stage: 'queued',
+      message: `本机排队中：前面还有 ${position} 个任务（${running} 个正在生成）。本地显卡一次只交一个任务，前一个完成后自动提交，避免一次塞给 ComfyUI 太多导致显存不足`,
+      detail: { queue_ahead: position },
+    }),
+  })
+  if (String(config.provider).toLowerCase() !== 'comfyui') return
+  const alive = await waitComfyAlive(config, 15 * 60_000, (message) => setTaskProgress(id, { stage: 'queued', message }))
+  if (!alive) throw new Error(`ComfyUI（${config.baseUrl || 'http://127.0.0.1:8188'}）一直没有响应（等了 15 分钟）。请确认 ComfyUI 已经启动，再重新生成`)
+  if (type !== 'video') return
+  const settings = config.settings || {}
+  const tpl = typeof settings.comfyui_workflow === 'string' && settings.comfyui_workflow.trim()
+    ? null
+    : resolveComfyTemplate('video', settings.comfyui_template, model || config.model)
+  if (!shouldFreeVramBetween(settings, tpl?.vram) || !laneNeedsFree(key, true)) return
+  setTaskProgress(id, { stage: 'queued', message: '先让 ComfyUI 释放上一个视频占用的显存（小显存模板每个视频之间释放一次，避免越跑越满）' })
+  const freed = await freeComfyMemory([config, ...await sameHostPeers(config)], 20_000).catch(() => null)
+  setTaskProgress(id, { stage: 'queued', message: `显存已释放${freed ? `（空出 ${(freed / 1073741824).toFixed(1)} GB）` : ''}，提交任务` })
+}
+
 async function processTask(id: number, config: AIConfig) {
+  // 交给 pollTask 之后由它负责释放排队名额
+  let handedToPoll = false
   try {
     const [record] = await db.select().from(schema.sysTask).where(eq(schema.sysTask.id, id))
     if (!record) return
@@ -234,6 +269,8 @@ async function processTask(id: number, config: AIConfig) {
       })
       if (prompt !== record.prompt) logTaskPayload(label, 'translated prompt', { id, prompt })
     }
+
+    await enterGpuLane(id, config, type, record.model)
 
     if (type === 'image') {
       const adapter = getImageAdapter(config.provider)
@@ -357,6 +394,7 @@ async function processTask(id: number, config: AIConfig) {
 
       await markPolling(id, taskId)
       adapter.onSubmitted?.(config, taskId!, request, (patch) => { setTaskProgress(id, patch) })
+      handedToPoll = true
       pollTask(record, config, taskId!, request)
       return
     }
@@ -373,9 +411,12 @@ async function processTask(id: number, config: AIConfig) {
 
     await markPolling(id, taskId)
     adapter.onSubmitted?.(config, taskId!, request, (patch) => { setTaskProgress(id, patch) })
+    handedToPoll = true
     pollTask(record, config, taskId!, request)
   } catch (err: any) {
     await failTask(id, err.message)
+  } finally {
+    if (!handedToPoll) releaseGpuLane(id)
   }
 }
 
@@ -507,6 +548,7 @@ async function pollTask(record: SysTaskRecord, config: AIConfig, initialTaskId: 
     await pollLoop()
   } finally {
     hooks.onFinished?.(config, taskId)
+    releaseGpuLane(record.id)
   }
 
   async function pollLoop() {

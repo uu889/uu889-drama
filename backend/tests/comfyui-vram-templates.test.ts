@@ -10,10 +10,13 @@ import { buildPlanFiles } from '../src/services/model-installer/plan'
 const isLink = (v: unknown): v is [string, number] => Array.isArray(v) && v.length === 2 && typeof v[1] === 'number'
 
 test('VRAM tiers: 12G → 288G, every one image-to-video 14B with sane sampling', () => {
-  assert.deepEqual(COMFY_VRAM_TEMPLATES.map((t) => t.vram), [12, 16, 24, 32, 48, 96, 141, 192, 288])
+  // 每个显存档一个主模板；同档的第二个模板（如 12G 的 720p）用后缀区分
+  const WAN_TIERS = COMFY_VRAM_TEMPLATES.filter((t) => t.id === `wan2.2-i2v-14b-${t.vram}g`)
+  assert.deepEqual(WAN_TIERS.map((t) => t.vram), [12, 16, 24, 32, 48, 96, 141, 192, 288])
+  assert.deepEqual(COMFY_VRAM_TEMPLATES.filter((t) => !WAN_TIERS.includes(t)).map((t) => t.id), ['wan2.2-i2v-14b-12g-720p'])
   for (const t of COMFY_VRAM_TEMPLATES) {
     assert.ok(COMFY_VIDEO_TEMPLATES.includes(t), `${t.id} is listed with the video templates`)
-    assert.equal(t.id, `wan2.2-i2v-14b-${t.vram}g`)
+    assert.match(t.id, new RegExp(`^wan2\\.2-i2v-14b-${t.vram}g(-\\d+p)?$`))
     assert.equal(getComfyTemplate('video', t.id), t)
     assert.equal(t.needsImage, 'required')
     assert.ok(t.label.startsWith(`【${t.vram}G 显存】`), t.label)
@@ -45,8 +48,8 @@ test('VRAM tiers: 12G → 288G, every one image-to-video 14B with sane sampling'
     assert.equal(wf['38'].inputs.clip_name, t.vram >= 48 ? 'umt5_xxl_fp16.safetensors' : 'umt5_xxl_fp8_e4m3fn_scaled.safetensors')
   }
   // 步数随显存增加，分辨率上限不降
-  const steps = COMFY_VRAM_TEMPLATES.map((t) => t.recommended.steps!)
-  const caps = COMFY_VRAM_TEMPLATES.map((t) => t.recommended.maxShortEdge!)
+  const steps = WAN_TIERS.map((t) => t.recommended.steps!)
+  const caps = WAN_TIERS.map((t) => t.recommended.maxShortEdge!)
   for (let i = 1; i < steps.length; i++) {
     assert.ok(steps[i] >= steps[i - 1])
     assert.ok(caps[i] >= caps[i - 1])
@@ -119,11 +122,13 @@ test('missing GGUF custom node: tells the user to install ComfyUI-GGUF', () => {
 // ─── MiniMax H3 显存档位 ───────────────────────────────────────────────────
 
 test('MiniMax H3 tiers: 12G → 288G, GGUF / pruned int8 / full int8 / bf16, steps grow with VRAM', () => {
-  assert.deepEqual(COMFY_H3_VRAM_TEMPLATES.map((t) => t.vram), [12, 16, 24, 32, 48, 96, 141, 192, 288])
+  const H3_TIERS = COMFY_H3_VRAM_TEMPLATES.filter((t) => t.id === `minimax-h3-${t.vram}g`)
+  assert.deepEqual(H3_TIERS.map((t) => t.vram), [12, 16, 24, 32, 48, 96, 141, 192, 288])
+  assert.deepEqual(COMFY_H3_VRAM_TEMPLATES.filter((t) => !H3_TIERS.includes(t)).map((t) => t.id), ['minimax-h3-12g-768p'])
   const unets: string[] = []
   for (const t of COMFY_H3_VRAM_TEMPLATES) {
     assert.ok(COMFY_VIDEO_TEMPLATES.includes(t))
-    assert.equal(t.id, `minimax-h3-${t.vram}g`)
+    assert.match(t.id, new RegExp(`^minimax-h3-${t.vram}g(-\\d+p)?$`))
     assert.equal(getComfyTemplate('video', t.id), t)
     assert.equal(t.vramFamily, 'MiniMax H3 音画同出')
     assert.equal(t.needsImage, 'optional')
@@ -145,14 +150,14 @@ test('MiniMax H3 tiers: 12G → 288G, GGUF / pruned int8 / full int8 / bf16, ste
     assert.equal(wf['104'].class_type, 'MiniMaxH3ReferenceToVideo', '用参考图生视频节点，才能引用角色资产')
     assert.equal(wf['9'].inputs.steps, t.recommended.steps)
     assert.equal(wf['17'].inputs.sampler_name, 'res_multistep')
-    unets.push(wf['6'].inputs.unet_name)
+    if (H3_TIERS.includes(t)) unets.push(wf['6'].inputs.unet_name)
   }
   assert.deepEqual(unets, [
     'MiniMax-H3-Ref2VA-Pruned-Q3_K_M.gguf', 'MiniMax-H3-Ref2VA-Pruned-Q4_K_M.gguf', 'MiniMax-H3-Ref2VA-Pruned-Q5_K_M.gguf',
     'minimax_h3_ref2va_pruned_int8_convrot.safetensors', 'minimax_h3_ref2va_int8_convrot.safetensors', 'minimax_h3_ref2va_int8_convrot.safetensors',
     'minimax_h3_ref2va_bf16.safetensors', 'minimax_h3_ref2va_bf16.safetensors', 'minimax_h3_ref2va_bf16.safetensors',
   ])
-  const steps = COMFY_H3_VRAM_TEMPLATES.map((t) => t.recommended.steps!)
+  const steps = H3_TIERS.map((t) => t.recommended.steps!)
   assert.deepEqual(steps, [4, 4, 4, 4, 20, 25, 30, 40, 50])
   // 32G 档和 ComfyUI 官方模板同一套文件
   assert.deepEqual(getComfyTemplate('video', 'minimax-h3-32g')!.files.map((f) => f.file).sort(), [
@@ -316,4 +321,25 @@ test('original MiniMax H3 first/last-frame templates say they ignore character r
 test('old ComfyUI without the H3 guide node: tells the user to update ComfyUI, not to install a plugin', () => {
   const msg = new ComfyUIVideoAdapter().describeError(400, JSON.stringify({ error: { type: 'missing_node_type', message: "Node 'MiniMaxH3AddGuide' not found.", extra_info: { class_type: 'MiniMaxH3AddGuide' } } }))
   assert.match(String(msg), /^ComfyUI 缺少节点 MiniMaxH3AddGuide：.*更新到最新版.*0\.34\.0/)
+})
+
+test('12G second templates: H3 768p uses the 16G Q4 GGUF at the native canvas, Wan 720p decodes in tiles', async () => {
+  const { minimaxH3Dimensions, comfyDimensions } = await import('../src/services/adapters/comfyui-video')
+  const h3 = getComfyTemplate('video', 'minimax-h3-12g-768p')!
+  assert.equal(h3.vram, 12)
+  assert.equal(h3.vramFamily, 'MiniMax H3 音画同出')
+  assert.equal(h3.workflow['6'].inputs.unet_name, 'MiniMax-H3-Ref2VA-Pruned-Q4_K_M.gguf')
+  assert.deepEqual(minimaxH3Dimensions('16:9', '720p', h3.recommended.maxShortEdge), { width: 1344, height: 768 })
+  // 12G 主模板仍是 480p
+  assert.deepEqual(minimaxH3Dimensions('16:9', '720p', getComfyTemplate('video', 'minimax-h3-12g')!.recommended.maxShortEdge).height, 480)
+  const wan = getComfyTemplate('video', 'wan2.2-i2v-14b-12g-720p')!
+  assert.equal(wan.workflow['8'].class_type, 'VAEDecodeTiled')
+  assert.equal(wan.workflow['8'].inputs.temporal_size, 64)
+  assert.equal(getComfyTemplate('video', 'wan2.2-i2v-14b-12g')!.workflow['8'].class_type, 'VAEDecode')
+  assert.equal(comfyDimensions('16:9', '720p', wan.recommended.maxShortEdge).height, comfyDimensions('16:9', '720p', getComfyTemplate('video', 'wan2.2-i2v-14b-24g')!.recommended.maxShortEdge).height, '和 24G 档同样的 720p 画布')
+  // 按模板 ID 当模型名也能选中
+  assert.equal(resolveComfyTemplate('video', null, 'minimax-h3-12g-768p').id, 'minimax-h3-12g-768p')
+  // 设置页按显存分组：12G 组里两个都有
+  const api = describeComfyTemplates('video', false)
+  assert.deepEqual(api.filter((t) => t.vram === 12 && t.vram_family === 'MiniMax H3 音画同出').map((t) => t.id), ['minimax-h3-12g', 'minimax-h3-12g-768p'])
 })

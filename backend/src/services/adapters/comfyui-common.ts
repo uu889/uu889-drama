@@ -356,6 +356,49 @@ export function readComfyHistory(result: any): ComfyHistoryState {
   return { state: 'running' }
 }
 
+/** ComfyUI 是否在运行：能连上就算（反向代理在 ComfyUI 没起来时返回的 502 / 503 / 504 不算） */
+export async function comfyAlive(config: AIConfig): Promise<boolean> {
+  try {
+    const resp = await fetch(comfyUrl(config, '/system_stats'), { headers: comfyAuthHeaders(config), signal: AbortSignal.timeout(8_000) })
+    resp.body?.cancel().catch(() => {})
+    return ![502, 503, 504].includes(resp.status)
+  } catch {
+    return false
+  }
+}
+
+/**
+ * 等 ComfyUI 回来（被显存不足带崩退出后，用户重启 ComfyUI 或它自己的守护进程拉起来）。
+ * 每 5 秒查一次，最多 maxMs；期间通过 report 显示已等待多久。
+ */
+export async function waitComfyAlive(config: AIConfig, maxMs = 15 * 60_000, report?: (message: string) => void): Promise<boolean> {
+  if (await comfyAlive(config)) return true
+  const started = Date.now()
+  while (Date.now() - started < maxMs) {
+    const waited = Math.round((Date.now() - started) / 1000)
+    report?.(`ComfyUI（${config.baseUrl || 'http://127.0.0.1:8188'}）没有响应，可能已经退出：请重新启动 ComfyUI，启动后自动继续（已等待 ${waited < 60 ? `${waited} 秒` : `${Math.floor(waited / 60)} 分 ${waited % 60} 秒`}，最多等 ${Math.round(maxMs / 60_000)} 分钟）`)
+    await new Promise((r) => setTimeout(r, 5_000))
+    if (await comfyAlive(config)) return true
+  }
+  return false
+}
+
+/** 连续多久连不上 ComfyUI 就当作它已经退出（任务随之丢失） */
+export const COMFY_DOWN_GRACE_MS = Number(process.env.COMFY_DOWN_GRACE_MS) || 60_000
+/** ComfyUI 退出 / 重启导致任务丢失时，等它回来后自动重新提交的次数 */
+export const COMFY_RESTART_RETRIES = 2
+
+/**
+ * 每个视频任务之间要不要先释放显存（unload_models）：
+ * 配置 settings.free_vram_between = true / false 时按配置；没设置时 16G 及以下的内置模板默认释放（代价是每个任务重新加载模型）。
+ */
+export function shouldFreeVramBetween(settings: Record<string, any> | null | undefined, templateVram: number | null | undefined): boolean {
+  const v = settings?.free_vram_between
+  if (v === true || v === 'true' || v === 1) return true
+  if (v === false || v === 'false' || v === 0) return false
+  return !!templateVram && templateVram <= 16
+}
+
 async function comfyVramFree(config: AIConfig): Promise<number | null> {
   try {
     const resp = await fetch(comfyUrl(config, '/system_stats'), { headers: comfyAuthHeaders(config), signal: AbortSignal.timeout(10_000) })
@@ -396,7 +439,7 @@ export async function freeComfyMemory(configs: AIConfig[], waitMs = 15_000): Pro
   return before != null && after != null ? Math.max(0, after - before) : null
 }
 
-export const COMFY_MISSING_ERROR = 'ComfyUI 的队列和历史里都找不到该任务（ComfyUI 可能已重启或任务被删除），请重新生成'
+export const COMFY_MISSING_ERROR = 'ComfyUI 的队列和历史里都找不到该任务（ComfyUI 可能已退出 / 重启，或任务被删除），请重新生成'
 
 /**
  * 视频 / 图片适配器共用的 ComfyUI 客户端：上传素材、渲染并提交工作流、按队列判断任务状态、取消、错误整理。
@@ -481,6 +524,15 @@ export abstract class ComfyUIClient {
    * 常见原因是前面的任务（另一个工作流 / 生图）留在显存里的模型没卸掉，释放后通常就能跑。
    */
   async prepareRetry(config: AIConfig, ctx: RetryContext): Promise<boolean> {
+    // ComfyUI 退出 / 重启把任务弄丢了：等它重新启动后用同一个工作流重新提交（上传过的图片还在 input 目录里）
+    if (ctx.error === COMFY_MISSING_ERROR) {
+      if (ctx.attempt >= COMFY_RESTART_RETRIES) return false
+      const n = ctx.attempt + 1
+      const back = await waitComfyAlive(config, 15 * 60_000, (message) => ctx.report?.({ stage: 'queued', message }))
+      if (!back) return false
+      ctx.report?.({ stage: 'queued', message: `ComfyUI 已恢复，重新提交这个任务（第 ${n}/${COMFY_RESTART_RETRIES} 次）` })
+      return true
+    }
     if (!isComfyOutOfMemory(ctx.error) || ctx.attempt >= COMFY_OOM_RETRIES) return false
     const n = ctx.attempt + 1
     ctx.report?.({ stage: 'queued', message: `ComfyUI 显存不足，正在让 ComfyUI 释放缓存的模型后自动重试（第 ${n}/${COMFY_OOM_RETRIES} 次）` })
@@ -585,6 +637,26 @@ export abstract class ComfyUIClient {
    * （ComfyUI 重启、任务被删）就立即判失败，而不是等到轮询超时。
    */
   async fetchPollResult(config: AIConfig, taskId: string): Promise<any> {
+    try {
+      const result = await this.fetchPollResultOnce(config, taskId)
+      this.downSince.delete(taskId)
+      return result
+    } catch (err) {
+      // 连不上 ComfyUI：持续超过 COMFY_DOWN_GRACE_MS 就当它已经退出（任务丢失），交给 prepareRetry 等它回来后重新提交，
+      // 而不是一直轮询到超时（以前会占着队列好几个小时）
+      const since = this.downSince.get(taskId) ?? Date.now()
+      this.downSince.set(taskId, since)
+      if (Date.now() - since >= COMFY_DOWN_GRACE_MS) {
+        this.downSince.delete(taskId)
+        return { __comfyMissing: true, __comfyDown: true }
+      }
+      throw err
+    }
+  }
+
+  private downSince = new Map<string, number>()
+
+  private async fetchPollResultOnce(config: AIConfig, taskId: string): Promise<any> {
     const history = await this.fetchJson(config, `/history/${encodeURIComponent(taskId)}`)
     if (history && typeof history === 'object' && Object.keys(history).length) return history
     const queue = await this.fetchJson(config, '/queue')

@@ -512,6 +512,10 @@
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
                   {{ videoSelectMode && selectedVideoSbIds.length ? t('episode.vid.batchSelected', { n: selectedVideoSbIds.length }) : t('episode.vid.batchVideos') }}
                 </button>
+                <button class="btn btn-sm" :disabled="!shotVidCount" :title="t('episode.upscale.batchTip')" @click="openUpscale('batch')">
+                  <Sparkles :size="11" />
+                  {{ videoSelectMode && selectedVideoSbIds.length ? t('episode.upscale.batchSelected', { n: selectedVideoSbIds.length }) : t('episode.upscale.batch') }}
+                </button>
               </div>
             </div>
             <div v-if="!sbs.length" class="step-empty video-task-empty-state">
@@ -717,6 +721,15 @@
                   </span>
                   <span v-if="selectedSb.duration" class="video-player-sub">{{ selectedSb.duration }}s</span>
                 </div>
+                <button
+                  v-if="hasVid(selectedSb) && !previewVideoUrl && videoTaskState(selectedSb) !== 'pending'"
+                  class="btn btn-sm"
+                  :title="t('episode.upscale.oneTip')"
+                  @click="openUpscale('one')"
+                >
+                  <Sparkles :size="11" />
+                  {{ t('episode.upscale.one') }}
+                </button>
                 <button
                   v-if="previewVideoUrl"
                   class="btn btn-sm btn-primary"
@@ -1616,6 +1629,45 @@
         </div>
       </div>
 
+      <div v-if="upscaleDialog.open" class="overlay" @click.self="upscaleDialog.open = false">
+        <div class="dialog batch-video-dialog upscale-dialog">
+          <header class="dialog-head">
+            <h2 class="dialog-title">{{ upscaleDialog.scope === 'one' ? t('episode.upscale.titleOne') : t('episode.upscale.titleBatch', { n: upscaleDialog.targets.length }) }}</h2>
+            <button class="btn btn-ghost btn-icon" @click="upscaleDialog.open = false"><X :size="14" /></button>
+          </header>
+          <div class="dialog-body batch-video-body">
+            <div class="upscale-field">
+              <span class="upscale-label">{{ t('episode.upscale.target') }}</span>
+              <div class="upscale-choices">
+                <button v-for="tg in ['1080p', '1440p', '2160p']" :key="tg" type="button" :class="['sv-preset', { active: upscalePrefs.target === tg }]" @click="upscalePrefs.target = tg">{{ t('episode.upscale.targets.' + tg) }}</button>
+              </div>
+            </div>
+            <div class="upscale-field">
+              <span class="upscale-label">{{ t('episode.upscale.engine') }}</span>
+              <label v-for="en in ['auto', 'ai', 'fast']" :key="en" class="upscale-engine">
+                <input v-model="upscalePrefs.engine" type="radio" :value="en" />
+                <span><b>{{ t('episode.upscale.engines.' + en) }}</b><small>{{ t('episode.upscale.engineDesc.' + en) }}</small></span>
+              </label>
+            </div>
+            <div :class="['upscale-status', upscaleInfo.model ? 'is-ok' : 'is-warn']">
+              <template v-if="upscaleInfo.loading">{{ t('episode.upscale.checking') }}</template>
+              <template v-else-if="upscaleInfo.model">{{ t('episode.upscale.aiReady', { model: upscaleInfo.model }) }}</template>
+              <template v-else-if="!upscaleInfo.comfy">{{ t('episode.upscale.noComfy') }}</template>
+              <template v-else-if="!upscaleInfo.reachable">{{ t('episode.upscale.comfyDown') }}</template>
+              <template v-else>{{ t('episode.upscale.noModel') }} <span class="upscale-hint">{{ upscaleInfo.hint }}</span></template>
+            </div>
+            <p class="batch-video-note">{{ t('episode.upscale.note') }}</p>
+          </div>
+          <footer class="dialog-foot">
+            <button class="btn" @click="upscaleDialog.open = false">{{ t('common.cancel') }}</button>
+            <button class="btn btn-primary" :disabled="upscaleDialog.submitting" @click="confirmUpscale">
+              <Loader2 v-if="upscaleDialog.submitting" :size="12" class="animate-spin" />
+              {{ t('episode.upscale.start') }}
+            </button>
+          </footer>
+        </div>
+      </div>
+
       <ConfirmDialog
         :open="historyDelete.open"
         :title="t('episode.vid.deleteHistoryTitle')"
@@ -1642,7 +1694,7 @@ import { toast } from 'vue-sonner'
 import { useI18n } from 'vue-i18n'
 import {
   Users, FileText, FolderKanban, Clapperboard, Download, Loader2,
-  Plus, X, ListTodo, CircleHelp, Trash2, Music, Upload, Bot,
+  Plus, X, ListTodo, CircleHelp, Trash2, Music, Upload, Bot, Sparkles,
 } from 'lucide-vue-next'
 import { api, dramaAPI, episodeAPI, storyboardAPI, characterAPI, sceneAPI, propAPI, taskAPI, mergeAPI, aiConfigAPI, uploadAPI } from '~/composables/useApi'
 import { startTour, autoTour } from '~/composables/useTour'
@@ -2497,6 +2549,72 @@ function batchVideos() {
 }
 function retryFailedVideos() {
   openBatchVideoConfirm(sbs.value.filter(s => videoTaskState(s) === 'failed'))
+}
+
+// ===== 视频高清化（768p / 720p → 1080p 等）：AI 超分（ComfyUI 放大模型）或快速放大（FFmpeg） =====
+const UPSCALE_STORE_KEY = 'uu889:upscale'
+function readUpscalePrefs() {
+  try {
+    const v = JSON.parse(localStorage.getItem(UPSCALE_STORE_KEY) || 'null')
+    if (v && typeof v === 'object') {
+      return {
+        engine: ['auto', 'ai', 'fast'].includes(v.engine) ? v.engine : 'auto',
+        target: ['1080p', '1440p', '2160p'].includes(v.target) ? v.target : '1080p',
+      }
+    }
+  } catch { /* 静默 */ }
+  return { engine: 'auto', target: '1080p' }
+}
+const upscalePrefs = reactive(readUpscalePrefs())
+watch(upscalePrefs, v => { try { localStorage.setItem(UPSCALE_STORE_KEY, JSON.stringify(v)) } catch { /* 静默 */ } }, { deep: true })
+const upscaleDialog = reactive({ open: false, scope: 'one', targets: [], submitting: false })
+const upscaleInfo = reactive({ loading: false, comfy: false, reachable: false, model: null, hint: '' })
+
+async function openUpscale(scope) {
+  let targets
+  if (scope === 'one') targets = selectedSb.value && hasVid(selectedSb.value) ? [selectedSb.value] : []
+  else {
+    const useSelection = videoSelectMode.value && selectedVideoSbIds.value.length
+    targets = (useSelection ? sbs.value.filter(s => selectedVideoSbIds.value.includes(s.id)) : sbs.value)
+      .filter(s => hasVid(s) && !isPendingVideo(s.id))
+  }
+  if (!targets.length) { toast.info(t('episode.upscale.noneToDo')); return }
+  Object.assign(upscaleDialog, { open: true, scope, targets, submitting: false })
+  upscaleInfo.loading = true
+  try { Object.assign(upscaleInfo, await storyboardAPI.upscaleInfo(epId.value) || {}) } catch { /* 静默 */ }
+  upscaleInfo.loading = false
+}
+
+async function confirmUpscale() {
+  const opts = { engine: upscalePrefs.engine, target: upscalePrefs.target }
+  upscaleDialog.submitting = true
+  try {
+    let created = []
+    let skipped = []
+    if (upscaleDialog.scope === 'one') {
+      const sb = upscaleDialog.targets[0]
+      const res = await storyboardAPI.upscale(sb.id, opts)
+      created = [{ storyboard_id: sb.id, task_id: res?.task_id }]
+    } else {
+      const res = await episodeAPI.upscale(epId.value, { ...opts, storyboard_ids: upscaleDialog.targets.map(s => s.id) })
+      created = res?.created || []
+      skipped = res?.skipped || []
+    }
+    upscaleDialog.open = false
+    for (const c of created) {
+      if (!isPendingVideo(c.storyboard_id)) pendingVideoIds.value.push(c.storyboard_id)
+      delete failedVideoMessages.value[c.storyboard_id]
+      pollVideoGeneration(c.task_id, c.storyboard_id, undefined, { done: 'episode.upscale.done', failed: 'episode.upscale.failed' })
+    }
+    if (created.length) toast.success(t('episode.upscale.started', { n: created.length }))
+    if (skipped.length) toast.info(t('episode.upscale.skipped', { n: skipped.length, reason: skipped[0].reason }))
+    if (!created.length && !skipped.length) toast.info(t('episode.upscale.noneToDo'))
+    if (created.length) loadGenTasks()
+  } catch (e) {
+    toastError(e, { fallback: 'episode.upscale.failed' })
+  } finally {
+    upscaleDialog.submitting = false
+  }
 }
 function confirmBatchVideos() {
   const targets = [...batchVideoConfirm.value.targets]
@@ -3851,7 +3969,7 @@ async function genVid(sb, opts = {}) {
     if (!opts.silent) toast.success(t('episode.vid.generating'))
     await refresh()
     // 接戏链要等本镜出片才能生成下一镜：本地服务可能排队很久，最多等 1 小时
-    if (opts.wait) await pollVideoGeneration(generation?.id, sb.id, 900)
+    if (opts.wait) await pollVideoGeneration(generation?.id, sb.id)
     else pollVideoGeneration(generation?.id, sb.id)
   } catch (e) {
     pendingVideoIds.value = pendingVideoIds.value.filter(item => item !== sb.id)
@@ -3862,7 +3980,9 @@ async function genVid(sb, opts = {}) {
     toastError(e, { fallback: 'episode.vid.genFailed' })
   }
 }
-async function pollVideoGeneration(generationId, storyboardId, maxPolls = 120) {
+// 后端会对本地显卡排队（批量时一个一个交给 ComfyUI），排队可能很久：前端一直等到任务结束（最多约 6 小时），
+// 等待期间不再每 4 秒整页刷新，任务结束时刷新一次
+async function pollVideoGeneration(generationId, storyboardId, maxPolls = 5400, msgs = {}) {
   if (!generationId) {
     watchAsyncResult(() => {
       const target = sbs.value.find(s => s.id === storyboardId)
@@ -3873,14 +3993,14 @@ async function pollVideoGeneration(generationId, storyboardId, maxPolls = 120) {
     return
   }
   for (let i = 0; i < maxPolls; i++) {
-    await sleep(4000)
+    await sleep(i < 30 ? 4000 : 6000)
     try {
       const res = await taskAPI.get(generationId)
-      await refresh()
+      if (res?.status === 'completed' || res?.status === 'failed') await refresh()
       if (res?.status === 'completed') {
         pendingVideoIds.value = pendingVideoIds.value.filter(item => item !== storyboardId)
         delete failedVideoMessages.value[storyboardId]
-        toast.success(t('episode.vid.genDone'))
+        toast.success(t(msgs.done || 'episode.vid.genDone'))
         return
       }
       if (res?.status === 'failed') {
@@ -3890,7 +4010,7 @@ async function pollVideoGeneration(generationId, storyboardId, maxPolls = 120) {
           ...failedVideoMessages.value,
           [storyboardId]: errMsg,
         }
-        toastError(errMsg, { fallback: 'episode.vid.genFailed' })
+        toastError(errMsg, { fallback: msgs.failed || 'episode.vid.genFailed' })
         return
       }
     } catch {}
@@ -6779,4 +6899,17 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
 .video-continuity-status img { width: 52px; height: 30px; object-fit: cover; border-radius: 4px; cursor: zoom-in; flex-shrink: 0; }
 .video-continuity-status.is-waiting { color: var(--warning, #b7791f); }
 .video-task-timing-warn { font-size: 10.5px; padding: 1px 6px; border-radius: 999px; background: var(--warning-bg, rgba(229, 160, 0, 0.12)); color: var(--warning, #b7791f); white-space: nowrap; }
+.upscale-dialog { width: min(520px, calc(100vw - 32px)); }
+.upscale-field { display: flex; flex-direction: column; gap: 6px; }
+.upscale-label { font-size: 12px; font-weight: 700; color: var(--text-1); }
+.upscale-choices { display: flex; gap: 6px; flex-wrap: wrap; }
+.upscale-engine { display: flex; align-items: flex-start; gap: 8px; padding: 6px 8px; border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; }
+.upscale-engine:has(input:checked) { border-color: var(--accent); background: var(--accent-bg); }
+.upscale-engine input { margin-top: 3px; accent-color: var(--accent); }
+.upscale-engine span { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: var(--text-1); }
+.upscale-engine small { font-size: 11px; color: var(--text-3); line-height: 1.45; }
+.upscale-status { font-size: 11.5px; line-height: 1.5; padding: 7px 9px; border-radius: var(--radius); }
+.upscale-status.is-ok { background: var(--success-bg, rgba(34,160,90,.1)); color: var(--success, #1f8a4c); }
+.upscale-status.is-warn { background: var(--warning-bg, rgba(229,160,0,.12)); color: var(--warning, #a8661a); }
+.upscale-hint { display: block; margin-top: 3px; color: var(--text-2); word-break: break-all; }
 </style>

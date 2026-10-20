@@ -506,7 +506,15 @@
         "modelsEmpty": "Ainda não há arquivos nesta pasta",
         "pickedModel": "Modelo padrão: {name}",
         "pickedSampler": "Sampler: {name}",
-        "copiedName": "Copiado: {name}"
+        "copiedName": "Copiado: {name}",
+        "queueTitle": "Fila local",
+        "queueConcurrent": "Tarefas enviadas por vez",
+        "queueOne": "1 (recomendado: a próxima depois que a anterior terminar)",
+        "freeBetween": "Liberar VRAM entre vídeos",
+        "freeAuto": "Automático (modelos de 16 GB ou menos)",
+        "freeOn": "Sempre entre vídeos",
+        "freeOff": "Nunca (mais rápido)",
+        "queueHint": "Os lotes vão para o ComfyUI / SD WebUI / Fooocus do mesmo computador uma tarefa por vez, para não sobrecarregar o ComfyUI até faltar VRAM e ele fechar; se o ComfyUI fechar no meio, a geração continua sozinha depois de reiniciá-lo. Em placas grandes use 2 para ir mais rápido."
       },
       "fooocus": {
         "hint": "Requer Fooocus-API (porta 8888, não a interface web do Fooocus). Referências são enviadas como Image Prompts (máx. 4).",
@@ -1236,6 +1244,44 @@
       "hint": "Falas como \"{name}: «…»\" ou 【Ding! …】 num plano são tratadas como o sistema: toca o aviso e depois fala com a voz acima; ninguém na tela mexe os lábios. Nas legendas ficam entre 【】 e em ciano. Requer um modelo de vídeo com áudio (Seedance, Veo, Grok…); o Wan 2.2 local não tem áudio. Gere prompts / vídeos de novo após mudar.",
       "saveFailed": "Não foi possível salvar a voz do sistema",
       "enabledToast": "Voz do sistema ativada: reescrita, decupagem, prompts e vídeos vão incluir \"{name}\""
+    },
+    "upscale": {
+      "one": "Melhorar",
+      "oneTip": "Ampliar este vídeo para 1080p ou mais (o original fica no histórico)",
+      "batch": "Melhorar em lote",
+      "batchSelected": "Melhorar seleção ({n})",
+      "batchTip": "Ampliar os vídeos gerados para 1080p ou mais; os que já têm resolução suficiente são pulados",
+      "titleOne": "Melhorar vídeo",
+      "titleBatch": "Melhoria em lote · {n} planos",
+      "target": "Resolução alvo",
+      "targets": {
+        "1080p": "1080p Full HD",
+        "1440p": "1440p 2K",
+        "2160p": "2160p 4K"
+      },
+      "engine": "Método",
+      "engines": {
+        "auto": "Automático",
+        "ai": "Super-resolução IA (ComfyUI)",
+        "fast": "Ampliação rápida (FFmpeg)"
+      },
+      "engineDesc": {
+        "auto": "Super-resolução IA se o ComfyUI tiver um modelo de ampliação; senão (ou se falhar), ampliação rápida",
+        "ai": "Um modelo de ampliação no ComfyUI (ex. RealESRGAN x2) recupera detalhes quadro a quadro — o mais nítido; na fila com a geração de vídeo, alguns minutos a cada 5 s",
+        "fast": "Lanczos + nitidez, em segundos e sem GPU; ganho de detalhe limitado"
+      },
+      "checking": "Verificando os modelos de ampliação do ComfyUI…",
+      "aiReady": "Super-resolução IA pronta, modelo {model}",
+      "noComfy": "Nenhuma configuração do ComfyUI ativa: Automático usará ampliação rápida",
+      "comfyDown": "ComfyUI inacessível: Automático usa ampliação rápida; IA espera ele iniciar",
+      "noModel": "O ComfyUI ainda não tem modelo de ampliação; Automático usará ampliação rápida. Para super-resolução IA:",
+      "note": "O vídeo ampliado é salvo como nova entrada do histórico e vira o vídeo atual; o original é mantido e pode ser recuperado no histórico. Vídeos com legenda são ampliados com a legenda. Ao juntar, planos com resoluções diferentes são igualados.",
+      "start": "Começar",
+      "noneToDo": "Nenhum vídeo para melhorar",
+      "started": "Melhorando {n} vídeo(s)",
+      "skipped": "{n} pulado(s): {reason}",
+      "done": "Vídeo melhorado",
+      "failed": "Falha ao melhorar"
     }
   },
   "errors": {
