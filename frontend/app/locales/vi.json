@@ -514,7 +514,9 @@
         "freeAuto": "Tự động (mẫu 16G trở xuống)",
         "freeOn": "Luôn giải phóng",
         "freeOff": "Không giải phóng (nhanh hơn)",
-        "queueHint": "Khi tạo hàng loạt, ComfyUI / SD WebUI / Fooocus trên cùng máy chỉ nhận từng tác vụ một, xong cái trước mới tự gửi cái sau, tránh dồn quá nhiều gây thiếu VRAM và ComfyUI bị thoát; nếu ComfyUI thoát giữa chừng, khởi động lại là tự tạo tiếp. Card lớn có thể chọn 2 cho nhanh hơn."
+        "queueHint": "Khi tạo hàng loạt, ComfyUI / SD WebUI / Fooocus trên cùng máy chỉ nhận từng tác vụ một, xong cái trước mới tự gửi cái sau, tránh dồn quá nhiều gây thiếu VRAM và ComfyUI bị thoát; nếu ComfyUI thoát giữa chừng, khởi động lại là tự tạo tiếp. Card lớn có thể chọn 2 cho nhanh hơn.",
+        "autoRestart": "Tự khởi động lại ComfyUI khi bộ nhớ không giải phóng hết hoặc liên tục thiếu VRAM",
+        "autoRestartHint": "Cần ComfyUI-Manager (đa số bản tích hợp đã có). Nếu sau khi giải phóng giữa các video ComfyUI vẫn chiếm nhiều VRAM / RAM, hoặc đã giải phóng một lần mà vẫn thiếu VRAM, sẽ khởi động lại ComfyUI qua Manager (xóa sạch RAM và VRAM) rồi tự tạo tiếp khi nó chạy lại."
       },
       "fooocus": {
         "hint": "Cần Fooocus-API (cổng 8888, không phải giao diện web Fooocus). Ảnh tham chiếu được gửi dạng Image Prompt (tối đa 4).",

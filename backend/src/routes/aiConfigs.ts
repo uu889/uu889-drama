@@ -75,6 +75,8 @@ const PROVIDER_SETTING_RULES: Record<string, Record<string, SettingRule>> = {
     prompt_translate: { kind: 'boolean', default: null },
     // 视频之间释放显存：不设置 = 自动（16G 及以下的内置模板释放）
     free_vram_between: { kind: 'boolean', default: null },
+    // 释放后仍占用大量资源 / 连续显存不足时通过 ComfyUI-Manager 自动重启 ComfyUI（默认开）
+    auto_restart_comfy: { kind: 'boolean', default: true },
     ...QUEUE_RULES,
     ...IMAGE_PARAM_RULES,
     ...STYLE_MODEL_RULES,

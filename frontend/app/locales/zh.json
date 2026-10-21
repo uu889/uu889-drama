@@ -514,7 +514,9 @@
         "freeAuto": "自动（16G 及以下的模板释放）",
         "freeOn": "每个视频之间都释放",
         "freeOff": "不释放（更快）",
-        "queueHint": "批量生成时，同一台电脑上的 ComfyUI / SD WebUI / Fooocus 一次只交一个任务，前一个完成后自动提交下一个，避免一次塞太多导致显存不足、ComfyUI 退出；ComfyUI 中途退出时，重新启动后会自动接着生成。显存大、想更快可以改成 2。"
+        "queueHint": "批量生成时，同一台电脑上的 ComfyUI / SD WebUI / Fooocus 一次只交一个任务，前一个完成后自动提交下一个，避免一次塞太多导致显存不足、ComfyUI 退出；ComfyUI 中途退出时，重新启动后会自动接着生成。显存大、想更快可以改成 2。",
+        "autoRestart": "显存释放不干净或连续显存不足时，自动重启 ComfyUI",
+        "autoRestartHint": "需要 ComfyUI-Manager（整合包一般自带）。两个视频之间释放显存后 ComfyUI 仍占着大量显存 / 内存，或释放一次后还是显存不足时，通过 Manager 重启 ComfyUI（清空内存和显存），重启好后自动接着生成。"
       },
       "fooocus": {
         "hint": "需运行 Fooocus-API（默认端口 8888，不是 Fooocus 网页版）；模型填 checkpoint 文件名或 default。分镜参考图会作为「图片提示」发送（最多 4 张）。",

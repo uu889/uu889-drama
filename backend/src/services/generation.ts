@@ -18,7 +18,7 @@ import { getDramaStyleKey } from './style-preset.js'
 import { burnSubtitles, normalizeSubtitleOptions, storyboardDialogue } from './subtitles.js'
 import { getEpisodeSystemVoice } from './system-voice.js'
 import { acquireGpuLane, gpuLaneKey, laneLimit, laneNeedsFree, releaseGpuLane } from './gpu-queue.js'
-import { freeComfyMemory, shouldFreeVramBetween, waitComfyAlive } from './adapters/comfyui-common.js'
+import { autoRestartEnabled, comfyMemoryLeftover, comfySystemStats, freeComfyMemory, rebootComfy, shouldFreeVramBetween, waitComfyAlive } from './adapters/comfyui-common.js'
 import { resolveComfyTemplate } from './adapters/comfyui-templates.js'
 import { logTaskError, logTaskPayload, logTaskProgress, logTaskStart, logTaskSuccess, logTaskWarn, redactUrl } from '../utils/task-logger.js'
 
@@ -230,7 +230,16 @@ async function enterGpuLane(id: number, config: AIConfig, type: TaskType, model:
   if (!shouldFreeVramBetween(settings, tpl?.vram) || !laneNeedsFree(key, true)) return
   setTaskProgress(id, { stage: 'queued', message: '先让 ComfyUI 释放上一个视频占用的显存（小显存模板每个视频之间释放一次，避免越跑越满）' })
   const freed = await freeComfyMemory([config, ...await sameHostPeers(config)], 20_000).catch(() => null)
-  setTaskProgress(id, { stage: 'queued', message: `显存已释放${freed ? `（空出 ${(freed / 1073741824).toFixed(1)} GB）` : ''}，提交任务` })
+  // 释放后还占着一大块（ComfyUI 里有释放不掉的显存 / 内存，接着跑会越来越慢直到显存不足）：重启 ComfyUI
+  const leftover = comfyMemoryLeftover(await comfySystemStats(config))
+  if (leftover && autoRestartEnabled(settings)) {
+    setTaskProgress(id, { stage: 'queued', message: `释放后 ComfyUI 仍占用大量资源（${leftover}），自动重启 ComfyUI 再提交，避免越跑越慢、显存不足` })
+    const r = await rebootComfy(config, (message) => setTaskProgress(id, { stage: 'queued', message }))
+    if (r === 'timeout') throw new Error('已让 ComfyUI-Manager 重启 ComfyUI，但 5 分钟内没有重新启动，请手动启动 ComfyUI 后重新生成')
+    if (r === 'rebooted') { setTaskProgress(id, { stage: 'queued', message: 'ComfyUI 已重启，提交任务' }); return }
+    logTaskWarn('VideoTask', 'comfy-reboot-unavailable', { id, result: r, leftover })
+  }
+  setTaskProgress(id, { stage: 'queued', message: `显存已释放${freed ? `（空出 ${(freed / 1073741824).toFixed(1)} GB）` : ''}${leftover ? `，但 ${leftover}` : ''}，提交任务` })
 }
 
 async function processTask(id: number, config: AIConfig) {

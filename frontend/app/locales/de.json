@@ -514,7 +514,9 @@
         "freeAuto": "Automatisch (Vorlagen bis 16 GB)",
         "freeOn": "Immer zwischen Videos",
         "freeOff": "Nie (schneller)",
-        "queueHint": "Stapel gehen einzeln an ComfyUI / SD WebUI / Fooocus auf demselben Rechner, damit ComfyUI nicht mit Aufgaben überflutet wird, der VRAM ausgeht und es beendet wird; beendet sich ComfyUI mittendrin, geht es nach dem Neustart automatisch weiter. Auf großen Karten 2 für mehr Tempo."
+        "queueHint": "Stapel gehen einzeln an ComfyUI / SD WebUI / Fooocus auf demselben Rechner, damit ComfyUI nicht mit Aufgaben überflutet wird, der VRAM ausgeht und es beendet wird; beendet sich ComfyUI mittendrin, geht es nach dem Neustart automatisch weiter. Auf großen Karten 2 für mehr Tempo.",
+        "autoRestart": "ComfyUI automatisch neu starten, wenn Speicher nicht frei wird oder VRAM wiederholt ausgeht",
+        "autoRestartHint": "Benötigt ComfyUI-Manager (in den meisten Paketen enthalten). Hält ComfyUI nach dem Freigeben zwischen Videos noch viel VRAM / RAM oder geht der VRAM nach einer Freigabe erneut aus, wird ComfyUI über den Manager neu gestartet (RAM und VRAM geleert) und die Erzeugung danach automatisch fortgesetzt."
       },
       "fooocus": {
         "hint": "Benötigt Fooocus-API (Port 8888, nicht die Fooocus-Weboberfläche). Referenzen werden als Image Prompts gesendet (max. 4).",

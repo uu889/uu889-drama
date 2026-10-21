@@ -249,7 +249,8 @@ export function describeComfyOutOfMemory(nodeType: string, message: string): str
     `ComfyUI 显存不足${where}${parts.length ? `：${parts.join('，')}` : ''}。`,
     '处理办法：① 关掉同一张显卡上的其他程序（SD WebUI / Fooocus / 另一个 ComfyUI / 本地大模型），或不要同时生成图片和视频；',
     '② ComfyUI 不要用 --highvram / --gpu-only 启动，显存紧张时改用 --lowvram 或 --reserve-vram 4；',
-    '③ 降低分辨率或时长，或改用 fp8 / GGUF 量化模型。',
+    '③ 降低分辨率或时长，或改用 fp8 / GGUF 量化模型；',
+    '④ 连续生成几个视频之后才显存不足，多半是 ComfyUI 没把上一个任务的内存 / 显存释放干净：重启 ComfyUI，启动参数加 --cache-none（不保留上一个任务的中间结果）。',
     `原始错误：${nodeType} ${message}`.trim(),
   ].join('')
 }
@@ -360,7 +361,8 @@ export function readComfyHistory(result: any): ComfyHistoryState {
 export async function comfyAlive(config: AIConfig): Promise<boolean> {
   try {
     const resp = await fetch(comfyUrl(config, '/system_stats'), { headers: comfyAuthHeaders(config), signal: AbortSignal.timeout(8_000) })
-    resp.body?.cancel().catch(() => {})
+    // 把响应读完再结束（中途丢弃会让 Windows 上的 ComfyUI 控制台打印 WinError 10054）
+    await resp.arrayBuffer().catch(() => null)
     return ![502, 503, 504].includes(resp.status)
   } catch {
     return false
@@ -383,8 +385,82 @@ export async function waitComfyAlive(config: AIConfig, maxMs = 15 * 60_000, repo
   return false
 }
 
-/** 连续多久连不上 ComfyUI 就当作它已经退出（任务随之丢失） */
-export const COMFY_DOWN_GRACE_MS = Number(process.env.COMFY_DOWN_GRACE_MS) || 60_000
+/**
+ * 连续多久连不上 ComfyUI 就放弃这个任务（交给 prepareRetry 等它回来再重新提交）。
+ * 不能太短：ComfyUI 加载大模型、内存吃紧时会卡住好几分钟不响应，此时任务其实还在跑，过早判定会重复提交。
+ * ComfyUI 真的重启过的话，恢复连接后队列和历史里都找不到任务，会立即走「任务丢失 → 重新提交」。
+ */
+export const COMFY_DOWN_GRACE_MS = Number(process.env.COMFY_DOWN_GRACE_MS) || 15 * 60_000
+/** /system_stats：显存 / 内存用量（字节；读不到为 null） */
+export async function comfySystemStats(config: AIConfig): Promise<{ vramTotal: number; vramFree: number; ramTotal: number; ramFree: number } | null> {
+  try {
+    const resp = await fetch(comfyUrl(config, '/system_stats'), { headers: comfyAuthHeaders(config), signal: AbortSignal.timeout(10_000) })
+    if (!resp.ok) { await resp.arrayBuffer().catch(() => null); return null }
+    const s: any = await resp.json()
+    const d = s?.devices?.[0] || {}
+    const n = (v: any) => (Number.isFinite(Number(v)) ? Number(v) : 0)
+    return { vramTotal: n(d.vram_total), vramFree: n(d.vram_free), ramTotal: n(s?.system?.ram_total), ramFree: n(s?.system?.ram_free) }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 释放之后 ComfyUI 是否还占着大量显存 / 内存（上一个任务没释放干净，继续跑大概率显存不足或越跑越慢）：
+ * 空闲显存不到总量的 60%，或空闲内存不到 10%。
+ */
+export function comfyMemoryLeftover(stats: { vramTotal: number; vramFree: number; ramTotal: number; ramFree: number } | null): string | null {
+  if (!stats) return null
+  const gb = (b: number) => `${(b / 1073741824).toFixed(1)} GB`
+  if (stats.vramTotal > 0 && stats.vramFree < stats.vramTotal * 0.6) return `显存只剩 ${gb(stats.vramFree)} / ${gb(stats.vramTotal)}`
+  if (stats.ramTotal > 0 && stats.ramFree < stats.ramTotal * 0.1) return `内存只剩 ${gb(stats.ramFree)} / ${gb(stats.ramTotal)}`
+  return null
+}
+
+/** 自动重启 ComfyUI（需要 ComfyUI-Manager）：配置 auto_restart_comfy，默认开 */
+export function autoRestartEnabled(settings: Record<string, any> | null | undefined): boolean {
+  const v = settings?.auto_restart_comfy
+  return !(v === false || v === 'false' || v === 0)
+}
+
+/**
+ * 通过 ComfyUI-Manager 重启 ComfyUI（整个进程重开，内存 / 显存全部还给系统），等它重新起来。
+ * 老版 Manager：GET /api/manager/reboot（/manager/reboot）；新版：/v2/manager/reboot。
+ * 返回 'rebooted'（已重启并恢复）/ 'unsupported'（没装 Manager）/ 'forbidden'（Manager 安全级别不允许）/ 'timeout'（重启后没回来）
+ */
+export async function rebootComfy(config: AIConfig, report?: (message: string) => void): Promise<'rebooted' | 'unsupported' | 'forbidden' | 'timeout'> {
+  const paths = ['/api/manager/reboot', '/manager/reboot', '/api/v2/manager/reboot', '/v2/manager/reboot']
+  let sent = false
+  let forbidden = false
+  for (const p of paths) {
+    for (const method of ['GET', 'POST']) {
+      try {
+        const resp = await fetch(comfyUrl(config, p), { method, headers: comfyAuthHeaders(config), signal: AbortSignal.timeout(15_000) })
+        await resp.arrayBuffer().catch(() => null)
+        if (resp.status === 403) { forbidden = true; break }
+        if (resp.status === 404) break
+        if (resp.status === 405) continue
+        if (resp.ok) { sent = true; break }
+      } catch {
+        // 请求过程中连接断开：ComfyUI 正在重启
+        sent = true
+        break
+      }
+    }
+    if (sent) break
+  }
+  if (!sent) return forbidden ? 'forbidden' : 'unsupported'
+  report?.('已让 ComfyUI-Manager 重启 ComfyUI（清空内存和显存），等它重新启动')
+  // 先等它真的退出（最多 30 秒），再等它回来（最多 5 分钟）
+  const t0 = Date.now()
+  while (Date.now() - t0 < 30_000 && (await comfyAlive(config))) await new Promise((r) => setTimeout(r, 1000))
+  const back = await waitComfyAlive(config, 5 * 60_000, (m) => report?.(`ComfyUI 重启中：${m}`))
+  if (!back) return 'timeout'
+  // 刚起来时自定义节点还在加载，稍等一下再提交
+  await new Promise((r) => setTimeout(r, 3000))
+  return 'rebooted'
+}
+
 /** ComfyUI 退出 / 重启导致任务丢失时，等它回来后自动重新提交的次数 */
 export const COMFY_RESTART_RETRIES = 2
 
@@ -535,6 +611,17 @@ export abstract class ComfyUIClient {
     }
     if (!isComfyOutOfMemory(ctx.error) || ctx.attempt >= COMFY_OOM_RETRIES) return false
     const n = ctx.attempt + 1
+    // 释放过一次还是显存不足：ComfyUI 进程里有释放不掉的占用（连续跑多个视频后常见），重启 ComfyUI 最彻底
+    if (ctx.attempt >= 1 && autoRestartEnabled(config.settings)) {
+      ctx.report?.({ stage: 'queued', message: `释放显存后仍然显存不足，自动重启 ComfyUI 后重试（第 ${n}/${COMFY_OOM_RETRIES} 次）` })
+      const r = await rebootComfy(config, (message) => ctx.report?.({ stage: 'queued', message }))
+      if (r === 'rebooted') {
+        ctx.report?.({ stage: 'queued', message: `ComfyUI 已重启，重新提交（第 ${n}/${COMFY_OOM_RETRIES} 次）` })
+        return true
+      }
+      if (r === 'timeout') return false
+      ctx.report?.({ stage: 'queued', message: r === 'forbidden' ? 'ComfyUI-Manager 的安全级别不允许远程重启，改为再释放一次显存' : '没有检测到 ComfyUI-Manager，无法自动重启，改为再释放一次显存' })
+    }
     ctx.report?.({ stage: 'queued', message: `ComfyUI 显存不足，正在让 ComfyUI 释放缓存的模型后自动重试（第 ${n}/${COMFY_OOM_RETRIES} 次）` })
     const freed = await freeComfyMemory([config, ...ctx.peers])
     ctx.report?.({

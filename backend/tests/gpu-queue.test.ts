@@ -71,6 +71,13 @@ let maxActive = 0
 let prompts = 0
 let frees = 0
 let crashNext = false
+// 释放不掉的显存（模拟 ComfyUI 越跑越满），重启后恢复
+let leak = false
+// 一直显存不足，直到 ComfyUI 被重启
+let oomUntilReboot = false
+let reboots = 0
+const OOM = 'CUDA out of memory. Tried to allocate 2.00 GiB. GPU 0 has a total capacity of 12.00 GiB of which 0 bytes is free.'
+const oomIds = new Set<string>()
 let server: http.Server | null = null
 let port = 0
 const startedAt = new Map<string, number>()
@@ -81,7 +88,13 @@ function handler(req: http.IncomingMessage, res: http.ServerResponse) {
   let body = ''
   req.on('data', (c) => { body += c })
   req.on('end', () => {
-    if (url === '/system_stats') return json({ devices: [{ name: 'cuda:0', vram_total: 12 * 1024 ** 3, vram_free: 10 * 1024 ** 3 }] })
+    if (url === '/system_stats') return json({ system: { ram_total: 64 * 1024 ** 3, ram_free: 40 * 1024 ** 3 }, devices: [{ name: 'cuda:0', vram_total: 12 * 1024 ** 3, vram_free: (leak ? 3 : 10) * 1024 ** 3 }] })
+    if (url === '/api/manager/reboot') {
+      reboots++
+      json({})
+      setTimeout(() => { active.clear(); leak = false; oomUntilReboot = false; stopServer().then(() => setTimeout(() => startServer(), 1000)) }, 100)
+      return
+    }
     if (url === '/free') { frees++; return json({}) }
     if (url.startsWith('/upload/image')) return json({ name: `u${Date.now()}.png`, subfolder: '', type: 'input' })
     if (url === '/object_info' || url.startsWith('/object_info/')) return json({})
@@ -91,6 +104,7 @@ function handler(req: http.IncomingMessage, res: http.ServerResponse) {
       active.add(id)
       maxActive = Math.max(maxActive, active.size)
       startedAt.set(id, Date.now())
+      if (oomUntilReboot) oomIds.add(id)
       json({ prompt_id: id, number: prompts, node_errors: {} })
       // 模拟 ComfyUI 在执行这个任务时被显存挤崩退出
       if (crashNext) {
@@ -103,6 +117,10 @@ function handler(req: http.IncomingMessage, res: http.ServerResponse) {
     const h = /^\/history\/(p\d+)/.exec(url)
     if (h) {
       const id = h[1]
+      if (oomIds.has(id) && active.has(id)) {
+        active.delete(id)
+        return json({ [id]: { outputs: {}, status: { status_str: 'error', completed: false, messages: [['execution_error', { node_type: 'SamplerCustomAdvanced', exception_message: OOM, current_inputs: {} }]] } } })
+      }
       const finished = doneIds.has(id) || (active.has(id) && Date.now() - startedAt.get(id)! >= 1200)
       // 还在跑，或崩溃前的任务（ComfyUI 重启后队列和历史里都没有）
       if (!finished) return json({})
@@ -179,4 +197,34 @@ test('ComfyUI crashes mid-task: waits for it to come back, resubmits, finishes; 
   assert.equal(rb.status, 'completed', String(rb.errorMsg))
   assert.equal(prompts, 3, 'A 提交两次（崩溃后重提）+ B 一次')
   assert.equal(maxActive, 1)
+})
+
+test('VRAM still taken after freeing between videos: ComfyUI is restarted through ComfyUI-Manager before the next one', async () => {
+  q.resetGpuLanes()
+  prompts = 0
+  reboots = 0
+  frees = 0
+  doneIds.clear(); startedAt.clear(); active = new Set()
+  leak = true
+  const ids = await Promise.all([1, 2].map((n) => generateVideo({ prompt: `泄漏${n}`, duration: 5 })))
+  const rows = await Promise.all(ids.map((id) => waitDone(id)))
+  assert.deepEqual(rows.map((r) => r.status), ['completed', 'completed'], rows.map((r) => r.errorMsg).join(' | '))
+  assert.equal(frees, 1, '第 2 个视频前先释放')
+  assert.equal(reboots, 1, '释放后显存仍只剩 3/12 GB → 重启 ComfyUI')
+  assert.equal(prompts, 2)
+})
+
+test('out of memory again after one free: restart ComfyUI and resubmit instead of failing', async () => {
+  q.resetGpuLanes()
+  prompts = 0
+  reboots = 0
+  frees = 0
+  doneIds.clear(); startedAt.clear(); active = new Set(); oomIds.clear()
+  oomUntilReboot = true
+  const id = await generateVideo({ prompt: '显存不足', duration: 5 })
+  const row = await waitDone(id)
+  assert.equal(row.status, 'completed', String(row.errorMsg))
+  assert.equal(prompts, 3, '原任务 → 释放后重试 → 重启后重试')
+  assert.equal(frees, 1)
+  assert.equal(reboots, 1)
 })

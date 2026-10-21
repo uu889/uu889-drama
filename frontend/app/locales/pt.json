@@ -514,7 +514,9 @@
         "freeAuto": "Automático (modelos de 16 GB ou menos)",
         "freeOn": "Sempre entre vídeos",
         "freeOff": "Nunca (mais rápido)",
-        "queueHint": "Os lotes vão para o ComfyUI / SD WebUI / Fooocus do mesmo computador uma tarefa por vez, para não sobrecarregar o ComfyUI até faltar VRAM e ele fechar; se o ComfyUI fechar no meio, a geração continua sozinha depois de reiniciá-lo. Em placas grandes use 2 para ir mais rápido."
+        "queueHint": "Os lotes vão para o ComfyUI / SD WebUI / Fooocus do mesmo computador uma tarefa por vez, para não sobrecarregar o ComfyUI até faltar VRAM e ele fechar; se o ComfyUI fechar no meio, a geração continua sozinha depois de reiniciá-lo. Em placas grandes use 2 para ir mais rápido.",
+        "autoRestart": "Reiniciar o ComfyUI automaticamente se a memória não for liberada ou a VRAM continuar faltando",
+        "autoRestartHint": "Requer o ComfyUI-Manager (incluído na maioria dos pacotes). Se o ComfyUI continuar ocupando muita VRAM / RAM depois de liberar entre vídeos, ou faltar VRAM de novo após uma liberação, ele é reiniciado pelo Manager (limpando RAM e VRAM) e a geração continua sozinha quando ele voltar."
       },
       "fooocus": {
         "hint": "Requer Fooocus-API (porta 8888, não a interface web do Fooocus). Referências são enviadas como Image Prompts (máx. 4).",
