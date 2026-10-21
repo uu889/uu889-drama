@@ -516,7 +516,9 @@
         "freeOff": "Never (faster)",
         "queueHint": "Batches go to ComfyUI / SD WebUI / Fooocus on the same computer one task at a time, so ComfyUI is not flooded into running out of VRAM and quitting; if ComfyUI quits mid-task, generation resumes automatically once it is restarted. Use 2 on large cards for more speed.",
         "autoRestart": "Restart ComfyUI automatically when memory is not freed or VRAM keeps running out",
-        "autoRestartHint": "Needs ComfyUI-Manager (bundled with most packages). If ComfyUI still holds lots of VRAM / RAM after freeing between videos, or runs out of VRAM again after one free, it is restarted through the Manager (clearing RAM and VRAM) and generation continues once it is back."
+        "autoRestartHint": "Needs ComfyUI-Manager (bundled with most packages). If ComfyUI still holds lots of VRAM / RAM after freeing between videos, or runs out of VRAM again after one free, it is restarted through the Manager (clearing RAM and VRAM) and generation continues once it is back.",
+        "oomLower": "Fall back to 480p when VRAM keeps running out",
+        "oomLowerHint": "If a shot still runs out of VRAM after freeing memory and restarting ComfyUI (usually a long shot or many reference images), the last retry renders it at 480p; upscale it to 1080p afterwards. Turn off to fail instead."
       },
       "fooocus": {
         "hint": "Requires Fooocus-API (port 8888, not the Fooocus web UI). Use a checkpoint file name or default as the model. Shot references are sent as Image Prompts (up to 4).",

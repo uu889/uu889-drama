@@ -516,7 +516,9 @@
         "freeOff": "解放しない（速い）",
         "queueHint": "一括生成では同じ PC の ComfyUI / SD WebUI / Fooocus に 1 件ずつ渡し、前のタスクが終わると次を自動で渡します。一度に詰め込んで VRAM 不足や ComfyUI 終了になるのを防ぎ、途中で ComfyUI が終了しても再起動後に自動で続行します。VRAM に余裕があれば 2 にすると速くなります。",
         "autoRestart": "VRAM が解放しきれない・VRAM 不足が続くときに ComfyUI を自動再起動",
-        "autoRestartHint": "ComfyUI-Manager が必要です（多くの統合パッケージに同梱）。動画の間で解放しても ComfyUI が VRAM / メモリを大量に占有しているとき、または 1 回解放してもまだ VRAM 不足のとき、Manager 経由で ComfyUI を再起動（メモリと VRAM を全て解放）し、復帰後に自動で生成を続けます。"
+        "autoRestartHint": "ComfyUI-Manager が必要です（多くの統合パッケージに同梱）。動画の間で解放しても ComfyUI が VRAM / メモリを大量に占有しているとき、または 1 回解放してもまだ VRAM 不足のとき、Manager 経由で ComfyUI を再起動（メモリと VRAM を全て解放）し、復帰後に自動で生成を続けます。",
+        "oomLower": "VRAM 不足が続くときは 480p に下げて再試行",
+        "oomLowerHint": "VRAM 解放・ComfyUI 再起動後もあるカットが VRAM 不足になる場合（長いカットや参照画像が多いことが多い）、最後の再試行で 480p 生成に切り替えます。生成後に「高画質化」で 1080p に拡大できます。オフにすると失敗として扱います。"
       },
       "fooocus": {
         "hint": "Fooocus-API（ポート 8888、Fooocus の Web UI ではない）が必要です。参照画像は Image Prompt として送信（最大 4 枚）。",

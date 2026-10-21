@@ -206,8 +206,43 @@ const MODEL_FILE_RE = /\.(safetensors|sft|ckpt|pt|pth|bin|gguf)$/i
 // safetensors / torch 读到截断或损坏文件时的典型报错
 const CORRUPT_FILE_RE = /incomplete metadata|not fully covered|deserializ|header ?too ?large|invalid header|unexpected end of file|PytorchStreamReader|central directory|MetadataIncompleteBuffer|safetensors_rust/i
 const OUT_OF_MEMORY_RE = /out of memory|OutOfMemory|CUDA error: out of memory|allocation on device/i
-/** 显存不足时自动「释放显存 → 重新提交」的次数 */
-export const COMFY_OOM_RETRIES = 2
+/**
+ * 显存不足时自动重试的次数：① 释放显存 ② 重启 ComfyUI（没有 Manager 时再释放一次）
+ * ③ 还是不行就降到 480p 再试一次（分辨率已经不高于 480p 时不做这一步）
+ */
+export const COMFY_OOM_RETRIES = 3
+/** 显存不足最后一招降到的短边 */
+export const COMFY_OOM_SHORT_EDGE = 480
+
+/** 显存不足时是否允许降到 480p 重试：配置 oom_lower_resolution，默认开 */
+export function oomLowerResolutionEnabled(settings: Record<string, any> | null | undefined): boolean {
+  const v = settings?.oom_lower_resolution
+  return !(v === false || v === 'false' || v === 0)
+}
+
+/**
+ * 把 /prompt 请求里的视频画布降到短边 short（就地修改）：找同时带数字 width / height / length 的节点
+ * （MiniMaxH3ReferenceToVideo / WanImageToVideo / Wan22ImageToVideoLatent / EmptyHunyuanLatentVideo 等视频潜空间节点），
+ * 保持宽高比，长边取 32 的倍数。已经不高于 short 时返回 null。
+ */
+export function shrinkComfyVideoCanvas(body: any, short = COMFY_OOM_SHORT_EDGE): { from: string; to: string } | null {
+  const workflow = body?.prompt
+  if (!workflow || typeof workflow !== 'object') return null
+  let changed: { from: string; to: string } | null = null
+  for (const node of Object.values<any>(workflow)) {
+    const inp = node?.inputs
+    if (!inp || typeof inp.width !== 'number' || typeof inp.height !== 'number' || typeof inp.length !== 'number') continue
+    const { width: w, height: h } = inp
+    if (!(w > 0 && h > 0) || Math.min(w, h) <= short) continue
+    const ratio = w / h
+    const long = Math.max(short, Math.round((short * Math.max(ratio, 1 / ratio)) / 32) * 32)
+    const next = ratio >= 1 ? { width: long, height: short } : { width: short, height: long }
+    changed ||= { from: `${w}×${h}`, to: `${next.width}×${next.height}` }
+    inp.width = next.width
+    inp.height = next.height
+  }
+  return changed
+}
 
 export function isComfyOutOfMemory(text: string | null | undefined): boolean {
   return OUT_OF_MEMORY_RE.test(String(text || ''))
@@ -611,8 +646,18 @@ export abstract class ComfyUIClient {
     }
     if (!isComfyOutOfMemory(ctx.error) || ctx.attempt >= COMFY_OOM_RETRIES) return false
     const n = ctx.attempt + 1
+    // 最后一次：释放 + 重启都不够，说明这个镜头本身太大（时长长 / 参考图多 / 分辨率高）：降到 480p 再试
+    if (ctx.attempt >= 2) {
+      if (!oomLowerResolutionEnabled(config.settings) || !ctx.request) return false
+      const shrunk = shrinkComfyVideoCanvas(ctx.request.body)
+      if (!shrunk) return false
+      ctx.report?.({ stage: 'queued', message: `这个镜头在当前分辨率下显存一直不够，降到 ${COMFY_OOM_SHORT_EDGE}p（${shrunk.from} → ${shrunk.to}）再试（第 ${n}/${COMFY_OOM_RETRIES} 次），出片后可以用「高清化」放大到 1080p` })
+      await freeComfyMemory([config, ...ctx.peers])
+      ctx.downgraded = shrunk
+      return true
+    }
     // 释放过一次还是显存不足：ComfyUI 进程里有释放不掉的占用（连续跑多个视频后常见），重启 ComfyUI 最彻底
-    if (ctx.attempt >= 1 && autoRestartEnabled(config.settings)) {
+    if (ctx.attempt === 1 && autoRestartEnabled(config.settings)) {
       ctx.report?.({ stage: 'queued', message: `释放显存后仍然显存不足，自动重启 ComfyUI 后重试（第 ${n}/${COMFY_OOM_RETRIES} 次）` })
       const r = await rebootComfy(config, (message) => ctx.report?.({ stage: 'queued', message }))
       if (r === 'rebooted') {

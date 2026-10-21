@@ -1273,7 +1273,8 @@
                   <span>#{{ row.id }}</span>
                 </div>
                 <TaskProgress v-if="row.progress && genTaskStateClass(row.status) === 'pending'" :progress="row.progress" />
-                <div v-if="row.errorMsg" class="video-task-error" :title="row.errorMsg">
+                <div v-if="row.errorMsg && row.status === 'completed'" class="video-task-note" :title="row.errorMsg">{{ row.errorMsg }}</div>
+                <div v-else-if="row.errorMsg" class="video-task-error" :title="row.errorMsg">
                   {{ mapError(row.errorMsg) }}
                   <div v-if="row.kind === 'video' && videoModerationHint(row.errorMsg)" class="video-task-error-hint">{{ videoModerationHint(row.errorMsg) }}</div>
                 </div>
@@ -6912,4 +6913,5 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
 .upscale-status.is-ok { background: var(--success-bg, rgba(34,160,90,.1)); color: var(--success, #1f8a4c); }
 .upscale-status.is-warn { background: var(--warning-bg, rgba(229,160,0,.12)); color: var(--warning, #a8661a); }
 .upscale-hint { display: block; margin-top: 3px; color: var(--text-2); word-break: break-all; }
+.video-task-note { margin-top: 4px; font-size: 11px; line-height: 1.45; color: var(--warning, #a8661a); }
 </style>

@@ -164,6 +164,10 @@ export interface RetryContext {
   /** 同一台机器上同一服务商的其他启用配置（如另一个 ComfyUI 端口），可一并释放资源 */
   peers: AIConfig[]
   report?: ProgressReporter
+  /** 原请求：适配器可以就地修改 body（如显存不足时降分辨率），重新提交时用修改后的 */
+  request?: ProviderRequest
+  /** 适配器为了重试降了分辨率时填写（任务完成后写进备注） */
+  downgraded?: { from: string; to: string }
 }
 
 export interface AIConfig {

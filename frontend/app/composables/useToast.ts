@@ -27,7 +27,7 @@ const CJK_RE = /[一-鿿]/
 /** 与 backend/src/utils/model-error.ts describeModelError 的格式一致：文本模型调用失败（HTTP 400）：<上游原因> */
 const MODEL_ERROR_RE = /^文本模型调用失败(?:（HTTP (\d{3})）)?：([\s\S]*)$/
 /** 后端整理过的 ComfyUI 中文提示（工作流格式 / 校验失败 / 任务丢失等），长度不定但可直接给用户看 */
-const COMFY_MESSAGE_RE = /^ComfyUI[\s\S]*[一-鿿]/
+const COMFY_MESSAGE_RE = /^(?:自动重试 \d+ 次后仍失败。)?ComfyUI[\s\S]*[一-鿿]/
 
 function clip(text: string, max = 200): string {
   return text.length > max ? `${text.slice(0, max)}…` : text

@@ -755,6 +755,13 @@
                   </select>
                 </label>
               </div>
+              <label v-if="isComfyForm && cfgForm.service_type === 'video'" class="check-row queue-restart">
+                <input v-model="cfgForm.oom_lower_resolution" type="checkbox" />
+                <span>
+                  <b>{{ t('settings.cfg.local.oomLower') }}</b>
+                  <span class="field-hint">{{ t('settings.cfg.local.oomLowerHint') }}</span>
+                </span>
+              </label>
               <label v-if="isComfyForm" class="check-row queue-restart">
                 <input v-model="cfgForm.auto_restart_comfy" type="checkbox" />
                 <span>
@@ -1028,7 +1035,7 @@ const aiaskSaving = ref(false)
 // 本地服务（ComfyUI / SD WebUI / Fooocus）专属参数存后端 settings JSON，接口上以顶层字段读写
 const LOCAL_SETTING_FIELDS = ['max_concurrent', 'comfyui_workflow', 'comfyui_template', 'comfyui_fps', 'comfyui_steps', 'comfyui_cfg', 'comfyui_negative_prompt', 'prompt_template', 'image_base_size', 'image_steps', 'image_cfg_scale', 'image_sampler', 'image_negative_prompt', 'fooocus_performance', 'fooocus_styles']
 // 布尔设置单独处理：自动绑定默认开；中文翻译默认值按服务类型（本地生图开、ComfyUI 视频关）
-const EMPTY_CFG_FORM = { name: '', provider: '', api_key: '', base_url: '', models: [], service_type: 'text', priority: 0, temperature: '', ...Object.fromEntries(LOCAL_SETTING_FIELDS.map(k => [k, ''])), comfyui_auto_bind: true, free_vram_between: '', auto_restart_comfy: true, prompt_translate: true, style_models_enabled: false, style_models: {}, model_install: null, style_models_auto_download: false, download_prefer_mirror: false, civitai_token: '', hf_token: '' }
+const EMPTY_CFG_FORM = { name: '', provider: '', api_key: '', base_url: '', models: [], service_type: 'text', priority: 0, temperature: '', ...Object.fromEntries(LOCAL_SETTING_FIELDS.map(k => [k, ''])), comfyui_auto_bind: true, free_vram_between: '', auto_restart_comfy: true, oom_lower_resolution: true, prompt_translate: true, style_models_enabled: false, style_models: {}, model_install: null, style_models_auto_download: false, download_prefer_mirror: false, civitai_token: '', hf_token: '' }
 const cfgForm = reactive({ ...EMPTY_CFG_FORM })
 const LOCAL_BASE_URLS = { comfyui: 'http://127.0.0.1:8188', sdwebui: 'http://127.0.0.1:7860', fooocus: 'http://127.0.0.1:8888' }
 const FOOOCUS_PERFORMANCE = ['Speed', 'Quality', 'Extreme Speed', 'Lightning', 'Hyper-SD']
@@ -1391,6 +1398,7 @@ function startEditCfg(c) {
     comfyui_auto_bind: c.comfyui_auto_bind !== false,
     free_vram_between: c.free_vram_between === true ? 'on' : c.free_vram_between === false ? 'off' : '',
     auto_restart_comfy: c.auto_restart_comfy !== false,
+    oom_lower_resolution: c.oom_lower_resolution !== false,
     prompt_translate: typeof c.prompt_translate === 'boolean' ? c.prompt_translate : c.service_type !== 'video',
     style_models_enabled: c.style_models_enabled === true,
     style_models: parseStyleModels(c.style_models),
@@ -1472,6 +1480,7 @@ function localSettingsPayload() {
         ? {
             comfyui_fps: num(cfgForm.comfyui_fps), comfyui_steps: num(cfgForm.comfyui_steps), comfyui_cfg: num(cfgForm.comfyui_cfg),
             free_vram_between: cfgForm.free_vram_between === 'on' ? true : cfgForm.free_vram_between === 'off' ? false : '',
+            oom_lower_resolution: !!cfgForm.oom_lower_resolution,
           }
         : imageParams()),
     }

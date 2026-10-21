@@ -11,7 +11,7 @@ import fs from 'fs'
 import { downloadFile, fetchImageAsCompressedDataUrl, generateImageThumb, getAbsolutePath, readImageAsCompressedDataUrl, readImageAsDataUrl, saveBase64Image } from '../utils/storage.js'
 import { endFramePathFor, extractVideoEndFrame, extractVideoPoster, posterPathFor } from '../utils/video-poster.js'
 import { getImageAdapter, getVideoAdapter } from './adapters/registry'
-import type { AIConfig, GenerateContext, ImageProviderAdapter, ProviderRequest, VideoProviderAdapter } from './adapters/types'
+import type { AIConfig, GenerateContext, ImageProviderAdapter, ProviderRequest, RetryContext, VideoProviderAdapter } from './adapters/types'
 import { formatBytes, formatEta, setTaskProgress, stagePercent, type TaskProgressPatch } from './task-progress.js'
 import { maybeTranslatePrompt, needsTranslation, shouldTranslatePrompt } from './prompt-translate.js'
 import { getDramaStyleKey } from './style-preset.js'
@@ -515,6 +515,8 @@ async function pollTask(record: SysTaskRecord, config: AIConfig, initialTaskId: 
   let clientErrors = 0
   let taskId = initialTaskId
   let retries = 0
+  /** 显存不足时降过分辨率（完成后写进任务备注） */
+  let downgraded: { from: string; to: string } | undefined
   const report = (patch: TaskProgressPatch) => { setTaskProgress(record.id, patch) }
 
   /** 上游执行失败：适配器能处理（如 ComfyUI 显存不足先释放显存）就用同一个请求重新提交，继续轮询新任务 */
@@ -522,7 +524,9 @@ async function pollTask(record: SysTaskRecord, config: AIConfig, initialTaskId: 
     if (!hooks.prepareRetry || !request || request.body instanceof FormData) return false
     try {
       const peers = await sameHostPeers(config)
-      const ok = await hooks.prepareRetry(config, { taskId, error, attempt: retries, peers, report })
+      const ctx: RetryContext = { taskId, error, attempt: retries, peers, report, request }
+      const ok = await hooks.prepareRetry(config, ctx)
+      if (ok && ctx.downgraded) downgraded = ctx.downgraded
       if (!ok) return false
       const resp = await fetch(request.url, {
         method: request.method,
@@ -671,6 +675,11 @@ async function pollTask(record: SysTaskRecord, config: AIConfig, initialTaskId: 
       }
       logTaskSuccess(label, 'poll-complete', { id: record.id, taskId, videoUrl: pollResp.videoUrl })
       await withRetry(() => handleVideoComplete(record, config, pollResp.videoUrl, pollResp.duration))
+      if (downgraded) {
+        await db.update(schema.sysTask)
+          .set({ errorMsg: `显存不足，这个镜头降到 480p 生成（${downgraded.from} → ${downgraded.to}），可以用「高清化」放大到 1080p` })
+          .where(eq(schema.sysTask.id, record.id))
+      }
     } catch (err: any) {
       await failTask(record.id, `结果下载失败：${err.message}`)
     }

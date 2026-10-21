@@ -77,6 +77,8 @@ const PROVIDER_SETTING_RULES: Record<string, Record<string, SettingRule>> = {
     free_vram_between: { kind: 'boolean', default: null },
     // 释放后仍占用大量资源 / 连续显存不足时通过 ComfyUI-Manager 自动重启 ComfyUI（默认开）
     auto_restart_comfy: { kind: 'boolean', default: true },
+    // 释放 / 重启后仍显存不足时降到 480p 再试（默认开）
+    oom_lower_resolution: { kind: 'boolean', default: true },
     ...QUEUE_RULES,
     ...IMAGE_PARAM_RULES,
     ...STYLE_MODEL_RULES,

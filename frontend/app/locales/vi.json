@@ -516,7 +516,9 @@
         "freeOff": "Không giải phóng (nhanh hơn)",
         "queueHint": "Khi tạo hàng loạt, ComfyUI / SD WebUI / Fooocus trên cùng máy chỉ nhận từng tác vụ một, xong cái trước mới tự gửi cái sau, tránh dồn quá nhiều gây thiếu VRAM và ComfyUI bị thoát; nếu ComfyUI thoát giữa chừng, khởi động lại là tự tạo tiếp. Card lớn có thể chọn 2 cho nhanh hơn.",
         "autoRestart": "Tự khởi động lại ComfyUI khi bộ nhớ không giải phóng hết hoặc liên tục thiếu VRAM",
-        "autoRestartHint": "Cần ComfyUI-Manager (đa số bản tích hợp đã có). Nếu sau khi giải phóng giữa các video ComfyUI vẫn chiếm nhiều VRAM / RAM, hoặc đã giải phóng một lần mà vẫn thiếu VRAM, sẽ khởi động lại ComfyUI qua Manager (xóa sạch RAM và VRAM) rồi tự tạo tiếp khi nó chạy lại."
+        "autoRestartHint": "Cần ComfyUI-Manager (đa số bản tích hợp đã có). Nếu sau khi giải phóng giữa các video ComfyUI vẫn chiếm nhiều VRAM / RAM, hoặc đã giải phóng một lần mà vẫn thiếu VRAM, sẽ khởi động lại ComfyUI qua Manager (xóa sạch RAM và VRAM) rồi tự tạo tiếp khi nó chạy lại.",
+        "oomLower": "Hạ xuống 480p khi VRAM vẫn không đủ",
+        "oomLowerHint": "Nếu một cảnh vẫn thiếu VRAM sau khi giải phóng và khởi động lại ComfyUI (thường do cảnh dài hoặc nhiều ảnh tham chiếu), lần thử cuối sẽ tạo ở 480p; sau đó dùng \"Nâng nét\" để phóng lên 1080p. Tắt thì báo lỗi."
       },
       "fooocus": {
         "hint": "Cần Fooocus-API (cổng 8888, không phải giao diện web Fooocus). Ảnh tham chiếu được gửi dạng Image Prompt (tối đa 4).",
