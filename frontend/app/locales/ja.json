@@ -521,7 +521,14 @@
         "autoRestart": "VRAM が解放しきれない・VRAM 不足が続くときに ComfyUI を自動再起動",
         "autoRestartHint": "ComfyUI-Manager が必要です（多くの統合パッケージに同梱）。動画の間で解放しても ComfyUI が VRAM / メモリを大量に占有しているとき、または 1 回解放してもまだ VRAM 不足のとき、Manager 経由で ComfyUI を再起動（メモリと VRAM を全て解放）し、復帰後に自動で生成を続けます。",
         "oomLower": "VRAM 不足が続くときは 480p に下げて再試行",
-        "oomLowerHint": "VRAM 解放・ComfyUI 再起動後もあるカットが VRAM 不足になる場合（長いカットや参照画像が多いことが多い）、最後の再試行で 480p 生成に切り替えます。生成後に「高画質化」で 1080p に拡大できます。オフにすると失敗として扱います。"
+        "oomLowerHint": "VRAM 解放・ComfyUI 再起動後もあるカットが VRAM 不足になる場合（長いカットや参照画像が多いことが多い）、最後の再試行で 480p 生成に切り替えます。生成後に「高画質化」で 1080p に拡大できます。オフにすると失敗として扱います。",
+        "restartEvery": "ComfyUI を定期再起動",
+        "restartEveryAuto": "自動（12G は 3 本ごと、16G は 5 本ごと）",
+        "restartEveryOff": "再起動しない",
+        "restartEveryN": "{n} 本ごと",
+        "startCommand": "ComfyUI 起動コマンド（任意）",
+        "startCommandPlaceholder": "例：E:\\comfyui\\run_nvidia_gpu.bat",
+        "startCommandHint": "ComfyUI がクラッシュしたらこのコマンドで自動的に再起動し、未完了の動画を続行します（ローカルのみ）。ランチャーや起動スクリプトのフルパスを入力。"
       },
       "fooocus": {
         "hint": "Fooocus-API（ポート 8888、Fooocus の Web UI ではない）が必要です。参照画像は Image Prompt として送信（最大 4 枚）。",
@@ -668,6 +675,12 @@
         "concurrentTitle": "同時に生成する動画数",
         "concurrentDefault": "2（デフォルト）",
         "concurrentHint": "aiask.me の Grok 動画は上流の wokey.ai で生成され、同時生成数に上限があり超えると失敗します。一括生成ではこの数ずつ順番に送信し、混雑時は自動で再送信します。アカウントの上限が高い場合は増やせます。"
+      },
+      "video": {
+        "maxDuration": "動画の最大長（秒）",
+        "maxDurationHint": "超える場合はこの長さで生成します。デフォルト 15 秒。",
+        "maxPromptBytes": "プロンプト最大長（UTF-8 バイト）",
+        "maxPromptBytesHint": "デフォルト 4090。漢字 1 文字 = 3 バイト。超える場合は補助指示を先に省き、次に本文を短縮します。0 = 無制限。Grok 動画は最大 4096 バイト。"
       }
     },
     "styleDialog": {

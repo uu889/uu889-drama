@@ -23,6 +23,8 @@ interface Lane {
   limit: number
   /** 上一个视频任务结束后还没有释放过显存 */
   dirty: boolean
+  /** 上次重启 ComfyUI 以来交过几个视频（小显存定期重启用） */
+  videosSinceRestart: number
 }
 
 const lanes = new Map<string, Lane>()
@@ -74,7 +76,7 @@ export function laneLimit(config: Pick<AIConfig, 'settings'>): number {
 
 function lane(key: string): Lane {
   let l = lanes.get(key)
-  if (!l) lanes.set(key, (l = { active: new Set(), waiters: [], limit: 1, dirty: false }))
+  if (!l) lanes.set(key, (l = { active: new Set(), waiters: [], limit: 1, dirty: false, videosSinceRestart: 0 }))
   return l
 }
 
@@ -138,6 +140,13 @@ export function laneNeedsFree(key: string, consume = false): boolean {
   if (!l?.dirty) return false
   if (consume) l.dirty = false
   return true
+}
+
+/** 上次重启以来交过的视频数；传 set 时改写 */
+export function laneVideosSinceRestart(key: string, set?: number): number {
+  const l = lane(key)
+  if (set !== undefined) l.videosSinceRestart = set
+  return l.videosSinceRestart
 }
 
 export function gpuLaneStatus(key: string) {

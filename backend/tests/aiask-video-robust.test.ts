@@ -42,13 +42,14 @@ test('cloud lane: aiask video queues (default 2, configurable), others do not', 
 })
 
 // ─── 模拟 aiask.me /v1/videos：上游同时最多 2 个，超出 429；状态接口按场景出错 ───
-type Scenario = 'normal' | 'poll-failed-but-done' | 'poll-404-but-done' | 'busy-after-accept'
+type Scenario = 'normal' | 'poll-failed-but-done' | 'poll-404-but-done' | 'busy-after-accept' | 'download-interrupted'
 let scenario: Scenario = 'normal'
 let seq = 0
 let running = 0
 let maxRunning = 0
 let rejected = 0
 let submits = 0
+let lastSubmit: any = null
 const tasks = new Map<string, { polls: number; done: boolean; busyFail: boolean }>()
 const MP4 = Buffer.concat([Buffer.from([0, 0, 0, 0x18]), Buffer.from('ftypmp42'), Buffer.alloc(64)])
 let server: http.Server
@@ -64,15 +65,21 @@ before(async () => {
   server = http.createServer((req, res) => {
     const url = req.url || ''
     const json = (code: number, v: unknown) => { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(v)) }
-    req.resume()
+    let raw = ''
+    req.on('data', (c) => { raw += c })
     req.on('end', () => {
       if (url === '/v1/videos' && req.method === 'POST') {
         submits++
         if (running >= 2) { rejected++; return json(429, { error: { message: 'Too many concurrent video tasks' } }) }
+        try { lastSubmit = JSON.parse(raw) } catch { lastSubmit = null }
+        // Grok 上游：提示词超过 4096 字节直接 400
+        if (lastSubmit && Buffer.byteLength(String(lastSubmit.prompt || '')) > 4096) {
+          return json(400, { error: { message: '提示词过长。Grok视频最多支持4096字节的UTF-8文本，请缩短后重试。' } })
+        }
         const id = `v${++seq}`
         running++
         maxRunning = Math.max(maxRunning, running)
-        tasks.set(id, { polls: 0, done: false, busyFail: scenario === 'busy-after-accept' && seq === 1 })
+        tasks.set(id, { polls: 0, done: false, busyFail: (scenario === 'busy-after-accept' || scenario === 'download-interrupted') && seq === 1 })
         return json(202, { id, object: 'video', status: 'in_progress' })
       }
       const content = /^\/v1\/videos\/(v\d+)\/content$/.exec(url)
@@ -90,7 +97,9 @@ before(async () => {
         t.polls++
         if (t.busyFail && t.polls >= 2) {
           finish(id)
-          return json(200, { id, status: 'failed', error: { message: 'upstream concurrency limit exceeded' } })
+          return json(200, { id, status: 'failed', error: { message: scenario === 'download-interrupted'
+            ? 'Failed to downloade the provided image (image_downloade_error=image_download_interrupted): the connection drpped while downloading the image. Please retry or host the image on a more reliabe nedpoint.'
+            : 'upstream concurrency limit exceeded' } })
         }
         if (t.polls < 3) return json(200, { id, status: 'in_progress', progress: t.polls * 30 })
         finish(id)
@@ -172,4 +181,27 @@ test('queue set above the upstream limit: rejected submits wait and retry, all c
   } finally {
     await db.update(schema.aiServiceConfigs).set({ settings: null }).where(eq(schema.aiServiceConfigs.provider, 'aiask'))
   }
+})
+
+test('upstream failed to download the reference image: resubmitted automatically, no 2-minute re-check first', async () => {
+  reset('download-interrupted')
+  seq = 0
+  tasks.clear()
+  const t0 = Date.now()
+  const row = await waitDone(await generateVideo({ prompt: '天台对峙', duration: 5 }))
+  assert.equal(row.status, 'completed', String(row.errorMsg))
+  assert.equal(submits, 2)
+  assert.ok(Date.now() - t0 < 10_000)
+})
+
+test('long Chinese prompt is fitted under the byte limit and duration clamped to the configured max', async () => {
+  reset('normal')
+  const prompt = '小明推门进来，' + '雨水顺着外套往下滴，镜头缓缓推进。'.repeat(250) + '\n\n【台词控制】本段只有 1 句话：\n1. 小明：「我回来了。」\n【画风一致】画面清晰锐利。'
+  assert.ok(Buffer.byteLength(prompt) > 4096)
+  const row = await waitDone(await generateVideo({ prompt, duration: 20 }))
+  assert.equal(row.status, 'completed', String(row.errorMsg))
+  assert.ok(Buffer.byteLength(lastSubmit.prompt) <= 4090, `sent ${Buffer.byteLength(lastSubmit.prompt)} bytes`)
+  assert.equal(lastSubmit.duration_seconds, 15)
+  assert.match(String(row.errorMsg), /超过上限 4090 字节/)
+  assert.match(String(row.errorMsg), /按 15 秒生成/)
 })

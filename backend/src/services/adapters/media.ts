@@ -53,3 +53,35 @@ export async function loadReferenceFile(ref: string, baseName: string): Promise<
   }
   throw new Error(`无法读取参考图（仅支持 data URL 或 http(s) 地址）：${value.slice(0, 80)}`)
 }
+
+/**
+ * 上传给云端视频接口的参考图瘦身：超过 maxBytes 或长边超过 maxEdge 时转成 JPEG（透明背景铺白）。
+ * aiask.me 的 Grok 视频会把上传的图转存后再让上游 wokey.ai 去下载，图越大越容易
+ * 「image_download_interrupted（下载参考图时连接断开）」；2048 像素 / 质量 90 的 JPEG 画质差别看不出来。
+ * 转换失败时原样返回。
+ */
+export async function shrinkReferenceFile(
+  file: ReferenceFile,
+  opts: { maxBytes?: number; maxEdge?: number; quality?: number } = {},
+): Promise<ReferenceFile> {
+  const maxBytes = opts.maxBytes ?? 1_500_000
+  const maxEdge = opts.maxEdge ?? 2048
+  try {
+    const sharp = (await import('sharp')).default
+    const input = Buffer.from(await file.blob.arrayBuffer())
+    const meta = await sharp(input).metadata()
+    const longEdge = Math.max(meta.width || 0, meta.height || 0)
+    if (input.length <= maxBytes && longEdge <= maxEdge) return file
+    let img = sharp(input).rotate().resize({ width: maxEdge, height: maxEdge, fit: 'inside', withoutEnlargement: true })
+    if (meta.hasAlpha) img = img.flatten({ background: '#ffffff' })
+    const output = await img.jpeg({ quality: opts.quality ?? 90, mozjpeg: true }).toBuffer()
+    if (output.length >= input.length && longEdge <= maxEdge) return file
+    return {
+      blob: new Blob([new Uint8Array(output)], { type: 'image/jpeg' }),
+      mimeType: 'image/jpeg',
+      filename: file.filename.replace(/\.[a-z0-9]+$/i, '') + '.jpg',
+    }
+  } catch {
+    return file
+  }
+}

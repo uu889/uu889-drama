@@ -8,6 +8,7 @@ import { success, created, badRequest } from '../utils/response.js'
 import { generateImage, generateVideo } from '../services/generation.js'
 import { getActiveConfig, getConfigById } from '../services/ai.js'
 import { getDramaStylePrompt } from '../services/style-preset.js'
+import { clampDuration, videoLimits } from '../services/video-limits.js'
 import { logTaskError, logTaskPayload, logTaskStart, logTaskSuccess } from '../utils/task-logger.js'
 
 const app = new Hono()
@@ -189,6 +190,11 @@ app.post('/', async (c) => {
       const effectiveConfig = configId
         ? (await getConfigById(configId)) ?? await getActiveConfig('video')
         : await getActiveConfig('video')
+      // 时长超过这个视频接口的上限（设置页「最长视频时长」，默认 15 秒）按上限生成；
+      // 先于导演指令调整，【台词控制】里的「本段共 N 秒」才对得上
+      const limits = videoLimits(effectiveConfig?.settings)
+      const clamped = clampDuration(videoBody.duration, limits.maxDuration)
+      if (clamped != null && clamped < Number(videoBody.duration)) videoBody.duration = clamped
       const validationError = validateVideoRequest(videoBody, effectiveConfig?.provider)
       if (validationError) return badRequest(c, validationError)
     }

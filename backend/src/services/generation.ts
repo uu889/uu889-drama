@@ -17,9 +17,10 @@ import { maybeTranslatePrompt, needsTranslation, shouldTranslatePrompt } from '.
 import { getDramaStyleKey } from './style-preset.js'
 import { burnSubtitles, normalizeSubtitleOptions, storyboardDialogue } from './subtitles.js'
 import { getEpisodeSystemVoice } from './system-voice.js'
-import { acquireGpuLane, cloudLaneKey, cloudLaneLimit, gpuLaneKey, laneLimit, laneNeedsFree, releaseGpuLane } from './gpu-queue.js'
-import { isBusyMessage, isUpstreamBusy, retryAfterMs } from './upstream-busy.js'
-import { autoRestartEnabled, comfyMemoryLeftover, comfySystemStats, freeComfyMemory, rebootComfy, shouldFreeVramBetween, waitComfyAlive } from './adapters/comfyui-common.js'
+import { acquireGpuLane, cloudLaneKey, cloudLaneLimit, gpuLaneKey, laneLimit, laneNeedsFree, laneVideosSinceRestart, releaseGpuLane } from './gpu-queue.js'
+import { isBusyMessage, isTransientFailure, isUpstreamBusy, retryAfterMs } from './upstream-busy.js'
+import { clampDuration, describeFit, fitPromptBytes, videoLimits } from './video-limits.js'
+import { autoRestartEnabled, comfyAlive, comfyMemoryLeftover, comfySystemStats, freeComfyMemory, rebootComfy, restartEveryVideos, shouldFreeVramBetween, startComfyIfConfigured, waitComfyAlive } from './adapters/comfyui-common.js'
 import { resolveComfyTemplate } from './adapters/comfyui-templates.js'
 import { logTaskError, logTaskPayload, logTaskProgress, logTaskStart, logTaskSuccess, logTaskWarn, redactUrl } from '../utils/task-logger.js'
 
@@ -236,13 +237,32 @@ async function enterGpuLane(id: number, config: AIConfig, type: TaskType, model:
     }),
   })
   if (String(config.provider).toLowerCase() !== 'comfyui') return
-  const alive = await waitComfyAlive(config, 15 * 60_000, (message) => setTaskProgress(id, { stage: 'queued', message }))
-  if (!alive) throw new Error(`ComfyUI（${config.baseUrl || 'http://127.0.0.1:8188'}）一直没有响应（等了 15 分钟）。请确认 ComfyUI 已经启动，再重新生成`)
+  const queuedMsg = (message: string) => setTaskProgress(id, { stage: 'queued', message })
+  // 前一个任务把 ComfyUI 带崩了：配置了启动命令就先把它拉起来
+  if (!(await comfyAlive(config))) await startComfyIfConfigured(config, queuedMsg)
+  const alive = await waitComfyAlive(config, 15 * 60_000, queuedMsg)
+  if (!alive) throw new Error(`ComfyUI（${config.baseUrl || 'http://127.0.0.1:8188'}）一直没有响应（等了 15 分钟）。请确认 ComfyUI 已经启动，再重新生成；在 ComfyUI 配置里填「ComfyUI 启动命令」后，它退出时会自动重新启动`)
   if (type !== 'video') return
   const settings = config.settings || {}
   const tpl = typeof settings.comfyui_workflow === 'string' && settings.comfyui_workflow.trim()
     ? null
     : resolveComfyTemplate('video', settings.comfyui_template, model || config.model)
+  // 小显存定期重启：连续跑多个视频后可用显存掉到 0、越跑越慢，最后 ComfyUI 闪退（用户诊断日志：跑了一整天没重启，第 10 个视频时崩溃）
+  const every = restartEveryVideos(settings, tpl?.vram)
+  const done = laneVideosSinceRestart(key)
+  if (every && done >= every && autoRestartEnabled(settings)) {
+    queuedMsg(`已连续生成 ${done} 个视频，先重启一次 ComfyUI 把显存和内存全部还回来（小显存每 ${every} 个视频重启一次，避免越跑越慢、最后闪退）`)
+    const r = await rebootComfy(config, queuedMsg)
+    if (r === 'timeout') throw new Error('已让 ComfyUI-Manager 重启 ComfyUI，但 5 分钟内没有重新启动，请手动启动 ComfyUI 后重新生成')
+    if (r === 'rebooted') {
+      laneVideosSinceRestart(key, 1)
+      laneNeedsFree(key, true)
+      queuedMsg('ComfyUI 已重启，提交任务')
+      return
+    }
+    logTaskWarn('VideoTask', 'comfy-periodic-reboot-unavailable', { id, result: r })
+  }
+  laneVideosSinceRestart(key, done + 1)
   if (!shouldFreeVramBetween(settings, tpl?.vram) || !laneNeedsFree(key, true)) return
   setTaskProgress(id, { stage: 'queued', message: '先让 ComfyUI 释放上一个视频占用的显存（小显存模板每个视频之间释放一次，避免越跑越满）' })
   const freed = await freeComfyMemory([config, ...await sameHostPeers(config)], 20_000).catch(() => null)
@@ -252,7 +272,7 @@ async function enterGpuLane(id: number, config: AIConfig, type: TaskType, model:
     setTaskProgress(id, { stage: 'queued', message: `释放后 ComfyUI 仍占用大量资源（${leftover}），自动重启 ComfyUI 再提交，避免越跑越慢、显存不足` })
     const r = await rebootComfy(config, (message) => setTaskProgress(id, { stage: 'queued', message }))
     if (r === 'timeout') throw new Error('已让 ComfyUI-Manager 重启 ComfyUI，但 5 分钟内没有重新启动，请手动启动 ComfyUI 后重新生成')
-    if (r === 'rebooted') { setTaskProgress(id, { stage: 'queued', message: 'ComfyUI 已重启，提交任务' }); return }
+    if (r === 'rebooted') { laneVideosSinceRestart(key, 1); setTaskProgress(id, { stage: 'queued', message: 'ComfyUI 已重启，提交任务' }); return }
     logTaskWarn('VideoTask', 'comfy-reboot-unavailable', { id, result: r, leftover })
   }
   setTaskProgress(id, { stage: 'queued', message: `显存已释放${freed ? `（空出 ${(freed / 1073741824).toFixed(1)} GB）` : ''}${leftover ? `，但 ${leftover}` : ''}，提交任务` })
@@ -293,6 +313,24 @@ async function processTask(id: number, config: AIConfig) {
         setTaskProgress(id, { stage: 'preparing', message: `提示词翻译失败，改用原文：${message}` })
       })
       if (prompt !== record.prompt) logTaskPayload(label, 'translated prompt', { id, prompt })
+    }
+
+    // 视频接口上限（设置页可改）：时长超过上限按上限；提示词超过字节上限先精简（Grok 最多 4096 字节）
+    if (type === 'video') {
+      const limits = videoLimits(config.settings)
+      const clamped = clampDuration(params.duration, limits.maxDuration)
+      if (clamped != null && clamped < Number(params.duration)) {
+        addTaskNote(id, `时长 ${params.duration} 秒超过这个视频接口的上限 ${limits.maxDuration} 秒，按 ${clamped} 秒生成`)
+        params.duration = clamped
+      }
+      const fit = fitPromptBytes(prompt || '', limits.maxPromptBytes)
+      if (fit.trimmed && fit.fromBytes > limits.maxPromptBytes) {
+        const note = describeFit(fit, limits.maxPromptBytes)
+        addTaskNote(id, note)
+        logTaskWarn(label, 'prompt-fit', { id, fromBytes: fit.fromBytes, toBytes: fit.toBytes, removed: fit.removed, bodyCut: fit.bodyCut })
+        setTaskProgress(id, { stage: 'preparing', message: note })
+        prompt = fit.prompt
+      }
     }
 
     await enterGpuLane(id, config, type, record.model)
@@ -441,6 +479,7 @@ async function processTask(id: number, config: AIConfig) {
       setTaskProgress(id, { stage: 'downloading', message: '生成完成，下载视频' })
       logTaskProgress(label, 'sync-complete', { id, videoUrl })
       await handleVideoComplete(record, config, videoUrl, params.duration)
+      await flushTaskNotes(id)
       return
     }
 
@@ -463,7 +502,20 @@ async function markPolling(id: number, taskId: string | undefined) {
   logTaskProgress('SysTask', 'poll-start', { id, taskId })
 }
 
+/** 任务完成时写进备注（error_msg）的说明：时长 / 提示词被按上限调整、显存不足降分辨率等 */
+const taskNotes = new Map<number, string[]>()
+function addTaskNote(id: number, note: string) {
+  taskNotes.set(id, [...(taskNotes.get(id) || []), note])
+}
+async function flushTaskNotes(id: number) {
+  const notes = taskNotes.get(id)
+  taskNotes.delete(id)
+  if (!notes?.length) return
+  await db.update(schema.sysTask).set({ errorMsg: notes.join('；') }).where(eq(schema.sysTask.id, id))
+}
+
 async function failTask(id: number, message: string) {
+  taskNotes.delete(id)
   setTaskProgress(id, { stage: 'failed', message })
   logTaskError('SysTask', 'failed', { id, error: message })
   await db.update(schema.sysTask)
@@ -581,15 +633,16 @@ async function pollTask(record: SysTaskRecord, config: AIConfig, initialTaskId: 
 
   /**
    * 上游执行失败后能否重新提交：
-   * - 上游繁忙（并发数已满 / 限流）：等一会儿原样重交
+   * - 上游繁忙（并发数已满 / 限流）或临时故障（如上游下载参考图断线）：等一会儿原样重交
    * - 适配器能处理的失败（如 ComfyUI 显存不足先释放显存）
    */
   const retryAfterFailure = async (error: string): Promise<boolean> => {
     if (!request) return false
-    if (isBusyMessage(error) && busyResubmits < FAILED_BUSY_RESUBMITS) {
+    const busy = isBusyMessage(error)
+    if ((busy || isTransientFailure(error)) && busyResubmits < FAILED_BUSY_RESUBMITS) {
       const waitMs = busyBackoffMs(busyResubmits)
       busyResubmits++
-      report({ stage: 'queued', message: `${config.provider} 上游繁忙（${error.slice(0, 120)}），${Math.round(waitMs / 1000)} 秒后自动重新提交` })
+      report({ stage: 'queued', message: `${config.provider} ${busy ? '上游繁忙' : '上游临时出错'}（${error.slice(0, 120)}），${Math.round(waitMs / 1000)} 秒后自动重新提交（第 ${busyResubmits} / ${FAILED_BUSY_RESUBMITS} 次）` })
       await sleep(waitMs)
       try {
         await resubmit(error)
@@ -731,7 +784,8 @@ async function pollTask(record: SysTaskRecord, config: AIConfig, initialTaskId: 
     if (pollResp.status === 'failed') {
       const error = pollResp.error || 'Generation failed'
       // 状态接口报失败，先复查：其实已经生成好了就去下载，还在生成就接着轮询
-      const confirmed = await confirm(error)
+      // （明确是繁忙 / 临时故障的失败不用复查，直接重新提交）
+      const confirmed = isBusyMessage(error) || isTransientFailure(error) ? null : await confirm(error)
       if (confirmed && confirmed.status !== 'failed') {
         if (confirmed.status !== 'completed') continue
         pollResp = confirmed
@@ -783,11 +837,8 @@ async function pollTask(record: SysTaskRecord, config: AIConfig, initialTaskId: 
       logTaskSuccess(label, 'poll-complete', { id: record.id, taskId, videoUrl: pollResp.videoUrl })
       // 刚完成时成片可能还没就绪（网关 /content 短暂 404）：多等几次
       await withRetry(() => handleVideoComplete(record, config, pollResp.videoUrl, pollResp.duration), 5, 5000)
-      if (downgraded) {
-        await db.update(schema.sysTask)
-          .set({ errorMsg: `显存不足，这个镜头降到 480p 生成（${downgraded.from} → ${downgraded.to}），可以用「高清化」放大到 1080p` })
-          .where(eq(schema.sysTask.id, record.id))
-      }
+      if (downgraded) addTaskNote(record.id, `显存不足，这个镜头降到 480p 生成（${downgraded.from} → ${downgraded.to}），可以用「高清化」放大到 1080p`)
+      await flushTaskNotes(record.id)
     } catch (err: any) {
       await failTask(record.id, `结果下载失败：${err.message}`)
     }

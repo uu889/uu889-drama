@@ -28,8 +28,8 @@ import type {
   DownloadRequest,
 } from './types'
 import { joinProviderUrl } from './url'
-import { loadReferenceFile, parseUrlArray } from './media'
-import { gatewayVideoDownload, toGrokImageRefs } from './video-common'
+import { loadReferenceFile, parseUrlArray, shrinkReferenceFile } from './media'
+import { fitGrokPrompt, gatewayVideoDownload, toGrokImageRefs } from './video-common'
 import { stagePercent, type TaskProgressPatch } from '../task-progress'
 
 export const AIASK_DEFAULT_VIDEO_MODEL = 'grok-imagine-video-1.5-lite'
@@ -134,7 +134,10 @@ export class AiaskVideoAdapter implements VideoProviderAdapter {
 
     // Grok Imagine 的多参考图用 <IMAGE_0>… 指代参考图
     const referenceCount = mode === 'multimodal_reference' ? files.length : 0
-    const finalPrompt = referenceCount && /^grok/i.test(model) ? toGrokImageRefs(prompt, referenceCount) : prompt
+    const grok = /^grok/i.test(model)
+    const withRefs = referenceCount && grok ? toGrokImageRefs(prompt, referenceCount) : prompt
+    // Grok 最多 4096 字节：<IMAGE_n> 比 @图片N 长，换完再量一次
+    const finalPrompt = grok ? fitGrokPrompt(config, withRefs) : withRefs
 
     const fields: Record<string, string | number> = {
       model,
@@ -163,7 +166,8 @@ export class AiaskVideoAdapter implements VideoProviderAdapter {
     for (const [key, value] of Object.entries(fields)) form.append(key, String(value))
     let index = 0
     for (const [field, ref] of files) {
-      const file = await loadReferenceFile(ref, `${field}-${++index}`)
+      // 大图转成 2048 像素以内的 JPEG：上游下载参考图时不容易断线
+      const file = await shrinkReferenceFile(await loadReferenceFile(ref, `${field}-${++index}`))
       form.append(field, file.blob, file.filename)
     }
     return {

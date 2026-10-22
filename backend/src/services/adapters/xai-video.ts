@@ -23,7 +23,7 @@ import type {
 } from './types'
 import { joinProviderUrl } from './url'
 import { parseUrlArray } from './media'
-import { gatewayVideoDownload, toGrokImageRefs } from './video-common'
+import { fitGrokPrompt, gatewayVideoDownload, toGrokImageRefs } from './video-common'
 
 export const XAI_DEFAULT_VIDEO_MODEL = 'grok-imagine-video-1.5'
 
@@ -74,6 +74,7 @@ export class XaiVideoAdapter implements VideoProviderAdapter {
     if (isReference && resolution === '1080p') resolution = '720p'
 
     if (isReference) prompt = toGrokImageRefs(prompt, refImages.length)
+    prompt = fitGrokPrompt(config, prompt)
 
     const body: Record<string, any> = {
       model,

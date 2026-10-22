@@ -521,7 +521,14 @@
         "autoRestart": "ComfyUI automatisch neu starten, wenn Speicher nicht frei wird oder VRAM wiederholt ausgeht",
         "autoRestartHint": "Benötigt ComfyUI-Manager (in den meisten Paketen enthalten). Hält ComfyUI nach dem Freigeben zwischen Videos noch viel VRAM / RAM oder geht der VRAM nach einer Freigabe erneut aus, wird ComfyUI über den Manager neu gestartet (RAM und VRAM geleert) und die Erzeugung danach automatisch fortgesetzt.",
         "oomLower": "Bei anhaltendem VRAM-Mangel auf 480p zurückfallen",
-        "oomLowerHint": "Reicht der VRAM für eine Einstellung auch nach Freigabe und ComfyUI-Neustart nicht (meist lange Shots oder viele Referenzbilder), wird sie im letzten Versuch in 480p erzeugt; danach per Hochskalieren auf 1080p bringen. Aus = als Fehler melden."
+        "oomLowerHint": "Reicht der VRAM für eine Einstellung auch nach Freigabe und ComfyUI-Neustart nicht (meist lange Shots oder viele Referenzbilder), wird sie im letzten Versuch in 480p erzeugt; danach per Hochskalieren auf 1080p bringen. Aus = als Fehler melden.",
+        "restartEvery": "ComfyUI regelmäßig neu starten",
+        "restartEveryAuto": "Automatisch (12G alle 3, 16G alle 5 Videos)",
+        "restartEveryOff": "Nie",
+        "restartEveryN": "Alle {n} Videos",
+        "startCommand": "ComfyUI-Startbefehl (optional)",
+        "startCommandPlaceholder": "z. B. E:\\comfyui\\run_nvidia_gpu.bat",
+        "startCommandHint": "Stürzt ComfyUI ab, wird es mit diesem Befehl automatisch neu gestartet und offene Videos laufen weiter (nur lokal). Vollständiger Pfad zum Launcher oder Startskript."
       },
       "fooocus": {
         "hint": "Benötigt Fooocus-API (Port 8888, nicht die Fooocus-Weboberfläche). Referenzen werden als Image Prompts gesendet (max. 4).",
@@ -668,6 +675,12 @@
         "concurrentTitle": "Gleichzeitig erzeugte Videos",
         "concurrentDefault": "2 (Standard)",
         "concurrentHint": "aiask.me-Grok-Videos werden vorgelagert von wokey.ai erzeugt, das gleichzeitige Videos begrenzt und den Rest ablehnt. Stapel werden in dieser Anzahl eingereiht, bei Überlastung automatisch neu gesendet. Erhöhen, wenn Ihr Konto mehr erlaubt."
+      },
+      "video": {
+        "maxDuration": "Maximale Videolänge (Sekunden)",
+        "maxDurationHint": "Längere Shots werden mit dieser Länge erzeugt. Standard 15.",
+        "maxPromptBytes": "Maximale Promptlänge (UTF-8-Bytes)",
+        "maxPromptBytesHint": "Standard 4090; ein chinesisches Zeichen = 3 Bytes. Zu lange Prompts verlieren zuerst Zusatzanweisungen, dann wird der Text gekürzt; 0 = unbegrenzt. Grok-Video erlaubt höchstens 4096 Bytes."
       }
     },
     "styleDialog": {

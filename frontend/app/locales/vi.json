@@ -521,7 +521,14 @@
         "autoRestart": "Tự khởi động lại ComfyUI khi bộ nhớ không giải phóng hết hoặc liên tục thiếu VRAM",
         "autoRestartHint": "Cần ComfyUI-Manager (đa số bản tích hợp đã có). Nếu sau khi giải phóng giữa các video ComfyUI vẫn chiếm nhiều VRAM / RAM, hoặc đã giải phóng một lần mà vẫn thiếu VRAM, sẽ khởi động lại ComfyUI qua Manager (xóa sạch RAM và VRAM) rồi tự tạo tiếp khi nó chạy lại.",
         "oomLower": "Hạ xuống 480p khi VRAM vẫn không đủ",
-        "oomLowerHint": "Nếu một cảnh vẫn thiếu VRAM sau khi giải phóng và khởi động lại ComfyUI (thường do cảnh dài hoặc nhiều ảnh tham chiếu), lần thử cuối sẽ tạo ở 480p; sau đó dùng \"Nâng nét\" để phóng lên 1080p. Tắt thì báo lỗi."
+        "oomLowerHint": "Nếu một cảnh vẫn thiếu VRAM sau khi giải phóng và khởi động lại ComfyUI (thường do cảnh dài hoặc nhiều ảnh tham chiếu), lần thử cuối sẽ tạo ở 480p; sau đó dùng \"Nâng nét\" để phóng lên 1080p. Tắt thì báo lỗi.",
+        "restartEvery": "Khởi động lại ComfyUI định kỳ",
+        "restartEveryAuto": "Tự động (12G mỗi 3 video, 16G mỗi 5)",
+        "restartEveryOff": "Không",
+        "restartEveryN": "Mỗi {n} video",
+        "startCommand": "Lệnh khởi động ComfyUI (tùy chọn)",
+        "startCommandPlaceholder": "vd. E:\\comfyui\\run_nvidia_gpu.bat",
+        "startCommandHint": "Nếu ComfyUI bị thoát đột ngột, lệnh này tự khởi động lại và tiếp tục các video dở (chỉ máy cục bộ). Nhập đường dẫn đầy đủ của trình khởi chạy hoặc script."
       },
       "fooocus": {
         "hint": "Cần Fooocus-API (cổng 8888, không phải giao diện web Fooocus). Ảnh tham chiếu được gửi dạng Image Prompt (tối đa 4).",
@@ -668,6 +675,12 @@
         "concurrentTitle": "Số video tạo cùng lúc",
         "concurrentDefault": "2 (mặc định)",
         "concurrentHint": "Video Grok của aiask.me được tạo ở wokey.ai, nơi giới hạn số video đồng thời và từ chối phần vượt. Khi tạo hàng loạt sẽ xếp hàng theo số này, lỗi quá tải được gửi lại tự động. Tăng lên nếu tài khoản cho phép."
+      },
+      "video": {
+        "maxDuration": "Thời lượng video tối đa (giây)",
+        "maxDurationHint": "Cảnh dài hơn sẽ tạo theo thời lượng này. Mặc định 15.",
+        "maxPromptBytes": "Độ dài prompt tối đa (byte UTF-8)",
+        "maxPromptBytesHint": "Mặc định 4090; một chữ Hán = 3 byte. Vượt quá thì bỏ chỉ dẫn phụ trước rồi rút ngắn nội dung; 0 = không giới hạn. Grok tối đa 4096 byte."
       }
     },
     "styleDialog": {

@@ -521,7 +521,14 @@
         "autoRestart": "Reiniciar o ComfyUI automaticamente se a memória não for liberada ou a VRAM continuar faltando",
         "autoRestartHint": "Requer o ComfyUI-Manager (incluído na maioria dos pacotes). Se o ComfyUI continuar ocupando muita VRAM / RAM depois de liberar entre vídeos, ou faltar VRAM de novo após uma liberação, ele é reiniciado pelo Manager (limpando RAM e VRAM) e a geração continua sozinha quando ele voltar.",
         "oomLower": "Cair para 480p se a VRAM continuar faltando",
-        "oomLowerHint": "Se um plano ainda ficar sem VRAM depois de liberar memória e reiniciar o ComfyUI (geralmente plano longo ou muitas referências), a última tentativa gera em 480p; depois amplie para 1080p. Desativado = falha."
+        "oomLowerHint": "Se um plano ainda ficar sem VRAM depois de liberar memória e reiniciar o ComfyUI (geralmente plano longo ou muitas referências), a última tentativa gera em 480p; depois amplie para 1080p. Desativado = falha.",
+        "restartEvery": "Reiniciar o ComfyUI periodicamente",
+        "restartEveryAuto": "Automático (a cada 3 vídeos em 12G, 5 em 16G)",
+        "restartEveryOff": "Nunca",
+        "restartEveryN": "A cada {n} vídeos",
+        "startCommand": "Comando de início do ComfyUI (opcional)",
+        "startCommandPlaceholder": "ex.: E:\\comfyui\\run_nvidia_gpu.bat",
+        "startCommandHint": "Se o ComfyUI travar e fechar, este comando o reinicia e os vídeos pendentes continuam (só local). Caminho completo do iniciador ou script."
       },
       "fooocus": {
         "hint": "Requer Fooocus-API (porta 8888, não a interface web do Fooocus). Referências são enviadas como Image Prompts (máx. 4).",
@@ -668,6 +675,12 @@
         "concurrentTitle": "Vídeos gerados ao mesmo tempo",
         "concurrentDefault": "2 (padrão)",
         "concurrentHint": "Os vídeos Grok do aiask.me são gerados no wokey.ai, que limita vídeos simultâneos e rejeita o excedente. Os lotes entram em fila com esse número e erros de sobrecarga são reenviados automaticamente. Aumente se sua conta permitir."
+      },
+      "video": {
+        "maxDuration": "Duração máxima do vídeo (s)",
+        "maxDurationHint": "Cenas mais longas são geradas com esta duração. Padrão 15.",
+        "maxPromptBytes": "Tamanho máximo do prompt (bytes UTF-8)",
+        "maxPromptBytesHint": "Padrão 4090; um caractere chinês = 3 bytes. Se passar, primeiro saem instruções extras e depois o texto é encurtado; 0 = sem limite. Grok aceita no máximo 4096 bytes."
       }
     },
     "styleDialog": {

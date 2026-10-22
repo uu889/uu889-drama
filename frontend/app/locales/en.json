@@ -521,7 +521,14 @@
         "autoRestart": "Restart ComfyUI automatically when memory is not freed or VRAM keeps running out",
         "autoRestartHint": "Needs ComfyUI-Manager (bundled with most packages). If ComfyUI still holds lots of VRAM / RAM after freeing between videos, or runs out of VRAM again after one free, it is restarted through the Manager (clearing RAM and VRAM) and generation continues once it is back.",
         "oomLower": "Fall back to 480p when VRAM keeps running out",
-        "oomLowerHint": "If a shot still runs out of VRAM after freeing memory and restarting ComfyUI (usually a long shot or many reference images), the last retry renders it at 480p; upscale it to 1080p afterwards. Turn off to fail instead."
+        "oomLowerHint": "If a shot still runs out of VRAM after freeing memory and restarting ComfyUI (usually a long shot or many reference images), the last retry renders it at 480p; upscale it to 1080p afterwards. Turn off to fail instead.",
+        "restartEvery": "Restart ComfyUI periodically",
+        "restartEveryAuto": "Auto (every 3 videos on 12G, 5 on 16G)",
+        "restartEveryOff": "Never",
+        "restartEveryN": "Every {n} videos",
+        "startCommand": "ComfyUI start command (optional)",
+        "startCommandPlaceholder": "e.g. E:\\comfyui\\run_nvidia_gpu.bat",
+        "startCommandHint": "If ComfyUI crashes, this command restarts it automatically and unfinished videos continue (local ComfyUI only). Use the full path of your launcher or start script."
       },
       "fooocus": {
         "hint": "Requires Fooocus-API (port 8888, not the Fooocus web UI). Use a checkpoint file name or default as the model. Shot references are sent as Image Prompts (up to 4).",
@@ -668,6 +675,12 @@
         "concurrentTitle": "Videos generated at once",
         "concurrentDefault": "2 (default)",
         "concurrentHint": "aiask.me Grok videos are generated upstream by wokey.ai, which limits concurrent videos and rejects the rest. Batches are queued at this number, the next one is sent when one finishes, and busy errors are resubmitted automatically. Raise it if your account allows more."
+      },
+      "video": {
+        "maxDuration": "Max video length (seconds)",
+        "maxDurationHint": "Longer shots are generated at this length. Default 15.",
+        "maxPromptBytes": "Max prompt length (UTF-8 bytes)",
+        "maxPromptBytesHint": "Default 4090; a Chinese character counts as 3 bytes. Longer prompts drop optional add-on instructions first, then shorten the text; 0 = no limit. Grok video allows at most 4096 bytes."
       }
     },
     "styleDialog": {

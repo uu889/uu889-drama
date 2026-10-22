@@ -720,6 +720,19 @@
               </label>
             </div>
           </template>
+          <!-- 视频接口上限：最长时长 / 提示词最大长度（UTF-8 字节），提交前按上限调整 -->
+          <div v-if="cfgForm.service_type === 'video'" class="comfy-row">
+            <label class="field">
+              <span class="field-label">{{ t('settings.cfg.video.maxDuration') }}</span>
+              <input v-model="cfgForm.max_duration" class="input" type="number" min="1" max="120" step="1" placeholder="15" />
+              <span class="field-hint">{{ t('settings.cfg.video.maxDurationHint') }}</span>
+            </label>
+            <label class="field">
+              <span class="field-label">{{ t('settings.cfg.video.maxPromptBytes') }}</span>
+              <input v-model="cfgForm.max_prompt_bytes" class="input" type="number" min="0" max="200000" step="1" placeholder="4090" />
+              <span class="field-hint">{{ t('settings.cfg.video.maxPromptBytesHint') }}</span>
+            </label>
+          </div>
           <!-- aiask.me Grok 视频：同时提交给上游的视频数（上游 wokey.ai 限制并发，超出会失败） -->
           <div v-if="isAiaskVideoForm" class="field">
             <span class="field-label">{{ t('settings.cfg.aiask.concurrentTitle') }}</span>
@@ -764,6 +777,14 @@
                   </select>
                 </label>
                 <label v-if="isComfyForm && cfgForm.service_type === 'video'" class="queue-item">
+                  <span>{{ t('settings.cfg.local.restartEvery') }}</span>
+                  <select v-model="cfgForm.restart_every" class="input">
+                    <option value="">{{ t('settings.cfg.local.restartEveryAuto') }}</option>
+                    <option :value="0">{{ t('settings.cfg.local.restartEveryOff') }}</option>
+                    <option v-for="n in [2, 3, 5, 10]" :key="n" :value="n">{{ t('settings.cfg.local.restartEveryN', { n }) }}</option>
+                  </select>
+                </label>
+                <label v-if="isComfyForm && cfgForm.service_type === 'video'" class="queue-item">
                   <span>{{ t('settings.cfg.local.freeBetween') }}</span>
                   <select v-model="cfgForm.free_vram_between" class="input">
                     <option value="">{{ t('settings.cfg.local.freeAuto') }}</option>
@@ -785,6 +806,11 @@
                   <b>{{ t('settings.cfg.local.autoRestart') }}</b>
                   <span class="field-hint">{{ t('settings.cfg.local.autoRestartHint') }}</span>
                 </span>
+              </label>
+              <label v-if="isComfyForm" class="field queue-start">
+                <span class="field-label">{{ t('settings.cfg.local.startCommand') }}</span>
+                <input v-model="cfgForm.comfy_start_command" class="input mono" :placeholder="t('settings.cfg.local.startCommandPlaceholder')" />
+                <span class="field-hint">{{ t('settings.cfg.local.startCommandHint') }}</span>
               </label>
               <span class="field-hint">{{ t('settings.cfg.local.queueHint') }}</span>
             </div>
@@ -1050,7 +1076,7 @@ const AIASK_SITE_URL = 'https://aiask.me'
 const aiaskApiKey = ref('')
 const aiaskSaving = ref(false)
 // 本地服务（ComfyUI / SD WebUI / Fooocus）专属参数存后端 settings JSON，接口上以顶层字段读写
-const LOCAL_SETTING_FIELDS = ['max_concurrent', 'comfyui_workflow', 'comfyui_template', 'comfyui_fps', 'comfyui_steps', 'comfyui_cfg', 'comfyui_negative_prompt', 'prompt_template', 'image_base_size', 'image_steps', 'image_cfg_scale', 'image_sampler', 'image_negative_prompt', 'fooocus_performance', 'fooocus_styles']
+const LOCAL_SETTING_FIELDS = ['max_concurrent', 'max_duration', 'max_prompt_bytes', 'restart_every', 'comfy_start_command', 'comfyui_workflow', 'comfyui_template', 'comfyui_fps', 'comfyui_steps', 'comfyui_cfg', 'comfyui_negative_prompt', 'prompt_template', 'image_base_size', 'image_steps', 'image_cfg_scale', 'image_sampler', 'image_negative_prompt', 'fooocus_performance', 'fooocus_styles']
 // 布尔设置单独处理：自动绑定默认开；中文翻译默认值按服务类型（本地生图开、ComfyUI 视频关）
 const EMPTY_CFG_FORM = { name: '', provider: '', api_key: '', base_url: '', models: [], service_type: 'text', priority: 0, temperature: '', ...Object.fromEntries(LOCAL_SETTING_FIELDS.map(k => [k, ''])), comfyui_auto_bind: true, free_vram_between: '', auto_restart_comfy: true, oom_lower_resolution: true, prompt_translate: true, style_models_enabled: false, style_models: {}, model_install: null, style_models_auto_download: false, download_prefer_mirror: false, civitai_token: '', hf_token: '' }
 const cfgForm = reactive({ ...EMPTY_CFG_FORM })
@@ -1514,6 +1540,13 @@ async function testExistingCfg(c) {
 }
 /** 当前服务商用到的本地参数（空值发 null，后端据此删除该项） */
 function localSettingsPayload() {
+  const base = providerSettingsPayload()
+  if (cfgForm.service_type !== 'video') return base
+  const num = v => (v === '' || v === null || v === undefined ? null : Number(v))
+  // 视频接口上限（空 = 默认 15 秒 / 4090 字节）
+  return { ...base, max_duration: num(cfgForm.max_duration), max_prompt_bytes: num(cfgForm.max_prompt_bytes) }
+}
+function providerSettingsPayload() {
   const num = v => (v === '' || v === null || v === undefined ? null : Number(v))
   const text = v => String(v ?? '').trim()
   const imageParams = () => ({ image_base_size: num(cfgForm.image_base_size), image_steps: num(cfgForm.image_steps), image_cfg_scale: num(cfgForm.image_cfg_scale) })
@@ -1542,12 +1575,14 @@ function localSettingsPayload() {
       comfyui_template: comfySource.value === 'builtin' ? text(cfgForm.comfyui_template) : '',
       comfyui_auto_bind: !!cfgForm.comfyui_auto_bind,
       auto_restart_comfy: !!cfgForm.auto_restart_comfy,
+      comfy_start_command: text(cfgForm.comfy_start_command),
       comfyui_negative_prompt: text(cfgForm.comfyui_negative_prompt),
       ...promptParams(),
       ...(cfgForm.service_type === 'video'
         ? {
             comfyui_fps: num(cfgForm.comfyui_fps), comfyui_steps: num(cfgForm.comfyui_steps), comfyui_cfg: num(cfgForm.comfyui_cfg),
             free_vram_between: cfgForm.free_vram_between === 'on' ? true : cfgForm.free_vram_between === 'off' ? false : '',
+            restart_every: num(cfgForm.restart_every),
             oom_lower_resolution: !!cfgForm.oom_lower_resolution,
           }
         : imageParams()),
@@ -2665,5 +2700,6 @@ onBeforeUnmount(stopUsagePoll)
 .queue-row { display: flex; flex-wrap: wrap; gap: 10px 16px; }
 .queue-item { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-1); }
 .queue-item .input { width: auto; min-width: 120px; }
+.queue-start { margin-top: 10px; }
 .queue-restart { margin-top: 8px; }
 </style>

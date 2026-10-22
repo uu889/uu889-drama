@@ -3,6 +3,7 @@
  */
 import type { AIConfig, DownloadRequest } from './types'
 import { joinProviderUrl } from './url'
+import { fitPromptBytes, videoLimits } from '../video-limits.js'
 
 /**
  * 网关视频成片的下载方式（aiask.me 通用视频任务、xAI 原生 / aiask Grok 分组共用）：
@@ -34,4 +35,12 @@ export function toGrokImageRefs(prompt: string, referenceCount: number): string 
     const n = Number(raw)
     return n >= 1 && n <= referenceCount ? `<IMAGE_${n - 1}>` : match
   })
+}
+
+/** Grok 视频提示词最多 4096 字节（UTF-8）：按配置的上限（不超过 4096）精简，转换 <IMAGE_n> 之后再量一次 */
+export const GROK_PROMPT_MAX_BYTES = 4096
+export function fitGrokPrompt(config: AIConfig, prompt: string): string {
+  const configured = videoLimits(config.settings).maxPromptBytes
+  const limit = configured > 0 ? Math.min(configured, GROK_PROMPT_MAX_BYTES) : GROK_PROMPT_MAX_BYTES
+  return fitPromptBytes(prompt, limit).prompt
 }

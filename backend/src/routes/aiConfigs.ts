@@ -51,6 +51,12 @@ const QUEUE_RULES: Record<string, SettingRule> = {
   max_concurrent: { kind: 'number', min: 1, max: 8, integer: true },
 }
 
+/** 视频接口上限（services/video-limits.ts）：最长时长（秒，默认 15）、提示词最大字节数（UTF-8，默认 4090，0 = 不限） */
+const VIDEO_LIMIT_RULES: Record<string, SettingRule> = {
+  max_duration: { kind: 'number', min: 1, max: 120, integer: true },
+  max_prompt_bytes: { kind: 'number', min: 0, max: 200000, integer: true },
+}
+
 /** 视觉风格 → 本地模型（三个本地服务都支持，默认关） */
 const STYLE_MODEL_RULES: Record<string, SettingRule> = {
   style_models_enabled: { kind: 'boolean', default: false },
@@ -66,7 +72,14 @@ const PROVIDER_SETTING_RULES: Record<string, Record<string, SettingRule>> = {
   // aiask.me Grok 视频：同时提交给上游的视频数（不设 = 2，见 gpu-queue.ts cloudLaneLimit）
   aiask: {
     ...QUEUE_RULES,
+    ...VIDEO_LIMIT_RULES,
   },
+  xai: { ...VIDEO_LIMIT_RULES },
+  veo: { ...VIDEO_LIMIT_RULES },
+  runway: { ...VIDEO_LIMIT_RULES },
+  volcengine: { ...VIDEO_LIMIT_RULES },
+  minimax: { ...VIDEO_LIMIT_RULES },
+  aliyun: { ...VIDEO_LIMIT_RULES },
   comfyui: {
     comfyui_workflow: { kind: 'workflow' },
     comfyui_template: { kind: 'text', max: 64 },
@@ -83,9 +96,14 @@ const PROVIDER_SETTING_RULES: Record<string, Record<string, SettingRule>> = {
     auto_restart_comfy: { kind: 'boolean', default: true },
     // 释放 / 重启后仍显存不足时降到 480p 再试（默认开）
     oom_lower_resolution: { kind: 'boolean', default: true },
+    // 每 N 个视频重启一次 ComfyUI（0 = 不定期重启；不设 = 12G 及以下每 3 个、16G 每 5 个）
+    restart_every: { kind: 'number', min: 0, max: 100, integer: true },
+    // ComfyUI 退出后自动重新启动它的命令（只对本机地址生效，如 run_nvidia_gpu.bat 的完整路径）
+    comfy_start_command: { kind: 'text', max: 1000 },
     ...QUEUE_RULES,
     ...IMAGE_PARAM_RULES,
     ...STYLE_MODEL_RULES,
+    ...VIDEO_LIMIT_RULES,
   },
   sdwebui: {
     image_negative_prompt: { kind: 'text', max: 4000 },

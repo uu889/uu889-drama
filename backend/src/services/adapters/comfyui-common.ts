@@ -426,6 +426,66 @@ export async function waitComfyAlive(config: AIConfig, maxMs = 15 * 60_000, repo
  * ComfyUI 真的重启过的话，恢复连接后队列和历史里都找不到任务，会立即走「任务丢失 → 重新提交」。
  */
 export const COMFY_DOWN_GRACE_MS = Number(process.env.COMFY_DOWN_GRACE_MS) || 15 * 60_000
+/**
+ * 连接被拒绝（端口上没有进程在听）：ComfyUI 已经退出，而不是卡住。不用等 15 分钟，1 分钟后就按任务丢失处理
+ * （先拉起 / 等它回来再重新提交）。用户诊断日志里 ComfyUI 闪退（Fatal Python error: Aborted）就是这种。
+ */
+export const COMFY_EXITED_GRACE_MS = Number(process.env.COMFY_EXITED_GRACE_MS) || 60_000
+
+/** fetch 失败是不是因为连接被拒绝（进程不在了） */
+export function isConnectionRefused(err: any): boolean {
+  for (let e = err, depth = 0; e && depth < 4; e = e.cause, depth++) {
+    if (e.code === 'ECONNREFUSED' || /ECONNREFUSED/.test(String(e.message || ''))) return true
+  }
+  return false
+}
+
+/**
+ * ComfyUI 没在运行时用配置的启动命令把它拉起来（settings.comfy_start_command，如 run_nvidia_gpu.bat 的完整路径）。
+ * 只对本机地址生效；同一个配置 3 分钟内只启动一次（启动要加载自定义节点，需要一两分钟）。
+ */
+const lastStartAt = new Map<string, number>()
+export async function startComfyIfConfigured(config: AIConfig, report?: (message: string) => void): Promise<boolean> {
+  const command = String(config.settings?.comfy_start_command || '').trim()
+  if (!command) return false
+  let host = ''
+  try { host = new URL(config.baseUrl || 'http://127.0.0.1:8188').hostname.toLowerCase() } catch { return false }
+  if (!['127.0.0.1', 'localhost', '0.0.0.0', '::1', '[::1]'].includes(host)) return false
+  const key = config.baseUrl || 'local'
+  if (Date.now() - (lastStartAt.get(key) || 0) < 3 * 60_000) return true
+  if (await comfyAlive(config)) return false
+  lastStartAt.set(key, Date.now())
+  try {
+    const { spawn } = await import('node:child_process')
+    const path = await import('node:path')
+    const fs = await import('node:fs')
+    const file = /^".*"$/.test(command) ? command.slice(1, -1) : command
+    // 命令就是一个脚本文件时在它所在目录运行（便携包的 .bat 依赖相对路径）
+    const cwd = fs.existsSync(file) ? path.dirname(file) : undefined
+    const child = spawn(command, { shell: true, detached: true, stdio: 'ignore', cwd, windowsHide: false })
+    child.on('error', () => {})
+    child.unref()
+    report?.(`ComfyUI 没在运行，已用设置里的启动命令重新启动它，等它起来后自动继续：${command}`)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * 小显存每隔几个视频重启一次 ComfyUI（需要 ComfyUI-Manager）：连续跑很多个视频后 ComfyUI 进程里的显存 / 内存
+ * 越积越多，可用显存掉到 0（模型全部挪到内存里跑，慢一倍以上），最后整个进程崩溃退出。
+ * settings.restart_every：数字 = 每 N 个视频重启一次，0 = 不定期重启；不设时 12G 及以下模板每 3 个、16G 每 5 个。
+ */
+export function restartEveryVideos(settings: Record<string, any> | null | undefined, templateVram: number | null | undefined): number {
+  const raw = settings?.restart_every
+  if (raw !== undefined && raw !== null && raw !== '') {
+    const n = Number(raw)
+    return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0
+  }
+  if (!templateVram) return 0
+  return templateVram <= 12 ? 3 : templateVram <= 16 ? 5 : 0
+}
 /** /system_stats：显存 / 内存用量（字节；读不到为 null） */
 export async function comfySystemStats(config: AIConfig): Promise<{ vramTotal: number; vramFree: number; ramTotal: number; ramFree: number } | null> {
   try {
@@ -550,7 +610,7 @@ export async function freeComfyMemory(configs: AIConfig[], waitMs = 15_000): Pro
   return before != null && after != null ? Math.max(0, after - before) : null
 }
 
-export const COMFY_MISSING_ERROR = 'ComfyUI 的队列和历史里都找不到该任务（ComfyUI 可能已退出 / 重启，或任务被删除），请重新生成'
+export const COMFY_MISSING_ERROR = 'ComfyUI 的队列和历史里都找不到该任务（ComfyUI 可能已退出 / 重启，或任务被删除），请重新生成。如果是 ComfyUI 闪退：在 ComfyUI 配置里填「ComfyUI 启动命令」，它退出后会自动重新启动并接着生成'
 
 /**
  * 视频 / 图片适配器共用的 ComfyUI 客户端：上传素材、渲染并提交工作流、按队列判断任务状态、取消、错误整理。
@@ -639,6 +699,7 @@ export abstract class ComfyUIClient {
     if (ctx.error === COMFY_MISSING_ERROR) {
       if (ctx.attempt >= COMFY_RESTART_RETRIES) return false
       const n = ctx.attempt + 1
+      await startComfyIfConfigured(config, (message) => ctx.report?.({ stage: 'queued', message }))
       const back = await waitComfyAlive(config, 15 * 60_000, (message) => ctx.report?.({ stage: 'queued', message }))
       if (!back) return false
       ctx.report?.({ stage: 'queued', message: `ComfyUI 已恢复，重新提交这个任务（第 ${n}/${COMFY_RESTART_RETRIES} 次）` })
@@ -778,7 +839,9 @@ export abstract class ComfyUIClient {
       // 而不是一直轮询到超时（以前会占着队列好几个小时）
       const since = this.downSince.get(taskId) ?? Date.now()
       this.downSince.set(taskId, since)
-      if (Date.now() - since >= COMFY_DOWN_GRACE_MS) {
+      // 连接被拒绝 = 进程已经退出，1 分钟就够；连得上但不响应 = 可能只是卡住，等满 15 分钟
+      const grace = isConnectionRefused(err) ? COMFY_EXITED_GRACE_MS : COMFY_DOWN_GRACE_MS
+      if (Date.now() - since >= grace) {
         this.downSince.delete(taskId)
         return { __comfyMissing: true, __comfyDown: true }
       }

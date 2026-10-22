@@ -22,6 +22,26 @@ const BUSY_PATTERNS = [
   /稍后(再)?(试|重试)/,
 ]
 
+/**
+ * 上游临时故障：上游下载我们给的参考图时断线 / 超时（aiask.me 的 Grok 视频报
+ * image_download_interrupted「the connection dropped while downloading the image」）、
+ * 内部连接重置等。任务本身没问题，重新提交通常就能成功。
+ */
+const TRANSIENT_PATTERNS = [
+  /image_download|download(ing)? the (provided )?image|failed to download/i,
+  /connection (was )?(dropped|reset|closed|interrupted)|ECONNRESET|socket hang up/i,
+  /(upstream|gateway|read) time(d)?[ -]?out|timed out while/i,
+  /temporar(il)?y unavailable|internal (server )?error, please retry/i,
+  /下载(参考)?图(片)?失败|连接(被)?(中断|重置|断开)/,
+]
+
+/** 文案是不是「上游临时故障」（如上游下载参考图断线），重交一次通常就好 */
+export function isTransientFailure(text: string | null | undefined): boolean {
+  const s = String(text || '')
+  if (!s || NOT_BUSY_PATTERNS.some((re) => re.test(s))) return false
+  return TRANSIENT_PATTERNS.some((re) => re.test(s))
+}
+
 /** 鉴权 / 额度类错误：重试没用 */
 const NOT_BUSY_PATTERNS = [
   /insufficient|余额|额度不足|quota exceeded for|billing|balance/i,
@@ -42,7 +62,7 @@ export function isUpstreamBusy(status: number, bodyText: string | null | undefin
   if (status === 401) return false
   if (status === 429) return !NOT_BUSY_PATTERNS.some((re) => re.test(String(bodyText || '')))
   if (status < 400) return false
-  return isBusyMessage(bodyText)
+  return isBusyMessage(bodyText) || isTransientFailure(bodyText)
 }
 
 /** Retry-After 头（秒数或 HTTP 日期）→ 毫秒，限制在 1 秒到 3 分钟；没有 / 非法返回 null */
