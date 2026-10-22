@@ -2546,7 +2546,11 @@ const isWan3Video = computed(() => selectedVideoConfig.value?.provider === 'aliy
 const refImageLimit = computed(() => {
   if (isWan3Video.value) return 10
   const provider = selectedVideoConfig.value?.provider
-  if (provider === 'aiask') return 7
+  if (provider === 'aiask') {
+    // wokey.ai 文档：grok-imagine-video-1.5 多参考图最多 14 张；lite 按 7 张
+    const model = bareModelName(videoModel.value) || configModels(selectedVideoConfig.value)[0] || ''
+    return /^grok-imagine-video-1\.5$/i.test(model) ? 14 : 7
+  }
   // Veo 参考图最多 3 张（Lite 不支持参考图，只取第一张做首帧）；Runway 只用第一张做首帧
   if (provider === 'veo') {
     const model = bareModelName(videoModel.value) || configModels(selectedVideoConfig.value)[0] || ''

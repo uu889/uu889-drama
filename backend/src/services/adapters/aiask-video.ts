@@ -7,9 +7,9 @@
  * 参数：model、prompt、mode、duration_seconds、ratio、video_resolution（时长 / 比例 / 分辨率均必填）
  * 模式：
  * - text_to_video         无图，JSON
- * - image_to_video        multipart 文件字段 image[]（wokey 官方客户端写法）
+ * - image_to_video        multipart 文件字段 image（文档 https://wokey.ai/docs/videos；被拒时改用 image[]）
  * - first_last_frames     multipart 文件字段 first_frame + last_frame
- * - multimodal_reference  multipart 文件字段 image[]（可重复，与 wokey 官方 Video Studio 一致；Grok Imagine Video 1.5 最多 7 张）
+ * - multimodal_reference  multipart 文件字段 image（可重复；文档：grok-imagine-video-1.5 最多 14 张，不收视频 / 音频）
  * 分镜绑定的角色 / 场景 / 道具图属于"参考图"而非首帧，默认走 multimodal_reference（1.5 和 1.5-lite 都是）；
  * 上游拒绝多参考图时 fallbackRequest 退回 image_to_video（第一张图做首帧），并记住该模型。
  *
@@ -32,7 +32,7 @@ import { loadReferenceFile, parseUrlArray, shrinkReferenceFile } from './media'
 import { fitGrokPrompt, gatewayVideoDownload, toGrokImageRefs } from './video-common'
 import { stagePercent, type TaskProgressPatch } from '../task-progress'
 
-export const AIASK_DEFAULT_VIDEO_MODEL = 'grok-imagine-video-1.5-lite'
+export const AIASK_DEFAULT_VIDEO_MODEL = 'grok-imagine-video-1.5'
 
 const COMPLETED_STATUSES = ['completed', 'succeeded', 'success', 'succeed', 'done', 'finished', 'complete']
 const FAILED_STATUSES = ['failed', 'failure', 'cancelled', 'canceled', 'expired', 'error']
@@ -45,15 +45,32 @@ function confirmDelays(): number[] {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
-const VALID_RATIOS = ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'] as const
-const MAX_REFERENCE_IMAGES = 7
+// wokey.ai 文档（https://wokey.ai/docs/videos）：ratio 只认这 6 种
+const VALID_RATIOS = ['1:1', '16:9', '9:16', '4:3', '3:4', '21:9'] as const
+/** 多参考图张数：文档写明 grok-imagine-video-1.5 最多 14 张；其它型号按 xAI 的 7 张 */
+export function maxReferenceImages(model: string): number {
+  return /^grok-imagine-video-1\.5$/i.test(model.trim()) ? 14 : 7
+}
+
+/**
+ * 图片的 multipart 字段名：文档写的是 image（多张就重复这个字段）；
+ * 上游报字段名不对时 fallbackRequest 改用 image[]（wokey Video Studio 的写法），本次运行内记住。
+ */
+let imageField: 'image' | 'image[]' = 'image'
+export function resetAiaskVideoState() {
+  imageField = 'image'
+  noMultiRefModels.clear()
+}
+function isFieldNameRejected(status: number, text: string): boolean {
+  return status >= 400 && status < 500 && /field name|multipart field|unexpected field|unknown field|字段/i.test(String(text || ''))
+}
 const DURATION_RANGE = { min: 1, max: 15 } as const
 
 type VideosApiMode = 'text_to_video' | 'image_to_video' | 'first_last_frames' | 'multimodal_reference'
 
 /**
  * 上游拒绝过多参考图的模型（本次运行内记住，之后直接走单图图生视频）。
- * grok-imagine-video-1.5 / -lite 都按多参考图提交（xAI 的 Grok Imagine 参考图生视频所有型号都支持，1.5 以外最多 7 张）；
+ * grok-imagine-video-1.5 / -lite 都按多参考图提交（wokey.ai 文档：1.5 最多 14 张；lite 文档没写，按 7 张试）；
  * 某个网关 / 模型不接受时由 fallbackRequest 退回单图，并在任务里说明。
  */
 const noMultiRefModels = new Set<string>()
@@ -137,17 +154,16 @@ export class AiaskVideoAdapter implements VideoProviderAdapter {
       files.push(['first_frame', firstFrame], ['last_frame', lastFrame])
     } else if (firstFrame || lastFrame) {
       mode = 'image_to_video'
-      files.push(['image[]', firstFrame || lastFrame])
+      files.push([imageField, firstFrame || lastFrame])
     } else if (refImages.length) {
       if (supportsMultimodalReference(model)) {
         mode = 'multimodal_reference'
-        // 上游只认 image / first_frame / last_frame / video / audio（多文件用 image[]），
-        // 其它字段名会被拒绝：A reference file uses an unsupported multipart field name
-        for (const ref of refImages.slice(0, MAX_REFERENCE_IMAGES)) files.push(['image[]', ref])
+        // 上游只认 image / first_frame / last_frame / video / audio，其它字段名会被拒绝
+        for (const ref of refImages.slice(0, maxReferenceImages(model))) files.push([imageField, ref])
       } else {
         // 不支持多参考图：第一张（接戏帧或场景图）做首帧
         mode = 'image_to_video'
-        files.push(['image[]', refImages[0]])
+        files.push([imageField, refImages[0]])
       }
     }
     const usedPrompt = mode === 'image_to_video' && refImages.length && !firstFrame && !lastFrame ? stripImageTags(prompt) : prompt
@@ -201,6 +217,11 @@ export class AiaskVideoAdapter implements VideoProviderAdapter {
   /** 多参考图被拒（模式 / 字段不支持）：记住这个模型，改成单图图生视频再交一次 */
   async fallbackRequest(config: AIConfig, record: VideoGenerationRecord, status: number, bodyText: string) {
     const model = record.model || config.model || AIASK_DEFAULT_VIDEO_MODEL
+    // 图片字段名不被接受：换成 image[] 再交
+    if (imageField === 'image' && isFieldNameRejected(status, bodyText) && (record.referenceImageUrls || record.firstFrameUrl || record.imageUrl || record.lastFrameUrl)) {
+      imageField = 'image[]'
+      return { request: await this.buildGenerateRequest(config, record), note: `上游不认图片字段 image（${String(bodyText).slice(0, 100)}），已改用 image[] 重新提交` }
+    }
     const refs = parseUrlArray(record.referenceImageUrls)
     const hasFrames = Boolean(record.firstFrameUrl || record.imageUrl || record.lastFrameUrl)
     if (hasFrames || refs.length < 1 || !supportsMultimodalReference(model) || !isReferenceModeRejected(status, bodyText)) return null

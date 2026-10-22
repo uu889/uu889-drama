@@ -118,7 +118,7 @@ export interface VideoProviderAdapter {
 
   /**
    * 可选：提交被拒绝（非繁忙）时换一种请求方式再交一次（如模型不支持多参考图：退回单图图生视频）。
-   * 返回 { request, note } 时用新请求重新提交并在任务里备注，返回 null 照常报错。只会调用一次。
+   * 返回 { request, note } 时用新请求重新提交并在任务里备注，返回 null 照常报错。每个任务最多调用两次。
    */
   fallbackRequest?(config: AIConfig, record: VideoGenerationRecord, status: number, bodyText: string): Promise<{ request: ProviderRequest; note: string } | null>
 

@@ -144,8 +144,18 @@ async function comfyJson(config: AIConfig, p: string, init?: RequestInit): Promi
 /** ComfyUI 里能用的放大模型（models/upscale_models） */
 export async function listComfyUpscaleModels(config: AIConfig): Promise<string[]> {
   const info = await comfyJson(config, '/object_info/UpscaleModelLoader')
-  const list = info?.UpscaleModelLoader?.input?.required?.model_name?.[0]
-  return Array.isArray(list) ? list.map(String) : []
+  return comboOptions(info?.UpscaleModelLoader?.input?.required?.model_name)
+}
+
+/**
+ * /object_info 里下拉框（COMBO）输入的可选值。两种格式都要认：
+ * 老节点 [["a.pth", "b.pth"], {…}]；新版 ComfyUI 改成 V3 写法的节点（UpscaleModelLoader 已改）是 ["COMBO", { options: ["a.pth", …] }]
+ */
+export function comboOptions(spec: unknown): string[] {
+  if (!Array.isArray(spec)) return []
+  if (Array.isArray(spec[0])) return spec[0].map(String)
+  const opts = (spec[1] as any)?.options
+  return Array.isArray(opts) ? opts.map((o: any) => String(typeof o === 'object' && o ? o.value ?? o.name ?? '' : o)).filter(Boolean) : []
 }
 
 export const UPSCALE_MODEL_HINT = '把放大模型放到 ComfyUI/models/upscale_models/ 后重启 ComfyUI，推荐 RealESRGAN_x2plus.pth（真人 / 通用，约 64MB）：https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.1/RealESRGAN_x2plus.pth ；动漫风格可用 RealESRGAN_x4plus_anime_6B.pth（同一页面）'

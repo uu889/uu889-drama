@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { AiaskVideoAdapter, normalizeAiaskRatio, normalizeAiaskResolution } from '../src/services/adapters/aiask-video'
+import { AiaskVideoAdapter, normalizeAiaskRatio, normalizeAiaskResolution, maxReferenceImages, resetAiaskVideoState } from '../src/services/adapters/aiask-video'
 import { AiaskImageAdapter, sizeToGrokAspectRatio } from '../src/services/adapters/aiask-image'
 import {
   ComfyUIVideoAdapter,
@@ -46,7 +46,7 @@ test('aiask grok video: text-to-video is JSON on POST /v1/videos with required p
     prompt: 'a paper boat',
     mode: 'text_to_video',
     duration_seconds: 15,
-    ratio: '16:9',
+    ratio: '21:9',
     video_resolution: '1080p',
   })
 })
@@ -67,7 +67,7 @@ test('aiask grok video: reference images go multipart as multimodal_reference (7
   assert.equal(form.get('video_resolution'), '720p')
   assert.equal(form.get('ratio'), '9:16')
   assert.equal(form.get('duration_seconds'), '6')
-  assert.equal(form.getAll('image[]').length, 2)
+  assert.equal(form.getAll('image').length, 2, 'wokey.ai 文档：图片字段 image，多张重复')
   assert.equal(form.getAll('reference_images').length, 0, 'upstream rejects unknown multipart field names')
   assert.equal(req.headers['Content-Type'], undefined, 'multipart boundary is set by fetch')
 })
@@ -83,7 +83,7 @@ test('aiask grok video: first/last frames and lite models', async () => {
   const liteRecord = { id: 4, prompt: '@图片1咖啡厅里，@图片2小明坐下', model: 'grok-imagine-video-1.5-lite', referenceImageUrls: JSON.stringify([PNG, PNG]) }
   const lite = await adapter.buildGenerateRequest({ ...aiask, model: 'grok-imagine-video-1.5-lite' }, liteRecord)
   assert.equal((lite.body as FormData).get('mode'), 'multimodal_reference')
-  assert.equal((lite.body as FormData).getAll('image[]').length, 2)
+  assert.equal((lite.body as FormData).getAll('image').length, 2)
   assert.equal((lite.body as FormData).get('prompt'), '<IMAGE_0>咖啡厅里，<IMAGE_1>小明坐下')
 
   // 上游不接受多参考图：退回单图图生视频，去掉图片编号，之后同一模型直接走单图
@@ -91,11 +91,28 @@ test('aiask grok video: first/last frames and lite models', async () => {
   const fb = await adapter.fallbackRequest({ ...aiask, model: 'grok-imagine-video-1.5-lite' }, liteRecord, 400, '{"error":{"message":"mode multimodal_reference is not supported for this model"}}')
   assert.ok(fb)
   assert.equal((fb!.request.body as FormData).get('mode'), 'image_to_video')
-  assert.equal((fb!.request.body as FormData).getAll('image[]').length, 1)
+  assert.equal((fb!.request.body as FormData).getAll('image').length, 1)
   assert.equal((fb!.request.body as FormData).get('prompt'), '咖啡厅里，小明坐下')
   assert.match(fb!.note, /不接受多张参考图/)
   const again = await adapter.buildGenerateRequest({ ...aiask, model: 'grok-imagine-video-1.5-lite' }, liteRecord)
   assert.equal((again.body as FormData).get('mode'), 'image_to_video')
+  resetAiaskVideoState()
+})
+
+test('aiask grok video: 1.5 sends up to 14 reference images; field name falls back to image[] if rejected', async () => {
+  resetAiaskVideoState()
+  const adapter = new AiaskVideoAdapter()
+  assert.equal(maxReferenceImages('grok-imagine-video-1.5'), 14)
+  assert.equal(maxReferenceImages('grok-imagine-video-1.5-lite'), 7)
+  const record = { id: 5, prompt: 'p', model: 'grok-imagine-video-1.5', referenceImageUrls: JSON.stringify(Array.from({ length: 16 }, () => PNG)) }
+  const req = await adapter.buildGenerateRequest(aiask, record)
+  assert.equal((req.body as FormData).getAll('image').length, 14)
+  const fb = await adapter.fallbackRequest(aiask, record, 400, '{"error":{"message":"A reference file uses an unsupported multipart field name"}}')
+  assert.ok(fb)
+  assert.equal((fb!.request.body as FormData).getAll('image[]').length, 14)
+  assert.equal((fb!.request.body as FormData).getAll('image').length, 0)
+  assert.equal((fb!.request.body as FormData).get('mode'), 'multimodal_reference')
+  resetAiaskVideoState()
 })
 
 test('aiask grok video: create / poll / download lifecycle', () => {
@@ -128,7 +145,8 @@ test('aiask grok video: create / poll / download lifecycle', () => {
 
 test('aiask ratio / resolution normalization', () => {
   assert.equal(normalizeAiaskRatio('16:9'), '16:9')
-  assert.equal(normalizeAiaskRatio('21:9'), '16:9')
+  assert.equal(normalizeAiaskRatio('21:9'), '21:9')
+  assert.equal(normalizeAiaskRatio('3:2'), '4:3')
   assert.equal(normalizeAiaskRatio('adaptive'), '16:9')
   assert.equal(normalizeAiaskRatio('9:21'), '9:16')
   assert.equal(normalizeAiaskResolution('2K', 'image_to_video'), '1080p')

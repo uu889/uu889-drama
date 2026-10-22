@@ -240,7 +240,7 @@ const zh: GuideTable = {
     aiask: {
       summary: 'aiask.me 的 Grok 视频（grok-imagine-video），支持首帧 / 参考图。',
       steps: ['用 aiask.me 的 Key。', '点「aiask.me Grok 视频」预设，粘贴 Key 后保存。'],
-      fields: [['Base URL', 'https://aiask.me'], ['API Key', 'sk-…'], ['模型', 'grok-imagine-video-1.5-lite（默认）/ grok-imagine-video-1.5']],
+      fields: [['Base URL', 'https://aiask.me'], ['API Key', 'sk-…'], ['模型', 'grok-imagine-video-1.5（默认，最多 14 张参考图）/ grok-imagine-video-1.5-lite']],
       tips: ['时长、比例、分辨率会自动换算成 Grok 支持的档位。', '上游 wokey.ai 限制同时生成的视频数：批量生成时默认一次只提交 2 个，前一个完成再交下一个；上游繁忙会自动重新提交，状态查询出错时先复查再判失败。'],
       links: [['aiask.me', 'https://aiask.me']],
     },
@@ -448,7 +448,7 @@ const en: GuideTable = {
     },
   },
   video: {
-    aiask: { summary: 'Grok video through aiask.me.', steps: ['Reuse your aiask.me key.', 'Click the preset, paste the key and save.'], fields: [['Base URL', 'https://aiask.me'], ['Models', 'grok-imagine-video-1.5-lite / grok-imagine-video-1.5']], tips: ['Duration, ratio and resolution are mapped to Grok tiers.', 'Upstream (wokey.ai) limits concurrent videos: batches send 2 at a time by default, busy errors are resubmitted automatically, and status errors are re-checked before a shot is marked failed.'], links: [['aiask.me', 'https://aiask.me']] },
+    aiask: { summary: 'Grok video through aiask.me.', steps: ['Reuse your aiask.me key.', 'Click the preset, paste the key and save.'], fields: [['Base URL', 'https://aiask.me'], ['Models', 'grok-imagine-video-1.5 (default, up to 14 reference images) / grok-imagine-video-1.5-lite']], tips: ['Duration, ratio and resolution are mapped to Grok tiers.', 'Upstream (wokey.ai) limits concurrent videos: batches send 2 at a time by default, busy errors are resubmitted automatically, and status errors are re-checked before a shot is marked failed.'], links: [['aiask.me', 'https://aiask.me']] },
     xai: { summary: 'xAI native Grok video API.', steps: ['Official: Base URL https://api.x.ai with a console.x.ai key.', 'aiask.me Grok key: Base URL https://aiask.me.'], fields: [['Base URL', 'https://api.x.ai'], ['Models', 'grok-imagine-video-1.5']], tips: ['References are referenced as <IMAGE_n> automatically.'], links: [['xAI Console', 'https://console.x.ai']] },
     veo: { summary: 'Google Veo 3.1 via the Gemini API.', steps: ['Create a paid key in Google AI Studio.', 'Click the preset, paste the key and save.'], fields: [['Base URL', 'https://generativelanguage.googleapis.com'], ['Models', 'veo-3.1-generate-preview']], tips: ['Generation takes 1–5 minutes; Tasks show the elapsed time.'], links: [['Google AI Studio', 'https://aistudio.google.com/apikey']] },
     runway: { summary: 'Runway API (gen4.5 / gen4_turbo / veo3.1).', steps: ['Create a key at https://dev.runwayml.com.', 'Click the preset, paste the key and save.'], fields: [['Base URL', 'https://api.dev.runwayml.com'], ['Models', 'gen4.5']], tips: ['gen4 image-to-video needs a first frame.'], links: [['Runway Developer', 'https://dev.runwayml.com']] },

@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { comboOptions } from '../services/video-upscale.js'
 import { eq } from 'drizzle-orm'
 import { db, getInsertId, schema } from '../db/index.js'
 import { success, notFound, created, badRequest, now } from '../utils/response.js'
@@ -585,13 +586,6 @@ app.post('/comfyui/inspect', async (c) => {
   })
 })
 
-/** ComfyUI /object_info 里 COMBO 输入的可选值（兼容 [[...], {}] 与 ["COMBO", { options }] 两种格式） */
-function comboOptions(spec: any): string[] {
-  if (!Array.isArray(spec)) return []
-  if (Array.isArray(spec[0])) return spec[0].map(String)
-  if (spec[0] === 'COMBO' && Array.isArray(spec[1]?.options)) return spec[1].options.map(String)
-  return []
-}
 
 /**
  * POST /ai-configs/local/models — 读取本地服务里实际可用的模型 / 采样器 / 风格，设置页点选即可加入「模型」

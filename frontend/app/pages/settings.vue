@@ -1314,7 +1314,7 @@ const providerPresets = {
     openai: { label: 'OpenAI 官方', baseUrl: 'https://api.openai.com', models: ['gpt-image-2'] },
   },
   video: {
-    aiask: { label: 'aiask.me Grok 视频', baseUrl: AIASK_SITE_URL, models: ['grok-imagine-video-1.5-lite', 'grok-imagine-video-1.5'] },
+    aiask: { label: 'aiask.me Grok 视频', baseUrl: AIASK_SITE_URL, models: ['grok-imagine-video-1.5', 'grok-imagine-video-1.5-lite'] },
     // xAI 原生接口：直连官方填 https://api.x.ai；aiask.me 的 Grok 分组 Key 填 https://aiask.me
     xai: { label: 'Grok 视频（xAI 原生）', baseUrl: 'https://api.x.ai', models: ['grok-imagine-video-1.5', 'grok-imagine-video'] },
     veo: { label: 'Google Veo（Gemini API）', baseUrl: 'https://generativelanguage.googleapis.com', models: ['veo-3.1-generate-preview', 'veo-3.1-fast-generate-preview', 'veo-3.1-lite-generate-preview'] },
@@ -1329,7 +1329,7 @@ const providerPresets = {
 // 可快速选择的模型：首位为默认
 const AIASK_TEXT_MODELS = ['deepseek-v4.1-flash', 'deepseek-v4-pro', 'gpt-6.1-sol', 'claude-haiku-5-5', 'gpt-6-astra', 'claude-opus-5-5']
 const AIASK_IMAGE_MODELS = ['gpt-image-2.5-sunburst', 'gpt-image-2.5-flare']
-const AIASK_VIDEO_MODELS = ['grok-imagine-video-1.5-lite', 'grok-imagine-video-1.5']
+const AIASK_VIDEO_MODELS = ['grok-imagine-video-1.5', 'grok-imagine-video-1.5-lite']
 const aiaskQuickConfigs = [
   { service_type: 'text', provider: 'aiask', name: 'aiask.me Text', base_url: AIASK_SITE_URL, model: AIASK_TEXT_MODELS, priority: 100 },
   { service_type: 'image', provider: 'aiask', name: 'aiask.me Image', base_url: AIASK_SITE_URL, model: AIASK_IMAGE_MODELS, priority: 100 },

@@ -26,6 +26,13 @@ const up = await import('../src/services/video-upscale')
 const { mergeEpisodeVideos, uniformVideoFilters } = await import('../src/services/ffmpeg-merge')
 const { resetGpuLanes } = await import('../src/services/gpu-queue')
 
+test('upscale model list: old [[…]] and new ["COMBO", { options }] object_info formats', () => {
+  assert.deepEqual(up.comboOptions([['RealESRGAN_x2plus.pth', 'b.pth'], {}]), ['RealESRGAN_x2plus.pth', 'b.pth'])
+  assert.deepEqual(up.comboOptions(['COMBO', { options: ['RealESRGAN_x2plus.pth'] }]), ['RealESRGAN_x2plus.pth'])
+  assert.deepEqual(up.comboOptions(['COMBO', {}]), [])
+  assert.deepEqual(up.comboOptions(undefined), [])
+})
+
 test('sizes, paths and model choice', () => {
   assert.deepEqual(up.upscaleDimensions(1344, 768, 1080), { width: 1890, height: 1080 })
   assert.deepEqual(up.upscaleDimensions(768, 1344, 1080), { width: 1080, height: 1890 })
@@ -87,7 +94,8 @@ before(async () => {
       const json = (v: unknown) => { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(v)) }
       const body = Buffer.concat(chunks)
       if (url === '/system_stats') return json({ devices: [{ vram_total: 12e9, vram_free: 10e9 }] })
-      if (url === '/object_info/UpscaleModelLoader') return json({ UpscaleModelLoader: { input: { required: { model_name: [comfyModels] } } } })
+      // 新版 ComfyUI（UpscaleModelLoader 已改成 V3 节点）：["COMBO", { options }]
+      if (url === '/object_info/UpscaleModelLoader') return json({ UpscaleModelLoader: { input: { required: { model_name: ['COMBO', { options: comfyModels }] } } } })
       if (url === '/upload/image') {
         const name = /filename="([^"]+)"/.exec(body.toString('latin1'))![1]
         const start = body.indexOf(Buffer.from('\r\n\r\n', 'latin1'), body.indexOf(Buffer.from(`filename="${name}"`))) + 4

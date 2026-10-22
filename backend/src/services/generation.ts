@@ -419,7 +419,7 @@ async function processTask(id: number, config: AIConfig) {
     let resp: Response
     try {
       // 上游繁忙（429 / 并发数已满 / 限流）：任务没有被接收，等一会儿原样重新提交，不直接判失败
-      let fellBack = false
+      let fallbacks = 0
       for (let attempt = 0; ; attempt++) {
         resp = await fetch(url, {
           method,
@@ -431,11 +431,11 @@ async function processTask(id: number, config: AIConfig) {
         const text = await resp.text()
         const message = mediaAdapter.describeError?.(resp.status, text) || formatUpstreamError(resp.status, text)
         const busy = isUpstreamBusy(resp.status, text)
-        // 请求方式不被接受（如模型不支持多参考图）：适配器换一种方式重建，只换一次
-        if (!busy && videoRecord && !fellBack && type === 'video') {
+        // 请求方式不被接受（字段名 / 模型不支持多参考图）：适配器换一种方式重建，最多换两次
+        if (!busy && videoRecord && fallbacks < 2 && type === 'video') {
           const fb = await getVideoAdapter(config.provider).fallbackRequest?.(config, videoRecord, resp.status, text)
           if (fb) {
-            fellBack = true
+            fallbacks++
             request = fb.request
             ;({ url, method, headers, body } = request)
             isMultipart = body instanceof FormData
