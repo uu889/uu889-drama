@@ -17,7 +17,8 @@ import { maybeTranslatePrompt, needsTranslation, shouldTranslatePrompt } from '.
 import { getDramaStyleKey } from './style-preset.js'
 import { burnSubtitles, normalizeSubtitleOptions, storyboardDialogue } from './subtitles.js'
 import { getEpisodeSystemVoice } from './system-voice.js'
-import { acquireGpuLane, gpuLaneKey, laneLimit, laneNeedsFree, releaseGpuLane } from './gpu-queue.js'
+import { acquireGpuLane, cloudLaneKey, cloudLaneLimit, gpuLaneKey, laneLimit, laneNeedsFree, releaseGpuLane } from './gpu-queue.js'
+import { isBusyMessage, isUpstreamBusy, retryAfterMs } from './upstream-busy.js'
 import { autoRestartEnabled, comfyMemoryLeftover, comfySystemStats, freeComfyMemory, rebootComfy, shouldFreeVramBetween, waitComfyAlive } from './adapters/comfyui-common.js'
 import { resolveComfyTemplate } from './adapters/comfyui-templates.js'
 import { logTaskError, logTaskPayload, logTaskProgress, logTaskStart, logTaskSuccess, logTaskWarn, redactUrl } from '../utils/task-logger.js'
@@ -208,6 +209,21 @@ function parseTaskParams(raw: string | null | undefined): Record<string, any> {
  * 轮到 ComfyUI 任务时先确认 ComfyUI 还活着（前一个任务可能把它带崩了），小显存模板在两个视频之间先释放显存。
  */
 async function enterGpuLane(id: number, config: AIConfig, type: TaskType, model: string | null | undefined) {
+  const cloudKey = cloudLaneKey(config, type)
+  if (cloudKey) {
+    // 云端视频（aiask.me → wokey.ai）：上游限制同时生成的视频数，超出直接失败，所以按上限排队提交
+    const limit = cloudLaneLimit(config)
+    await acquireGpuLane(cloudKey, id, {
+      limit,
+      kind: type,
+      onPosition: (position, running) => setTaskProgress(id, {
+        stage: 'queued',
+        message: `排队中：前面还有 ${position} 个视频任务（${running} 个正在生成）。${config.provider} 上游同时生成的视频数有限，超出会直接失败，所以一次只提交 ${limit} 个，前一个完成后自动提交`,
+        detail: { queue_ahead: position },
+      }),
+    })
+    return
+  }
   const key = gpuLaneKey(config)
   if (!key) return
   await acquireGpuLane(key, id, {
@@ -362,19 +378,29 @@ async function processTask(id: number, config: AIConfig) {
     const stopSyncProgress = mediaAdapter.trackSyncProgress?.(config, request, (patch) => { setTaskProgress(id, patch) })
     let resp: Response
     try {
-      resp = await fetch(url, {
-        method,
-        headers,
-        body: isMultipart ? (body as FormData) : JSON.stringify(body),
-        signal: AbortSignal.timeout(600_000),
-      })
+      // 上游繁忙（429 / 并发数已满 / 限流）：任务没有被接收，等一会儿原样重新提交，不直接判失败
+      for (let attempt = 0; ; attempt++) {
+        resp = await fetch(url, {
+          method,
+          headers,
+          body: isMultipart ? (body as FormData) : JSON.stringify(body),
+          signal: AbortSignal.timeout(600_000),
+        })
+        if (resp.ok) break
+        const text = await resp.text()
+        const message = mediaAdapter.describeError?.(resp.status, text) || formatUpstreamError(resp.status, text)
+        if (attempt >= SUBMIT_BUSY_RETRIES || !isUpstreamBusy(resp.status, text)) throw new Error(message)
+        const waitMs = retryAfterMs(resp.headers.get('retry-after')) ?? busyBackoffMs(attempt)
+        logTaskWarn(label, 'submit-busy-retry', { id, status: resp.status, attempt: attempt + 1, waitMs, error: message.slice(0, 200) })
+        setTaskProgress(id, {
+          stage: 'queued',
+          message: `${config.provider} 上游繁忙（${message.slice(0, 120)}），${Math.round(waitMs / 1000)} 秒后自动重新提交（第 ${attempt + 1} / ${SUBMIT_BUSY_RETRIES} 次）`,
+        })
+        await sleep(waitMs)
+        setTaskProgress(id, submitPatch)
+      }
     } finally {
       stopSyncProgress?.()
-    }
-
-    if (!resp.ok) {
-      const text = await resp.text()
-      throw new Error(mediaAdapter.describeError?.(resp.status, text) || formatUpstreamError(resp.status, text))
     }
     const result = await resp.json() as any
     logTaskPayload(label, 'response payload', { id, provider: config.provider, result })
@@ -457,6 +483,16 @@ function formatUpstreamError(status: number, text: string): string {
   return `API error ${status}: ${String(detail || text).replace(/\s+/g, ' ').trim().slice(0, 500)}`
 }
 
+// 上游繁忙时自动重新提交的次数与等待（等待随次数增加，上限 2 分钟；UPSTREAM_BUSY_RETRY_MS 调整基数）
+const SUBMIT_BUSY_RETRIES = 8
+// 已接收的任务随后因上游繁忙失败：重新提交的次数
+const FAILED_BUSY_RESUBMITS = 4
+function busyBackoffMs(attempt: number): number {
+  const base = Number(process.env.UPSTREAM_BUSY_RETRY_MS) || 15_000
+  return Math.min(base * 8, base * (attempt + 1))
+}
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+
 // 轮询时连续出现即判定为终态的客户端错误（鉴权失效、任务不存在等），不再空等到超时
 const TERMINAL_POLL_STATUS = new Set([400, 401, 403, 404, 410, 422])
 const TERMINAL_POLL_THRESHOLD = 3
@@ -509,45 +545,89 @@ async function pollTask(record: SysTaskRecord, config: AIConfig, initialTaskId: 
   const label = taskLabel(type)
   const adapter = type === 'image' ? getImageAdapter(config.provider) : getVideoAdapter(config.provider)
   // 图片 / 视频适配器的可选钩子（轮询节奏、自定义取状态、取消、失败后重试）签名一致
-  const hooks = adapter as Pick<VideoProviderAdapter, 'pollProfile' | 'fetchPollResult' | 'cancel' | 'describeProgress' | 'onFinished' | 'onSubmitted' | 'prepareRetry'>
+  const hooks = adapter as Pick<VideoProviderAdapter, 'pollProfile' | 'fetchPollResult' | 'cancel' | 'describeProgress' | 'onFinished' | 'onSubmitted' | 'prepareRetry' | 'confirmFailure'>
   const profile = { ...POLL_PROFILES[type], ...(hooks.pollProfile || {}) }
   const startedAt = Date.now()
   let clientErrors = 0
   let taskId = initialTaskId
   let retries = 0
+  /** 上游繁忙导致的失败后重新提交的次数 */
+  let busyResubmits = 0
   /** 显存不足时降过分辨率（完成后写进任务备注） */
   let downgraded: { from: string; to: string } | undefined
   const report = (patch: TaskProgressPatch) => { setTaskProgress(record.id, patch) }
 
-  /** 上游执行失败：适配器能处理（如 ComfyUI 显存不足先释放显存）就用同一个请求重新提交，继续轮询新任务 */
+  /** 用同一个请求重新提交，换成新任务 ID 继续轮询（multipart 表单可以重复发送） */
+  const resubmit = async (error: string): Promise<void> => {
+    if (!request) throw new Error('没有原请求，无法重新提交')
+    const isForm = request.body instanceof FormData
+    const resp = await fetch(request.url, {
+      method: request.method,
+      headers: request.headers,
+      body: isForm ? request.body : JSON.stringify(request.body),
+      signal: AbortSignal.timeout(isForm ? 600_000 : 120_000),
+    })
+    if (!resp.ok) throw new Error(adapter.describeError?.(resp.status, await resp.text()) || `HTTP ${resp.status}`)
+    const parsed = adapter.parseGenerateResponse(await resp.json())
+    if (!parsed.isAsync || !parsed.taskId) throw new Error('重新提交后没有拿到任务 ID')
+    hooks.onFinished?.(config, taskId)
+    retries++
+    logTaskWarn(label, 'retry-after-failure', { id: record.id, oldTaskId: taskId, taskId: parsed.taskId, attempt: retries, error: error.slice(0, 200) })
+    taskId = parsed.taskId
+    await db.update(schema.sysTask).set({ taskId, updatedAt: now() }).where(eq(schema.sysTask.id, record.id))
+    hooks.onSubmitted?.(config, taskId, request, report)
+    report({ stage: 'queued', message: `已重新提交（第 ${retries} 次自动重试），上游任务 ID：${taskId}` })
+  }
+
+  /**
+   * 上游执行失败后能否重新提交：
+   * - 上游繁忙（并发数已满 / 限流）：等一会儿原样重交
+   * - 适配器能处理的失败（如 ComfyUI 显存不足先释放显存）
+   */
   const retryAfterFailure = async (error: string): Promise<boolean> => {
-    if (!hooks.prepareRetry || !request || request.body instanceof FormData) return false
+    if (!request) return false
+    if (isBusyMessage(error) && busyResubmits < FAILED_BUSY_RESUBMITS) {
+      const waitMs = busyBackoffMs(busyResubmits)
+      busyResubmits++
+      report({ stage: 'queued', message: `${config.provider} 上游繁忙（${error.slice(0, 120)}），${Math.round(waitMs / 1000)} 秒后自动重新提交` })
+      await sleep(waitMs)
+      try {
+        await resubmit(error)
+        return true
+      } catch (err: any) {
+        logTaskWarn(label, 'retry-after-busy-error', { id: record.id, taskId, error: err?.message })
+        return false
+      }
+    }
+    if (!hooks.prepareRetry || request.body instanceof FormData) return false
     try {
       const peers = await sameHostPeers(config)
       const ctx: RetryContext = { taskId, error, attempt: retries, peers, report, request }
       const ok = await hooks.prepareRetry(config, ctx)
       if (ok && ctx.downgraded) downgraded = ctx.downgraded
       if (!ok) return false
-      const resp = await fetch(request.url, {
-        method: request.method,
-        headers: request.headers,
-        body: JSON.stringify(request.body),
-        signal: AbortSignal.timeout(120_000),
-      })
-      if (!resp.ok) throw new Error(adapter.describeError?.(resp.status, await resp.text()) || `HTTP ${resp.status}`)
-      const parsed = adapter.parseGenerateResponse(await resp.json())
-      if (!parsed.isAsync || !parsed.taskId) throw new Error('重新提交后没有拿到任务 ID')
-      hooks.onFinished?.(config, taskId)
-      retries++
-      logTaskWarn(label, 'retry-after-failure', { id: record.id, oldTaskId: taskId, taskId: parsed.taskId, attempt: retries, error: error.slice(0, 200) })
-      taskId = parsed.taskId
-      await db.update(schema.sysTask).set({ taskId, updatedAt: now() }).where(eq(schema.sysTask.id, record.id))
-      hooks.onSubmitted?.(config, taskId, request, report)
-      report({ stage: 'queued', message: `已重新提交（第 ${retries} 次自动重试），上游任务 ID：${taskId}` })
+      await resubmit(error)
       return true
     } catch (err: any) {
       logTaskWarn(label, 'retry-after-failure-error', { id: record.id, taskId, error: err?.message })
       return false
+    }
+  }
+
+  /**
+   * 判失败之前再确认一次（如 aiask.me 的状态接口偶尔报错 / 报失败，其实上游已经生成好了）：
+   * 返回适配器复查到的状态；没有这个钩子或复查出错时返回 null（照常判失败）
+   */
+  const confirm = async (error: string, httpStatus?: number): Promise<any | null> => {
+    if (!hooks.confirmFailure) return null
+    report({ stage: 'running', message: `${config.provider} 报告：${error.slice(0, 160)}。先复查上游任务真实状态，确认后再判失败` })
+    try {
+      const confirmed = await hooks.confirmFailure(config, taskId, { error, httpStatus })
+      if (confirmed) logTaskWarn(label, 'confirm-failure-recovered', { id: record.id, taskId, status: confirmed.status, error: error.slice(0, 200) })
+      return confirmed
+    } catch (err: any) {
+      logTaskWarn(label, 'confirm-failure-error', { id: record.id, taskId, error: err?.message })
+      return null
     }
   }
 
@@ -574,6 +654,8 @@ async function pollTask(record: SysTaskRecord, config: AIConfig, initialTaskId: 
     await new Promise(r => setTimeout(r, profile.intervalMs))
 
     let result: any
+    /** 复查后得到的状态（跳过本次解析） */
+    let pollResp: any = null
     try {
       if (hooks.fetchPollResult) {
         logTaskProgress(label, 'poll-request', { id: record.id, taskId, provider: config.provider, attempt: i + 1 })
@@ -599,20 +681,29 @@ async function pollTask(record: SysTaskRecord, config: AIConfig, initialTaskId: 
         if (!resp.ok) {
           const text = await resp.text().catch(() => '')
           if (TERMINAL_POLL_STATUS.has(resp.status) && ++clientErrors >= TERMINAL_POLL_THRESHOLD) {
-            await failTask(record.id, `轮询失败，${formatUpstreamError(resp.status, text)}`)
-            return
+            const error = `轮询失败，${formatUpstreamError(resp.status, text)}`
+            const confirmed = await confirm(error, resp.status)
+            if (!confirmed || confirmed.status === 'failed') {
+              await failTask(record.id, error)
+              return
+            }
+            clientErrors = 0
+            if (confirmed.status !== 'completed') continue
+            pollResp = confirmed
+          } else {
+            logTaskWarn(label, 'poll-http-error', { id: record.id, taskId, attempt: i + 1, status: resp.status })
+            continue
           }
-          logTaskWarn(label, 'poll-http-error', { id: record.id, taskId, attempt: i + 1, status: resp.status })
-          continue
+        } else {
+          clientErrors = 0
+          result = await resp.json() as any
         }
-        clientErrors = 0
-        result = await resp.json() as any
       }
     } catch (err: any) {
       const exhausted = i === profile.attempts - 1
         || (profile.maxDurationMs != null && Date.now() - startedAt >= profile.maxDurationMs)
       if (exhausted) {
-        await giveUp(`Timeout: ${err.message}`)
+        if (!await recoverBeforeGiveUp(`Timeout: ${err.message}`)) await giveUp(`Timeout: ${err.message}`)
         return
       }
       logTaskWarn(label, 'poll-retry', { id: record.id, taskId, attempt: i + 1, error: err.message })
@@ -620,7 +711,7 @@ async function pollTask(record: SysTaskRecord, config: AIConfig, initialTaskId: 
     }
 
     // 图片/视频 PollResponse 结构不同，这里统一按 any 取值后按 type 分支
-    const pollResp: any = adapter.parsePollResponse(result)
+    if (!pollResp) pollResp = adapter.parsePollResponse(result)
 
     if (pollResp.status === 'pending' || pollResp.status === 'processing') {
       // 细粒度进度（ComfyUI 节点 / 采样步数、Fooocus 百分比）；没有时显示已等待时长
@@ -639,6 +730,15 @@ async function pollTask(record: SysTaskRecord, config: AIConfig, initialTaskId: 
 
     if (pollResp.status === 'failed') {
       const error = pollResp.error || 'Generation failed'
+      // 状态接口报失败，先复查：其实已经生成好了就去下载，还在生成就接着轮询
+      const confirmed = await confirm(error)
+      if (confirmed && confirmed.status !== 'failed') {
+        if (confirmed.status !== 'completed') continue
+        pollResp = confirmed
+      }
+    }
+    if (pollResp.status === 'failed') {
+      const error = pollResp.error || 'Generation failed'
       // 适配器能处理的失败（如 ComfyUI 显存不足）：处理后重新提交，继续轮询
       if (await retryAfterFailure(error)) continue
       // 上游明确失败（如内容审核拦截）属终态：立即落库，不等待超时
@@ -647,6 +747,13 @@ async function pollTask(record: SysTaskRecord, config: AIConfig, initialTaskId: 
     }
     if (pollResp.status !== 'completed') continue
 
+    await finishCompleted(pollResp, result)
+    return
+  }
+  if (!await recoverBeforeGiveUp('Timeout: polling attempts exhausted')) await giveUp('Timeout: polling attempts exhausted')
+  }
+
+  async function finishCompleted(pollResp: any, result: any) {
     // 已完成：下载落盘。失败只做短暂重试后终止，不能混进轮询重试里每 10 秒重下一遍直到超时
     setTaskProgress(record.id, {
       stage: 'downloading',
@@ -674,7 +781,8 @@ async function pollTask(record: SysTaskRecord, config: AIConfig, initialTaskId: 
         return
       }
       logTaskSuccess(label, 'poll-complete', { id: record.id, taskId, videoUrl: pollResp.videoUrl })
-      await withRetry(() => handleVideoComplete(record, config, pollResp.videoUrl, pollResp.duration))
+      // 刚完成时成片可能还没就绪（网关 /content 短暂 404）：多等几次
+      await withRetry(() => handleVideoComplete(record, config, pollResp.videoUrl, pollResp.duration), 5, 5000)
       if (downgraded) {
         await db.update(schema.sysTask)
           .set({ errorMsg: `显存不足，这个镜头降到 480p 生成（${downgraded.from} → ${downgraded.to}），可以用「高清化」放大到 1080p` })
@@ -683,9 +791,14 @@ async function pollTask(record: SysTaskRecord, config: AIConfig, initialTaskId: 
     } catch (err: any) {
       await failTask(record.id, `结果下载失败：${err.message}`)
     }
-    return
   }
-  await giveUp('Timeout: polling attempts exhausted')
+
+  /** 轮询次数用完：放弃前复查一次，已经生成好的照样下载 */
+  async function recoverBeforeGiveUp(error: string): Promise<boolean> {
+    const confirmed = await confirm(error)
+    if (confirmed?.status !== 'completed') return false
+    await finishCompleted(confirmed, null)
+    return true
   }
 }
 

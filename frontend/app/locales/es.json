@@ -295,7 +295,10 @@
         "text": "Capacidades de texto: reescritura de guion, extracción de recursos, desglose de storyboard",
         "image": "Generación de imágenes estáticas: personajes, escenas y planos",
         "video": "Generación directa de video por plano: video Grok de aiask.me, ComfyUI local, Seedance y más"
-      }
+      },
+      "quickModelSaved": "Guardado: el modelo de {type} predeterminado es {model}",
+      "quickModelPicked": "Modelo de {type} {model} seleccionado; se aplica al introducir la clave y aplicar",
+      "quickPickHint": "Haz clic para usarlo; se guarda automáticamente"
     },
     "styles": {
       "title": "Estilos predefinidos",
@@ -660,7 +663,12 @@
         "fingerprint": "Clave del host",
         "fingerprintHint": "En la primera conexión, compárala con ssh-keygen -lf en el servidor"
       },
-      "diagnosis": "Detectado en esta dirección: {name}"
+      "diagnosis": "Detectado en esta dirección: {name}",
+      "aiask": {
+        "concurrentTitle": "Vídeos generados a la vez",
+        "concurrentDefault": "2 (predeterminado)",
+        "concurrentHint": "Los vídeos Grok de aiask.me se generan en wokey.ai, que limita los vídeos simultáneos y rechaza el resto. Los lotes se envían en cola con este número y los errores de saturación se reenvían automáticamente. Súbelo si tu cuenta lo permite."
+      }
     },
     "styleDialog": {
       "editTitle": "Editar estilo predefinido",
@@ -758,7 +766,17 @@
       "rewriting": "Reescribiendo el guion...",
       "scriptPlaceholder": "Contenido del guion formateado...",
       "rawRequired": "Primero rellena el contenido original",
-      "skipDone": "Reescritura con IA omitida; se usará directamente el contenido original"
+      "skipDone": "Reescritura con IA omitida; se usará directamente el contenido original",
+      "rewriteMode": "Modo de reescritura",
+      "modeTypewriter": "Máquina de escribir",
+      "modeTypewriterHint": "Muestra el guion mientras se escribe (predeterminado)",
+      "modeOneShot": "De una vez",
+      "modeOneShotHint": "Muestra el guion completo al terminar",
+      "stopTyping": "Detener",
+      "typingProgress": "La IA está escribiendo… {n} caracteres",
+      "typingWaiting": "La IA está pensando, la salida empieza enseguida…",
+      "typingInterrupted": "La reescritura se interrumpió, inténtalo de nuevo",
+      "typingStopped": "Detenido, se conserva el guion anterior"
     },
     "prod": {
       "assets": "Producción de recursos",
@@ -776,7 +794,8 @@
       "emptyDesc": "Los personajes, escenas y objetos aparecerán aquí tras la extracción. Extrae cada tipo por separado o todos a la vez en paralelo.",
       "startExtract": "Iniciar extracción",
       "scriptFirst": "Primero termina el guion",
-      "goBack": "Volver"
+      "goBack": "Volver",
+      "reextractAll": "Volver a extraer todos los recursos"
     },
     "asset": {
       "fallbackType": "Recurso",

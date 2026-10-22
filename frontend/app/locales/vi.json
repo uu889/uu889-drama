@@ -295,7 +295,10 @@
         "text": "Khả năng văn bản: viết lại kịch bản, trích xuất tài nguyên, chia phân cảnh",
         "image": "Tạo ảnh tĩnh: nhân vật, cảnh và cảnh quay",
         "video": "Tạo video trực tiếp cho cảnh quay: video Grok của aiask.me, ComfyUI cục bộ, Seedance và nhiều hơn nữa"
-      }
+      },
+      "quickModelSaved": "Đã tự lưu: mô hình {type} mặc định là {model}",
+      "quickModelPicked": "Đã chọn mô hình {type} {model}; có hiệu lực sau khi nhập key và áp dụng",
+      "quickPickHint": "Nhấp để dùng, tự động lưu"
     },
     "styles": {
       "title": "Phong cách mẫu",
@@ -660,7 +663,12 @@
         "fingerprint": "Khóa máy chủ",
         "fingerprintHint": "Lần đầu kết nối, hãy so với kết quả ssh-keygen -lf trên máy chủ"
       },
-      "diagnosis": "Nhận diện tại địa chỉ này: {name}"
+      "diagnosis": "Nhận diện tại địa chỉ này: {name}",
+      "aiask": {
+        "concurrentTitle": "Số video tạo cùng lúc",
+        "concurrentDefault": "2 (mặc định)",
+        "concurrentHint": "Video Grok của aiask.me được tạo ở wokey.ai, nơi giới hạn số video đồng thời và từ chối phần vượt. Khi tạo hàng loạt sẽ xếp hàng theo số này, lỗi quá tải được gửi lại tự động. Tăng lên nếu tài khoản cho phép."
+      }
     },
     "styleDialog": {
       "editTitle": "Sửa phong cách mẫu",
@@ -758,7 +766,17 @@
       "rewriting": "Đang viết lại kịch bản...",
       "scriptPlaceholder": "Nội dung kịch bản đã định dạng...",
       "rawRequired": "Vui lòng điền nội dung gốc trước",
-      "skipDone": "Đã bỏ qua AI viết lại; nội dung gốc sẽ được dùng trực tiếp"
+      "skipDone": "Đã bỏ qua AI viết lại; nội dung gốc sẽ được dùng trực tiếp",
+      "rewriteMode": "Cách viết lại",
+      "modeTypewriter": "Máy đánh chữ",
+      "modeTypewriterHint": "Hiển thị kịch bản trong lúc viết (mặc định)",
+      "modeOneShot": "Một lần",
+      "modeOneShotHint": "Hiển thị toàn bộ kịch bản khi viết xong",
+      "stopTyping": "Dừng",
+      "typingProgress": "AI đang viết… {n} ký tự",
+      "typingWaiting": "AI đang suy nghĩ, sắp bắt đầu xuất…",
+      "typingInterrupted": "Viết lại bị gián đoạn, vui lòng thử lại",
+      "typingStopped": "Đã dừng, giữ kịch bản cũ"
     },
     "prod": {
       "assets": "Sản xuất tài nguyên",
@@ -776,7 +794,8 @@
       "emptyDesc": "Nhân vật, cảnh và đạo cụ sẽ hiển thị ở đây sau khi trích xuất. Có thể trích xuất riêng từng loại hoặc tất cả song song.",
       "startExtract": "Bắt đầu trích xuất",
       "scriptFirst": "Vui lòng hoàn thành kịch bản trước",
-      "goBack": "Quay lại"
+      "goBack": "Quay lại",
+      "reextractAll": "Trích xuất lại tất cả tài nguyên"
     },
     "asset": {
       "fallbackType": "Tài nguyên",

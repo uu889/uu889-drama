@@ -295,7 +295,10 @@
         "text": "Text capabilities: script rewriting, asset extraction, storyboard breaking",
         "image": "Static image generation: characters, scenes and shots",
         "video": "Direct shot video generation: aiask.me Grok video, local ComfyUI, Seedance and more"
-      }
+      },
+      "quickModelSaved": "Saved: default {type} model is {model}",
+      "quickModelPicked": "{type} model {model} selected; it takes effect after you enter the key and apply",
+      "quickPickHint": "Click to use it; saved automatically"
     },
     "styles": {
       "title": "Style Presets",
@@ -660,7 +663,12 @@
         "fingerprint": "Host key",
         "fingerprintHint": "On first connect, compare with ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub on the server"
       },
-      "diagnosis": "Detected at this address: {name}"
+      "diagnosis": "Detected at this address: {name}",
+      "aiask": {
+        "concurrentTitle": "Videos generated at once",
+        "concurrentDefault": "2 (default)",
+        "concurrentHint": "aiask.me Grok videos are generated upstream by wokey.ai, which limits concurrent videos and rejects the rest. Batches are queued at this number, the next one is sent when one finishes, and busy errors are resubmitted automatically. Raise it if your account allows more."
+      }
     },
     "styleDialog": {
       "editTitle": "Edit Style Preset",
@@ -758,7 +766,17 @@
       "rewriting": "Rewriting the script...",
       "scriptPlaceholder": "Formatted script content...",
       "rawRequired": "Please fill in the raw content first",
-      "skipDone": "AI rewrite skipped; the raw content will be used directly"
+      "skipDone": "AI rewrite skipped; the raw content will be used directly",
+      "rewriteMode": "Rewrite mode",
+      "modeTypewriter": "Typewriter",
+      "modeTypewriterHint": "Shows the script as it is written (default)",
+      "modeOneShot": "All at once",
+      "modeOneShotHint": "Shows the whole script when it is finished",
+      "stopTyping": "Stop",
+      "typingProgress": "AI is writing… {n} characters so far",
+      "typingWaiting": "AI is thinking, output starts shortly…",
+      "typingInterrupted": "The rewrite was interrupted, please try again",
+      "typingStopped": "Stopped, the previous script is kept"
     },
     "prod": {
       "assets": "Asset Production",
@@ -776,7 +794,8 @@
       "emptyDesc": "Characters, scenes and props will appear here after extraction. Extract each type separately or all at once in parallel.",
       "startExtract": "Start Extraction",
       "scriptFirst": "Please finish the script first",
-      "goBack": "Go back"
+      "goBack": "Go back",
+      "reextractAll": "Re-extract all assets"
     },
     "asset": {
       "fallbackType": "Asset",

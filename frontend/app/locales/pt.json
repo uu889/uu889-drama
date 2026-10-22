@@ -295,7 +295,10 @@
         "text": "Funções de texto: reescrita de roteiro, extração de recursos, divisão do storyboard",
         "image": "Geração de imagens estáticas: personagens, cenários e planos",
         "video": "Geração direta de vídeo dos planos: vídeo Grok do aiask.me, ComfyUI local, Seedance e outros"
-      }
+      },
+      "quickModelSaved": "Salvo: o modelo de {type} padrão é {model}",
+      "quickModelPicked": "Modelo de {type} {model} selecionado; vale após informar a chave e aplicar",
+      "quickPickHint": "Clique para usar; salvo automaticamente"
     },
     "styles": {
       "title": "Predefinições de estilo",
@@ -660,7 +663,12 @@
         "fingerprint": "Chave do host",
         "fingerprintHint": "Na primeira conexão, compare com ssh-keygen -lf no servidor"
       },
-      "diagnosis": "Detectado neste endereço: {name}"
+      "diagnosis": "Detectado neste endereço: {name}",
+      "aiask": {
+        "concurrentTitle": "Vídeos gerados ao mesmo tempo",
+        "concurrentDefault": "2 (padrão)",
+        "concurrentHint": "Os vídeos Grok do aiask.me são gerados no wokey.ai, que limita vídeos simultâneos e rejeita o excedente. Os lotes entram em fila com esse número e erros de sobrecarga são reenviados automaticamente. Aumente se sua conta permitir."
+      }
     },
     "styleDialog": {
       "editTitle": "Editar predefinição de estilo",
@@ -758,7 +766,17 @@
       "rewriting": "Reescrevendo o roteiro...",
       "scriptPlaceholder": "Conteúdo do roteiro formatado...",
       "rawRequired": "Preencha primeiro o conteúdo original",
-      "skipDone": "Reescrita com IA ignorada; o conteúdo original será usado diretamente"
+      "skipDone": "Reescrita com IA ignorada; o conteúdo original será usado diretamente",
+      "rewriteMode": "Modo de reescrita",
+      "modeTypewriter": "Máquina de escrever",
+      "modeTypewriterHint": "Mostra o roteiro enquanto é escrito (padrão)",
+      "modeOneShot": "De uma vez",
+      "modeOneShotHint": "Mostra o roteiro inteiro quando terminar",
+      "stopTyping": "Parar",
+      "typingProgress": "A IA está escrevendo… {n} caracteres",
+      "typingWaiting": "A IA está pensando, a saída começa já…",
+      "typingInterrupted": "A reescrita foi interrompida, tente novamente",
+      "typingStopped": "Parado, o roteiro anterior foi mantido"
     },
     "prod": {
       "assets": "Produção de recursos",
@@ -776,7 +794,8 @@
       "emptyDesc": "Personagens, cenários e objetos aparecerão aqui após a extração. Extraia cada tipo separadamente ou todos de uma vez em paralelo.",
       "startExtract": "Iniciar extração",
       "scriptFirst": "Conclua o roteiro primeiro",
-      "goBack": "Voltar"
+      "goBack": "Voltar",
+      "reextractAll": "Reextrair todos os recursos"
     },
     "asset": {
       "fallbackType": "Recurso",

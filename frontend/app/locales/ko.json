@@ -295,7 +295,10 @@
         "text": "대본 재작성, 캐릭터·장면 추출, 스토리보드 분해 등 Agent 텍스트 기능",
         "image": "캐릭터 이미지, 장면 이미지, 샷 이미지 등 정지 이미지 생성",
         "video": "샷 영상 직접 생성: aiask.me Grok 영상, 로컬 ComfyUI, Seedance 등"
-      }
+      },
+      "quickModelSaved": "자동 저장됨: 기본 {type} 모델 {model}",
+      "quickModelPicked": "{type} 모델 {model} 선택됨. 키를 입력하고 적용하면 반영됩니다",
+      "quickPickHint": "클릭하면 선택되고 자동 저장됩니다"
     },
     "styles": {
       "title": "스타일 프리셋",
@@ -660,7 +663,12 @@
         "fingerprint": "호스트 키",
         "fingerprintHint": "처음 연결할 때 서버의 ssh-keygen -lf 결과와 비교하세요"
       },
-      "diagnosis": "이 주소에서 감지됨: {name}"
+      "diagnosis": "이 주소에서 감지됨: {name}",
+      "aiask": {
+        "concurrentTitle": "동시에 생성할 영상 수",
+        "concurrentDefault": "2(기본)",
+        "concurrentHint": "aiask.me Grok 영상은 상위 wokey.ai에서 생성되며 동시 생성 수가 제한되어 초과분은 실패합니다. 일괄 생성 시 이 수만큼 대기열로 제출하고, 혼잡하면 자동으로 다시 제출합니다. 계정 한도가 높으면 늘릴 수 있습니다."
+      }
     },
     "styleDialog": {
       "editTitle": "스타일 프리셋 편집",
@@ -758,7 +766,17 @@
       "rewriting": "대본을 재작성하는 중...",
       "scriptPlaceholder": "형식화된 대본 내용...",
       "rawRequired": "먼저 원문을 입력하세요",
-      "skipDone": "AI 재작성을 건거이습니다. 원문을 그대로 사용합니다"
+      "skipDone": "AI 재작성을 건거이습니다. 원문을 그대로 사용합니다",
+      "rewriteMode": "각색 방식",
+      "modeTypewriter": "타자기",
+      "modeTypewriterHint": "작성되는 대로 표시(기본)",
+      "modeOneShot": "한 번에",
+      "modeOneShotHint": "대본 전체가 완성된 후 표시",
+      "stopTyping": "중지",
+      "typingProgress": "AI가 각색 중… {n}자",
+      "typingWaiting": "AI가 구상 중, 곧 출력합니다…",
+      "typingInterrupted": "각색이 중단되었습니다. 다시 시도하세요",
+      "typingStopped": "중지했습니다. 기존 대본을 유지합니다"
     },
     "prod": {
       "assets": "에셋 제작",
@@ -776,7 +794,8 @@
       "emptyDesc": "캐릭터, 장면, 소품은 추출 후 이곳에 표시됩니다. 개별로 추출하거나 일괄 병렬 추출할 수 있습니다.",
       "startExtract": "추출 시작",
       "scriptFirst": "먼저 대본을 완성하세요",
-      "goBack": "처리로 돌아가기"
+      "goBack": "처리로 돌아가기",
+      "reextractAll": "모든 에셋 다시 추출"
     },
     "asset": {
       "fallbackType": "에셋",

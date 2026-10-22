@@ -52,7 +52,7 @@ const zh: GuideTable = {
         '把 Key 粘贴到 API Key，点「测试连接」看到 200 即可保存。',
         '也可以在 AI 服务页顶部用「aiask.me 一键配置」，一次写入文字 + 图片 + 视频三套配置。',
       ],
-      fields: [['Base URL', 'https://aiask.me'], ['API Key', 'sk-…'], ['模型', '首位为默认，如 gpt-6-astra、gpt-5.5、deepseek-v4-pro']],
+      fields: [['Base URL', 'https://aiask.me'], ['API Key', 'sk-…'], ['模型', '首位为默认，如 deepseek-v4.1-flash、deepseek-v4-pro、gpt-6.1-sol、claude-haiku-5-5、gpt-6-astra、claude-opus-5-5']],
       tips: zhOpenAICompatTips,
       links: [['aiask.me', 'https://aiask.me']],
     },
@@ -118,9 +118,9 @@ const zh: GuideTable = {
   },
   image: {
     aiask: {
-      summary: 'aiask.me 图片：gpt-image-2、grok-imagine-image、gemini-3-pro-image 等，支持参考图保持角色一致。',
+      summary: 'aiask.me 图片：gpt-image-2.5-sunburst（默认）、gpt-image-2.5-flare，支持参考图保持角色一致。',
       steps: ['用文字配置里同一个 aiask.me Key。', '点「aiask.me」预设，粘贴 Key，测试连接后保存。', '模型列表首位为默认；工作台生图时可切换。'],
-      fields: [['Base URL', 'https://aiask.me'], ['API Key', 'sk-…'], ['模型', 'gpt-image-2 / grok-imagine-image / gemini-3-pro-image']],
+      fields: [['Base URL', 'https://aiask.me'], ['API Key', 'sk-…'], ['模型', 'gpt-image-2.5-sunburst / gpt-image-2.5-flare']],
       tips: ['分镜生图会自动带上角色 / 场景图作为参考图，提升一致性。'],
       links: [['aiask.me', 'https://aiask.me']],
     },
@@ -240,8 +240,8 @@ const zh: GuideTable = {
     aiask: {
       summary: 'aiask.me 的 Grok 视频（grok-imagine-video），支持首帧 / 参考图。',
       steps: ['用 aiask.me 的 Key。', '点「aiask.me Grok 视频」预设，粘贴 Key 后保存。'],
-      fields: [['Base URL', 'https://aiask.me'], ['API Key', 'sk-…'], ['模型', 'grok-imagine-video-1.5']],
-      tips: ['时长、比例、分辨率会自动换算成 Grok 支持的档位。'],
+      fields: [['Base URL', 'https://aiask.me'], ['API Key', 'sk-…'], ['模型', 'grok-imagine-video-1.5-lite（默认）/ grok-imagine-video-1.5']],
+      tips: ['时长、比例、分辨率会自动换算成 Grok 支持的档位。', '上游 wokey.ai 限制同时生成的视频数：批量生成时默认一次只提交 2 个，前一个完成再交下一个；上游繁忙会自动重新提交，状态查询出错时先复查再判失败。'],
       links: [['aiask.me', 'https://aiask.me']],
     },
     xai: {
@@ -327,7 +327,7 @@ const en: GuideTable = {
     aiask: {
       summary: 'aiask.me is an OpenAI-compatible gateway: one key for GPT / DeepSeek / Gemini text models.',
       steps: ['Sign in at https://aiask.me and create a key (starts with sk-).', 'Click the "aiask.me" preset to fill Base URL and models.', 'Paste the key, click Test, save once you see 200.', 'Or use the "aiask.me quick setup" at the top of the AI page to create text + image + video configs at once.'],
-      fields: [['Base URL', 'https://aiask.me'], ['API Key', 'sk-…'], ['Models', 'first one is the default, e.g. gpt-6-astra']],
+      fields: [['Base URL', 'https://aiask.me'], ['API Key', 'sk-…'], ['Models', 'first one is the default, e.g. deepseek-v4.1-flash']],
       tips: enOpenAICompatTips,
       links: [['aiask.me', 'https://aiask.me']],
     },
@@ -383,9 +383,9 @@ const en: GuideTable = {
   },
   image: {
     aiask: {
-      summary: 'aiask.me images: gpt-image-2, grok-imagine-image, gemini-3-pro-image; reference images keep characters consistent.',
+      summary: 'aiask.me images: gpt-image-2.5-sunburst (default), gpt-image-2.5-flare; reference images keep characters consistent.',
       steps: ['Reuse your aiask.me key.', 'Click the preset, paste the key, test and save.'],
-      fields: [['Base URL', 'https://aiask.me'], ['API Key', 'sk-…'], ['Models', 'gpt-image-2 / grok-imagine-image']],
+      fields: [['Base URL', 'https://aiask.me'], ['API Key', 'sk-…'], ['Models', 'gpt-image-2.5-sunburst / gpt-image-2.5-flare']],
       tips: ['Storyboard frames automatically include character / scene images as references.'],
       links: [['aiask.me', 'https://aiask.me']],
     },
@@ -448,7 +448,7 @@ const en: GuideTable = {
     },
   },
   video: {
-    aiask: { summary: 'Grok video through aiask.me.', steps: ['Reuse your aiask.me key.', 'Click the preset, paste the key and save.'], fields: [['Base URL', 'https://aiask.me'], ['Models', 'grok-imagine-video-1.5']], tips: ['Duration, ratio and resolution are mapped to Grok tiers.'], links: [['aiask.me', 'https://aiask.me']] },
+    aiask: { summary: 'Grok video through aiask.me.', steps: ['Reuse your aiask.me key.', 'Click the preset, paste the key and save.'], fields: [['Base URL', 'https://aiask.me'], ['Models', 'grok-imagine-video-1.5-lite / grok-imagine-video-1.5']], tips: ['Duration, ratio and resolution are mapped to Grok tiers.', 'Upstream (wokey.ai) limits concurrent videos: batches send 2 at a time by default, busy errors are resubmitted automatically, and status errors are re-checked before a shot is marked failed.'], links: [['aiask.me', 'https://aiask.me']] },
     xai: { summary: 'xAI native Grok video API.', steps: ['Official: Base URL https://api.x.ai with a console.x.ai key.', 'aiask.me Grok key: Base URL https://aiask.me.'], fields: [['Base URL', 'https://api.x.ai'], ['Models', 'grok-imagine-video-1.5']], tips: ['References are referenced as <IMAGE_n> automatically.'], links: [['xAI Console', 'https://console.x.ai']] },
     veo: { summary: 'Google Veo 3.1 via the Gemini API.', steps: ['Create a paid key in Google AI Studio.', 'Click the preset, paste the key and save.'], fields: [['Base URL', 'https://generativelanguage.googleapis.com'], ['Models', 'veo-3.1-generate-preview']], tips: ['Generation takes 1–5 minutes; Tasks show the elapsed time.'], links: [['Google AI Studio', 'https://aistudio.google.com/apikey']] },
     runway: { summary: 'Runway API (gen4.5 / gen4_turbo / veo3.1).', steps: ['Create a key at https://dev.runwayml.com.', 'Click the preset, paste the key and save.'], fields: [['Base URL', 'https://api.dev.runwayml.com'], ['Models', 'gen4.5']], tips: ['gen4 image-to-video needs a first frame.'], links: [['Runway Developer', 'https://dev.runwayml.com']] },

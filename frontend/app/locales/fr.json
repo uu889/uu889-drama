@@ -295,7 +295,10 @@
         "text": "Capacités texte : réécriture de script, extraction de ressources, découpage du storyboard",
         "image": "Génération d'images fixes : personnages, scènes et plans",
         "video": "Génération vidéo directe par plan : vidéo Grok aiask.me, ComfyUI local, Seedance et plus"
-      }
+      },
+      "quickModelSaved": "Enregistré : le modèle {type} par défaut est {model}",
+      "quickModelPicked": "Modèle {type} {model} choisi ; actif après saisie de la clé et application",
+      "quickPickHint": "Cliquez pour l’utiliser ; enregistré automatiquement"
     },
     "styles": {
       "title": "Préréglages de style",
@@ -660,7 +663,12 @@
         "fingerprint": "Clé d’hôte",
         "fingerprintHint": "À la première connexion, comparez avec ssh-keygen -lf sur le serveur"
       },
-      "diagnosis": "Détecté à cette adresse : {name}"
+      "diagnosis": "Détecté à cette adresse : {name}",
+      "aiask": {
+        "concurrentTitle": "Vidéos générées en même temps",
+        "concurrentDefault": "2 (par défaut)",
+        "concurrentHint": "Les vidéos Grok d’aiask.me sont générées en amont par wokey.ai, qui limite les vidéos simultanées et rejette le reste. Les lots sont mis en file selon ce nombre et les erreurs de saturation sont renvoyées automatiquement. Augmentez-le si votre compte le permet."
+      }
     },
     "styleDialog": {
       "editTitle": "Modifier le préréglage de style",
@@ -758,7 +766,17 @@
       "rewriting": "Réécriture du script en cours...",
       "scriptPlaceholder": "Contenu du script formaté...",
       "rawRequired": "Veuillez d'abord remplir le contenu brut",
-      "skipDone": "Réécriture IA ignorée ; le contenu brut sera utilisé directement"
+      "skipDone": "Réécriture IA ignorée ; le contenu brut sera utilisé directement",
+      "rewriteMode": "Mode de réécriture",
+      "modeTypewriter": "Machine à écrire",
+      "modeTypewriterHint": "Affiche le script au fil de l’écriture (par défaut)",
+      "modeOneShot": "D’un coup",
+      "modeOneShotHint": "Affiche le script complet une fois terminé",
+      "stopTyping": "Arrêter",
+      "typingProgress": "L’IA écrit… {n} caractères",
+      "typingWaiting": "L’IA réfléchit, la sortie commence bientôt…",
+      "typingInterrupted": "La réécriture a été interrompue, réessayez",
+      "typingStopped": "Arrêté, le script précédent est conservé"
     },
     "prod": {
       "assets": "Production des ressources",
@@ -776,7 +794,8 @@
       "emptyDesc": "Les personnages, scènes et accessoires apparaîtront ici après l'extraction. Extrayez chaque type séparément ou tous à la fois en parallèle.",
       "startExtract": "Lancer l'extraction",
       "scriptFirst": "Veuillez d'abord terminer le script",
-      "goBack": "Revenir"
+      "goBack": "Revenir",
+      "reextractAll": "Réextraire tous les assets"
     },
     "asset": {
       "fallbackType": "Ressource",

@@ -66,12 +66,12 @@ export function patchAiaskChatBody(body: Record<string, any>): Record<string, an
 }
 
 /**
- * Claude 4.7 及以后的模型（Opus 4.7 / 4.8 / 5 / 5.5、Sonnet 5 / 5.5、Fable、Mythos）不再接受
+ * Claude 4.7 及以后的模型（Opus 4.7 / 4.8 / 5 / 5.5、Sonnet 5 / 5.5、Haiku 5 / 5.5、Fable、Mythos）不再接受
  * temperature / top_p / top_k（会 400）；更早的 Claude 仍可用采样参数。
  */
 export function claudeRejectsSampling(model: unknown): boolean {
   const m = String(model || '').toLowerCase()
-  return /claude-(fable|mythos)|claude-opus-(4-[78]|5)|claude-sonnet-5/.test(m)
+  return /claude-(fable|mythos)|claude-opus-(4-[78]|5)|claude-sonnet-5|claude-haiku-5/.test(m)
 }
 
 /** Claude（Anthropic Messages API）请求体修正：去掉新模型不接受的采样参数 */

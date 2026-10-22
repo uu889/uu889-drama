@@ -295,7 +295,10 @@
         "text": "剧本改写、角色场景提取、分镜拆解等 Agent 文本能力",
         "image": "角色图、场景图与镜头图等静态图像生成",
         "video": "镜头视频直出生成：aiask.me Grok 视频、本地 ComfyUI、Seedance 等"
-      }
+      },
+      "quickModelSaved": "已自动保存：默认{type}模型 {model}",
+      "quickModelPicked": "已选{type}模型 {model}，填入 Key 点「写入 aiask.me 配置」后生效",
+      "quickPickHint": "点击选用，自动保存"
     },
     "styles": {
       "title": "风格预设",
@@ -660,7 +663,12 @@
         "fingerprint": "主机指纹",
         "fingerprintHint": "首次连接请与服务器上 ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub 的输出核对"
       },
-      "diagnosis": "识别到这个地址上是：{name}"
+      "diagnosis": "识别到这个地址上是：{name}",
+      "aiask": {
+        "concurrentTitle": "同时生成的视频数",
+        "concurrentDefault": "2（默认）",
+        "concurrentHint": "aiask.me 的 Grok 视频由上游 wokey.ai 生成，上游限制同时生成的视频数，超出会直接失败。批量生成时按这个数量排队提交，前一个完成再交下一个；上游繁忙会自动重新提交。账号并发额度更高时可以调大。"
+      }
     },
     "styleDialog": {
       "editTitle": "编辑风格预设",
@@ -758,7 +766,17 @@
       "rewriting": "正在改写剧本...",
       "scriptPlaceholder": "格式化剧本内容...",
       "rawRequired": "请先填写原始内容",
-      "skipDone": "已跳过 AI 改写，当前将直接使用原始内容"
+      "skipDone": "已跳过 AI 改写，当前将直接使用原始内容",
+      "rewriteMode": "改写方式",
+      "modeTypewriter": "打字机",
+      "modeTypewriterHint": "边写边显示，不用干等（默认）",
+      "modeOneShot": "一次性",
+      "modeOneShotHint": "写完整个剧本后一次性显示",
+      "stopTyping": "停止",
+      "typingProgress": "AI 正在逐字改写…已写 {n} 字",
+      "typingWaiting": "AI 正在构思，马上开始输出…",
+      "typingInterrupted": "改写中断了，请重试",
+      "typingStopped": "已停止，保留原来的剧本"
     },
     "prod": {
       "assets": "资产制作",
@@ -776,7 +794,8 @@
       "emptyDesc": "角色、场景和道具会在提取后显示在这里，可分别单独提取，也可一键并行提取全部。",
       "startExtract": "开始提取",
       "scriptFirst": "请先完成剧本编写",
-      "goBack": "返回处理"
+      "goBack": "返回处理",
+      "reextractAll": "重提所有资产"
     },
     "asset": {
       "fallbackType": "资产",

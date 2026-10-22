@@ -198,11 +198,25 @@
             </div>
             <div class="toolbar-right">
               <span v-if="scriptLen" class="char-count">{{ t('episode.script.charCount', { n: scriptLen }) }}</span>
-              <button v-if="rawContent" class="btn btn-sm" @click="skipRewrite">
+              <!-- 改写方式：打字机（边写边显示，默认）/ 一次性出剧本 -->
+              <div class="rewrite-mode" role="group" :aria-label="t('episode.script.rewriteMode')">
+                <button
+                  v-for="m in REWRITE_MODES" :key="m.key" type="button"
+                  :class="['rewrite-mode-btn', { active: rewriteMode === m.key }]"
+                  :title="t(m.hint)"
+                  :disabled="typing || rn"
+                  @click="setRewriteMode(m.key)"
+                >{{ t(m.label) }}</button>
+              </div>
+              <button v-if="rawContent" class="btn btn-sm" :disabled="typing" @click="skipRewrite">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/><path d="M13 18l6-6-6-6"/></svg>
                 {{ t('episode.script.skipRewrite') }}
               </button>
-              <button v-if="scriptContent" class="btn btn-sm" @click="doRewrite" :disabled="rn">
+              <button v-if="typing" class="btn btn-sm" @click="stopTypewriter">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+                {{ t('episode.script.stopTyping') }}
+              </button>
+              <button v-else-if="scriptContent" class="btn btn-sm" @click="doRewrite" :disabled="rn">
                 <Loader2 v-if="rn && rt === 'script_rewriter'" :size="11" class="animate-spin" />
                 <svg v-else width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
                 {{ t('episode.script.rewriteAgain') }}
@@ -210,7 +224,7 @@
             </div>
           </div>
 
-          <div v-if="!scriptContent && !rn" class="step-empty">
+          <div v-if="!scriptContent && !rn && !typing" class="step-empty">
             <div class="empty-visual">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
                 <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>
@@ -233,7 +247,19 @@
             <Loader2 :size="24" class="animate-spin" style="color:var(--accent)" />
             <div class="loading-text">{{ t('episode.script.rewriting') }}</div>
           </div>
-          <textarea v-else class="fill-textarea" v-model="localScript" :placeholder="t('episode.script.scriptPlaceholder')" />
+          <template v-else>
+            <div v-if="typing" class="typing-bar">
+              <Loader2 :size="12" class="animate-spin" />
+              <span>{{ localScript ? t('episode.script.typingProgress', { n: scriptLen }) : t('episode.script.typingWaiting') }}</span>
+            </div>
+            <textarea
+              ref="scriptTextarea"
+              :class="['fill-textarea', { 'is-typing': typing }]"
+              v-model="localScript"
+              :readonly="typing"
+              :placeholder="typing ? '' : t('episode.script.scriptPlaceholder')"
+            />
+          </template>
         </div>
       </div>
 
@@ -257,6 +283,16 @@
               <span class="dim" style="font-size:12px">{{ t('episode.prod.assets') }}</span>
               <span class="tag mono">{{ t('episode.prod.readyCount', { ready: assetReadyCount, total: assetTotalCount }) }}</span>
               <div class="ml-auto flex gap-1 asset-bar-actions">
+                <button
+                  v-if="chars.length || scenes.length || propItems.length"
+                  class="btn btn-sm asset-btn-extract"
+                  :disabled="EXTRACT_TARGETS.every(x => isExtracting(x.key))"
+                  @click="doExtractAll"
+                >
+                  <Loader2 v-if="extractingTargets.length" :size="11" class="animate-spin" />
+                  <svg v-else width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                  {{ t('episode.prod.reextractAll') }}
+                </button>
                 <button
                   v-for="et in EXTRACT_TARGETS"
                   :key="et.key"
@@ -3186,7 +3222,98 @@ function saveRaw() { episodeAPI.update(epId.value, { content: localRaw.value });
 function saveScr() { episodeAPI.update(epId.value, { script_content: localScript.value }); episode.value.script_content = localScript.value }
 // 发给 Agent 的 message 是功能性提示词而非 UI 文案：产出语言由后端全局「内容语言」指令控制，
 // 这里保持中文不随界面语言变化
-function doRewrite() { saveRaw(); runAgent('script_rewriter', '请读取剧本并改写为格式化剧本，然后保存', dramaId, epId.value, refresh, chatModelOverride(), chatConfigId()) }
+function doRewrite() {
+  if (typing.value) return
+  if (rewriteMode.value === 'typewriter') { typewriterRewrite(); return }
+  saveRaw(); runAgent('script_rewriter', '请读取剧本并改写为格式化剧本，然后保存', dramaId, epId.value, refresh, chatModelOverride(), chatConfigId())
+}
+
+// ===== 改写方式：打字机（默认，边生成边显示）/ 一次性出剧本（Agent 写完再保存） =====
+const REWRITE_MODE_KEY = 'uu889:rewrite-mode'
+const REWRITE_MODES = [
+  { key: 'typewriter', label: 'episode.script.modeTypewriter', hint: 'episode.script.modeTypewriterHint' },
+  { key: 'oneshot', label: 'episode.script.modeOneShot', hint: 'episode.script.modeOneShotHint' },
+]
+const rewriteMode = ref((() => { try { return localStorage.getItem(REWRITE_MODE_KEY) === 'oneshot' ? 'oneshot' : 'typewriter' } catch { return 'typewriter' } })())
+function setRewriteMode(mode) {
+  rewriteMode.value = mode
+  try { localStorage.setItem(REWRITE_MODE_KEY, mode) } catch {}
+}
+const typing = ref(false)
+const scriptTextarea = ref(null)
+let typingAbort = null
+
+/** 新内容出来时跟到末尾（用户往上翻着看时不打扰） */
+function followTyping() {
+  nextTick(() => {
+    const el = scriptTextarea.value
+    if (el && el.scrollHeight - el.scrollTop - el.clientHeight < 160) el.scrollTop = el.scrollHeight
+  })
+}
+
+function parseSseBlock(block) {
+  let event = 'message'
+  const data = []
+  for (const line of block.split('\n')) {
+    if (line.startsWith('event:')) event = line.slice(6).trim()
+    else if (line.startsWith('data:')) data.push(line.slice(5).replace(/^ /, ''))
+  }
+  try { return { event, data: JSON.parse(data.join('\n') || 'null') } } catch { return { event, data: null } }
+}
+
+/** 打字机模式：后端 SSE 推送改写增量，写完后端保存；点「停止」放弃这次改写、恢复原来的剧本 */
+async function typewriterRewrite() {
+  if (rn.value) { toast.warning(t('composables.agent.busy')); return }
+  const previous = localScript.value
+  typing.value = true
+  const controller = new AbortController()
+  typingAbort = controller
+  try {
+    // 后端立刻读原文，必须先存好
+    await episodeAPI.update(epId.value, { content: localRaw.value })
+    episode.value.content = localRaw.value
+    localScript.value = ''
+    const resp = await fetch('/api/v1/agent/script_rewriter/stream', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ drama_id: dramaId, episode_id: epId.value, model: chatModelOverride(), config_id: chatConfigId() }),
+      signal: controller.signal,
+    })
+    if (!resp.ok || !resp.body) {
+      const json = await resp.json().catch(() => null)
+      throw new Error(json?.message || `${resp.status}`)
+    }
+    const reader = resp.body.pipeThrough(new TextDecoderStream()).getReader()
+    let buf = ''
+    let result = null
+    for (;;) {
+      const { value, done } = await reader.read()
+      if (done) break
+      buf += value.replace(/\r\n/g, '\n')
+      let idx
+      while ((idx = buf.indexOf('\n\n')) >= 0) {
+        const { event, data } = parseSseBlock(buf.slice(0, idx))
+        buf = buf.slice(idx + 2)
+        if (event === 'delta' && data?.text) { localScript.value += data.text; followTyping() }
+        else if (event === 'done') result = data
+        else if (event === 'error') throw new Error(data?.message || t('episode.script.typingInterrupted'))
+      }
+    }
+    if (!result) throw new Error(t('episode.script.typingInterrupted'))
+    localScript.value = result.content
+    episode.value.script_content = result.content
+    toast.success(t('composables.agent.done'))
+    refresh()
+  } catch (err) {
+    localScript.value = previous
+    if (err?.name === 'AbortError') toast.info(t('episode.script.typingStopped'))
+    else toastError(err)
+  } finally {
+    typing.value = false
+    typingAbort = null
+  }
+}
+function stopTypewriter() { typingAbort?.abort() }
 function skipRewrite() {
   const raw = (localRaw.value || rawContent.value || '').trim()
   if (!raw) {
@@ -4625,6 +4752,25 @@ onMounted(() => setTimeout(() => autoTour('episode', EPISODE_TOUR, t), 900))
 }
 .step-name { font-size: 12.5px; font-weight: 700; color: var(--text-1); font-family: var(--font-display); }
 .char-count { font-size: 11px; color: var(--text-3); font-family: var(--font-mono); }
+
+/* 改写方式切换（打字机 / 一次性） */
+.rewrite-mode {
+  display: inline-flex; padding: 2px; gap: 2px;
+  border: 1px solid var(--border); border-radius: 8px; background: var(--bg-input);
+}
+.rewrite-mode-btn {
+  border: none; background: transparent; cursor: pointer;
+  padding: 3px 9px; border-radius: 6px;
+  font-size: 11.5px; color: var(--text-2);
+}
+.rewrite-mode-btn.active { background: var(--accent-bg); color: var(--accent-text); font-weight: 700; }
+.rewrite-mode-btn:disabled { cursor: not-allowed; opacity: 0.6; }
+.typing-bar {
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  padding: 7px 28px; font-size: 12px; color: var(--accent-text);
+  background: var(--accent-bg); border-bottom: 1px solid var(--border);
+}
+.fill-textarea.is-typing { caret-color: transparent; }
 
 /* Editor Area */
 .step-editor { flex: 1; display: flex; flex-direction: column; min-height: 0; }

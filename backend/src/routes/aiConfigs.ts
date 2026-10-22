@@ -63,6 +63,10 @@ const STYLE_MODEL_RULES: Record<string, SettingRule> = {
 }
 
 const PROVIDER_SETTING_RULES: Record<string, Record<string, SettingRule>> = {
+  // aiask.me Grok 视频：同时提交给上游的视频数（不设 = 2，见 gpu-queue.ts cloudLaneLimit）
+  aiask: {
+    ...QUEUE_RULES,
+  },
   comfyui: {
     comfyui_workflow: { kind: 'workflow' },
     comfyui_template: { kind: 'text', max: 64 },

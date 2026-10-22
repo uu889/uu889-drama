@@ -106,9 +106,17 @@
                   {{ q.provider }}
                 </span>
                 <span class="hqm-models mono">
-                  <span v-for="(m, i) in q.model" :key="m" :class="['hqm-model', { 'is-default': i === 0 }]">
+                  <!-- 点击即选用：已配置过就直接改默认模型并自动保存，没配置过先记下，一键配置时写入 -->
+                  <button
+                    v-for="(m, i) in q.model" :key="m" type="button"
+                    :class="['hqm-model', { 'is-selected': aiaskSelectedModel(q) === m }]"
+                    :title="t('settings.ai.quickPickHint')"
+                    :disabled="aiaskPicking"
+                    @click="pickAiaskModel(q, m)"
+                  >
+                    <Check v-if="aiaskSelectedModel(q) === m" :size="10" class="hqm-check" />
                     {{ m }}<em v-if="i === 0">{{ t('common.default') }}</em>
-                  </span>
+                  </button>
                 </span>
               </div>
             </div>
@@ -712,6 +720,15 @@
               </label>
             </div>
           </template>
+          <!-- aiask.me Grok 视频：同时提交给上游的视频数（上游 wokey.ai 限制并发，超出会失败） -->
+          <div v-if="isAiaskVideoForm" class="field">
+            <span class="field-label">{{ t('settings.cfg.aiask.concurrentTitle') }}</span>
+            <select v-model="cfgForm.max_concurrent" class="input">
+              <option value="">{{ t('settings.cfg.aiask.concurrentDefault') }}</option>
+              <option v-for="n in [1, 3, 4, 6, 8]" :key="n" :value="n">{{ n }}</option>
+            </select>
+            <span class="field-hint">{{ t('settings.cfg.aiask.concurrentHint') }}</span>
+          </div>
           <!-- 提示词模板 + 中文翻译（全部本地服务） -->
           <template v-if="isLocalMediaForm">
             <div class="field">
@@ -1046,6 +1063,7 @@ const isFooocusForm = computed(() => cfgForm.provider === 'fooocus' && cfgForm.s
 // 基准尺寸 / 步数 / CFG：ComfyUI 生图（内置模板）与 SD WebUI 使用
 const showLocalImageParams = computed(() => cfgForm.service_type === 'image' && ['comfyui', 'sdwebui'].includes(cfgForm.provider))
 const isLocalMediaForm = computed(() => isComfyForm.value || isSdForm.value || isFooocusForm.value)
+const isAiaskVideoForm = computed(() => cfgForm.provider === 'aiask' && cfgForm.service_type === 'video')
 
 // ===== 配置说明（每个服务商 × 服务类型）=====
 const cfgGuide = computed(() => cfgForm.provider ? getProviderGuide(locale.value, cfgForm.service_type, cfgForm.provider) : null)
@@ -1250,7 +1268,7 @@ const serviceMeta = computed(() => ({
 }))
 const providerPresets = {
   text: {
-    aiask: { label: 'aiask.me', baseUrl: AIASK_SITE_URL, models: ['gpt-6-astra', 'gpt-5.5', 'deepseek-v4-pro'] },
+    aiask: { label: 'aiask.me', baseUrl: AIASK_SITE_URL, models: ['deepseek-v4.1-flash', 'deepseek-v4-pro', 'gpt-6.1-sol', 'claude-haiku-5-5', 'gpt-6-astra', 'claude-opus-5-5'] },
     gemini: { label: 'Gemini 官方', baseUrl: 'https://generativelanguage.googleapis.com', models: ['gemini-3.8-flash', 'gemini-3.1-pro-preview', 'gemini-3-flash-preview'] },
     openai: { label: 'OpenAI 官方', baseUrl: 'https://api.openai.com', models: ['deepseek-v4-pro', 'gpt-5.6-terra'] },
     deepseek: { label: 'DeepSeek 官方', baseUrl: 'https://api.deepseek.com', models: ['deepseek-v4-pro', 'deepseek-v4-flash'] },
@@ -1260,7 +1278,7 @@ const providerPresets = {
     xai: { label: 'Grok（xAI）', baseUrl: 'https://api.x.ai', models: ['grok-4.7', 'grok-4.6', 'grok-4.5'] },
   },
   image: {
-    aiask: { label: 'aiask.me', baseUrl: AIASK_SITE_URL, models: ['gpt-image-2', 'grok-imagine-image', 'gemini-3-pro-image'] },
+    aiask: { label: 'aiask.me', baseUrl: AIASK_SITE_URL, models: ['gpt-image-2.5-sunburst', 'gpt-image-2.5-flare'] },
     xai: { label: 'Grok 图片（xAI）', baseUrl: 'https://api.x.ai', models: ['grok-imagine-image-2.0', 'grok-imagine-image-quality', 'grok-imagine-image'] },
     // 本地生图：模型名填 checkpoint 文件名（ComfyUI 内置模板的 ckpt_name）；SD WebUI / Fooocus 填 default 沿用当前模型
     comfyui: { label: '本地 ComfyUI', baseUrl: 'http://127.0.0.1:8188', models: ['sd_xl_base_1.0.safetensors'] },
@@ -1270,7 +1288,7 @@ const providerPresets = {
     openai: { label: 'OpenAI 官方', baseUrl: 'https://api.openai.com', models: ['gpt-image-2'] },
   },
   video: {
-    aiask: { label: 'aiask.me Grok 视频', baseUrl: AIASK_SITE_URL, models: ['grok-imagine-video-1.5'] },
+    aiask: { label: 'aiask.me Grok 视频', baseUrl: AIASK_SITE_URL, models: ['grok-imagine-video-1.5-lite', 'grok-imagine-video-1.5'] },
     // xAI 原生接口：直连官方填 https://api.x.ai；aiask.me 的 Grok 分组 Key 填 https://aiask.me
     xai: { label: 'Grok 视频（xAI 原生）', baseUrl: 'https://api.x.ai', models: ['grok-imagine-video-1.5', 'grok-imagine-video'] },
     veo: { label: 'Google Veo（Gemini API）', baseUrl: 'https://generativelanguage.googleapis.com', models: ['veo-3.1-generate-preview', 'veo-3.1-fast-generate-preview', 'veo-3.1-lite-generate-preview'] },
@@ -1282,11 +1300,60 @@ const providerPresets = {
   },
 }
 // 名称持久化进 DB，用固定英文名，不随界面语言漂移；写入后同类型下优先级最高即成默认
+// 可快速选择的模型：首位为默认
+const AIASK_TEXT_MODELS = ['deepseek-v4.1-flash', 'deepseek-v4-pro', 'gpt-6.1-sol', 'claude-haiku-5-5', 'gpt-6-astra', 'claude-opus-5-5']
+const AIASK_IMAGE_MODELS = ['gpt-image-2.5-sunburst', 'gpt-image-2.5-flare']
+const AIASK_VIDEO_MODELS = ['grok-imagine-video-1.5-lite', 'grok-imagine-video-1.5']
 const aiaskQuickConfigs = [
-  { service_type: 'text', provider: 'aiask', name: 'aiask.me Text', base_url: AIASK_SITE_URL, model: ['gpt-6-astra', 'gpt-5.5', 'deepseek-v4-pro'], priority: 100 },
-  { service_type: 'image', provider: 'aiask', name: 'aiask.me Image', base_url: AIASK_SITE_URL, model: ['gpt-image-2', 'grok-imagine-image', 'gemini-3-pro-image'], priority: 100 },
-  { service_type: 'video', provider: 'aiask', name: 'aiask.me Grok Video', base_url: AIASK_SITE_URL, model: ['grok-imagine-video-1.5'], priority: 100 },
+  { service_type: 'text', provider: 'aiask', name: 'aiask.me Text', base_url: AIASK_SITE_URL, model: AIASK_TEXT_MODELS, priority: 100 },
+  { service_type: 'image', provider: 'aiask', name: 'aiask.me Image', base_url: AIASK_SITE_URL, model: AIASK_IMAGE_MODELS, priority: 100 },
+  { service_type: 'video', provider: 'aiask', name: 'aiask.me Grok Video', base_url: AIASK_SITE_URL, model: AIASK_VIDEO_MODELS, priority: 100 },
 ]
+// 还没配置过 aiask.me 时点选的模型，一键配置时作为默认写入
+const aiaskPicks = reactive({ text: '', image: '', video: '' })
+const aiaskPicking = ref(false)
+function aiaskExistingCfg(preset) {
+  return cfgs.value.find(c => c.name === preset.name || (c.service_type === preset.service_type && c.provider === preset.provider && c.base_url === preset.base_url))
+}
+function aiaskSelectedModel(preset) {
+  const existing = aiaskExistingCfg(preset)
+  const first = existing && Array.isArray(existing.model) ? existing.model[0] : ''
+  return first || aiaskPicks[preset.service_type] || preset.model[0]
+}
+/** 模型列表：选中的放首位（默认），其余保留用户原有的，再补上快捷列表里还没有的 */
+function aiaskModelList(preset, selected, current = []) {
+  return [...new Set([selected, ...current, ...preset.model])].filter(Boolean)
+}
+async function pickAiaskModel(preset, m) {
+  const type = preset.service_type
+  const label = serviceMeta.value[type].label
+  const existing = aiaskExistingCfg(preset)
+  if (!existing) {
+    aiaskPicks[type] = m
+    toast(t('settings.ai.quickModelPicked', { type: label, model: m }), { duration: 2000 })
+    return
+  }
+  if (aiaskPicking.value) return
+  if (aiaskSelectedModel(preset) === m && isDefaultModel(type, existing, m)) {
+    toast(t('settings.ai.quickModelSaved', { type: label, model: m }), { duration: 1500 })
+    return
+  }
+  aiaskPicking.value = true
+  try {
+    const payload = { model: aiaskModelList(preset, m, Array.isArray(existing.model) ? existing.model : []) }
+    // 选中即成为该类型的默认：优先级要高于同类型其它配置，停用的顺便启用
+    const maxPriority = Math.max(0, ...cfgs.value.filter(x => x.service_type === type && x.id !== existing.id).map(x => x.priority || 0))
+    if ((existing.priority || 0) <= maxPriority) payload.priority = maxPriority + 1
+    if (!existing.is_active) payload.is_active = true
+    await aiConfigAPI.update(existing.id, payload)
+    await loadCfgs()
+    toast.success(t('settings.ai.quickModelSaved', { type: label, model: m }), { duration: 2000 })
+  } catch (e) {
+    toastError(e)
+  } finally {
+    aiaskPicking.value = false
+  }
+}
 
 function byType(t) { return cfgs.value.filter(c => c.service_type === t) }
 function countActive(t) { return byType(t).filter(c => c.is_active).length }
@@ -1353,12 +1420,13 @@ async function applyAiaskQuickConfig() {
       const others = cfgs.value.filter(c => c.service_type === preset.service_type && c.id !== existing?.id)
       const topPriority = Math.max(preset.priority, ...others.map(c => (c.priority || 0) + 1))
       if (existing) {
-        // 已有配置只换 Key、启用并置顶：保留用户挑过的默认模型与模型列表
-        const payload = { api_key: apiKey, is_active: true }
+        // 已有配置换 Key、启用并置顶：保留用户挑过的默认模型，模型列表补上新的快捷模型
+        const current = Array.isArray(existing.model) ? existing.model : []
+        const payload = { api_key: apiKey, is_active: true, model: aiaskModelList(preset, current[0] || aiaskPicks[preset.service_type] || preset.model[0], current) }
         if ((existing.priority || 0) < topPriority) payload.priority = topPriority
         await aiConfigAPI.update(existing.id, payload)
       } else {
-        await aiConfigAPI.create({ ...preset, api_key: apiKey, priority: topPriority })
+        await aiConfigAPI.create({ ...preset, model: aiaskModelList(preset, aiaskPicks[preset.service_type] || preset.model[0]), api_key: apiKey, priority: topPriority })
       }
     }
     toast.success(t('settings.ai.quickApplied'))
@@ -1487,6 +1555,7 @@ function localSettingsPayload() {
   }
   if (isSdForm.value) return { image_negative_prompt: text(cfgForm.image_negative_prompt), image_sampler: text(cfgForm.image_sampler), ...promptParams(), ...imageParams() }
   if (isFooocusForm.value) return { image_negative_prompt: text(cfgForm.image_negative_prompt), fooocus_performance: text(cfgForm.fooocus_performance), fooocus_styles: text(cfgForm.fooocus_styles), ...promptParams() }
+  if (isAiaskVideoForm.value) return { max_concurrent: num(cfgForm.max_concurrent) }
   return {}
 }
 // ===== 配置弹窗：只能主动关闭；有未保存的修改时先确认 =====
@@ -2128,7 +2197,16 @@ onBeforeUnmount(stopUsagePoll)
   gap: 4px 12px;
   color: var(--text-3);
 }
-.hqm-model.is-default { color: var(--text-1); font-weight: 600; }
+.hqm-model {
+  display: inline-flex; align-items: center; gap: 3px;
+  border: 1px solid transparent; border-radius: 5px;
+  padding: 0 5px; margin: 0 -5px;
+  background: none; color: inherit; font: inherit; cursor: pointer;
+}
+.hqm-model:hover { color: var(--text-1); border-color: var(--border); }
+.hqm-model:disabled { cursor: wait; }
+.hqm-model.is-selected { color: var(--accent-text); font-weight: 600; border-color: var(--accent); background: var(--accent-bg); }
+.hqm-check { flex-shrink: 0; }
 .hqm-model em {
   font-style: normal;
   margin-left: 4px;

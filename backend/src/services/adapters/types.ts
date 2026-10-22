@@ -57,6 +57,7 @@ export interface ImageProviderAdapter {
   onFinished?(config: AIConfig, taskId: string): void
   trackSyncProgress?(config: AIConfig, request: ProviderRequest, report: ProgressReporter): () => void
   prepareRetry?(config: AIConfig, ctx: RetryContext): Promise<boolean>
+  confirmFailure?(config: AIConfig, taskId: string, failure: FailureContext): Promise<any | null>
 }
 
 /**
@@ -128,6 +129,13 @@ export interface VideoProviderAdapter {
   prepareRetry?(config: AIConfig, ctx: RetryContext): Promise<boolean>
 
   /**
+   * 可选：判失败之前复查上游任务（状态接口偶尔报错 / 报失败，其实已经生成好了）。
+   * 返回复查到的状态（completed 带 videoUrl 就去下载，pending / processing 接着轮询）；
+   * 返回 null 或 failed 照常判失败。
+   */
+  confirmFailure?(config: AIConfig, taskId: string, failure: FailureContext): Promise<VideoPollResponse | null>
+
+  /**
    * 可选：同步接口（请求阻塞到出结果，如 SD WebUI txt2img）在请求进行期间另行查询进度。
    * 返回停止函数，请求结束后调用。
    */
@@ -153,6 +161,12 @@ export interface ProviderRequest {
    * 此时 headers 不要设置 Content-Type，边界由 fetch 自动生成。
    */
   body: any
+}
+
+/** confirmFailure 的上下文：失败原因；轮询接口返回 4xx 时带状态码 */
+export interface FailureContext {
+  error: string
+  httpStatus?: number
 }
 
 /** prepareRetry 的上下文 */

@@ -44,6 +44,28 @@ export function gpuLaneKey(config: Pick<AIConfig, 'provider' | 'baseUrl'>): stri
   return `gpu:${hostKey(config.baseUrl)}`
 }
 
+/**
+ * 云端服务的并发上限：aiask.me 的 Grok 视频转给上游 wokey.ai，上游按账号限制同时生成的视频数，
+ * 批量生成时一口气提交十几个，超出的会直接失败。按「服务商 + 主机」排队，同时只交 cloudLaneLimit 个。
+ */
+const CLOUD_VIDEO_LANES: Record<string, { env: string; fallback: number }> = {
+  aiask: { env: 'AIASK_VIDEO_CONCURRENCY', fallback: 2 },
+}
+
+/** 云端视频要不要排队；要的话返回队列名 */
+export function cloudLaneKey(config: Pick<AIConfig, 'provider' | 'baseUrl'>, type: string): string | null {
+  const provider = String(config.provider || '').toLowerCase()
+  if (type !== 'video' || !CLOUD_VIDEO_LANES[provider]) return null
+  return `cloud:${provider}:${hostKey(config.baseUrl)}:video`
+}
+
+/** 云端视频同时提交数：配置里的 max_concurrent（1~8），否则环境变量，再否则默认 2 */
+export function cloudLaneLimit(config: Pick<AIConfig, 'provider' | 'settings'>): number {
+  const lane = CLOUD_VIDEO_LANES[String(config.provider || '').toLowerCase()]
+  const raw = Number(config.settings?.max_concurrent ?? process.env[lane?.env || ''] ?? lane?.fallback ?? 2)
+  return Number.isFinite(raw) && raw >= 1 ? Math.min(8, Math.floor(raw)) : (lane?.fallback ?? 2)
+}
+
 /** 同时提交任务数：配置里的 max_concurrent（1~8，0 / 空 = 1），环境变量 LOCAL_GPU_CONCURRENCY 兜底 */
 export function laneLimit(config: Pick<AIConfig, 'settings'>): number {
   const raw = Number(config.settings?.max_concurrent ?? process.env.LOCAL_GPU_CONCURRENCY ?? 1)

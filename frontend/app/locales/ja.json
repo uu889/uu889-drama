@@ -295,7 +295,10 @@
         "text": "脚本リライト、キャラクター・シーン抽出、分镜分解などの Agent テキスト能力",
         "image": "キャラクター図、シーン図、ショット図などの静止画生成",
         "video": "ショット動画の直接生成：aiask.me Grok 動画、ローカル ComfyUI、Seedance など"
-      }
+      },
+      "quickModelSaved": "自動保存しました：デフォルトの{type}モデルは {model}",
+      "quickModelPicked": "{type}モデル {model} を選択しました。キーを入力して適用すると有効になります",
+      "quickPickHint": "クリックで選択、自動保存"
     },
     "styles": {
       "title": "スタイルプリセット",
@@ -660,7 +663,12 @@
         "fingerprint": "ホスト鍵",
         "fingerprintHint": "初回はサーバー上の ssh-keygen -lf の結果と照合してください"
       },
-      "diagnosis": "このアドレスで検出：{name}"
+      "diagnosis": "このアドレスで検出：{name}",
+      "aiask": {
+        "concurrentTitle": "同時に生成する動画数",
+        "concurrentDefault": "2（デフォルト）",
+        "concurrentHint": "aiask.me の Grok 動画は上流の wokey.ai で生成され、同時生成数に上限があり超えると失敗します。一括生成ではこの数ずつ順番に送信し、混雑時は自動で再送信します。アカウントの上限が高い場合は増やせます。"
+      }
     },
     "styleDialog": {
       "editTitle": "スタイルプリセットを編集",
@@ -758,7 +766,17 @@
       "rewriting": "脚本をリライト中...",
       "scriptPlaceholder": "書式付き脚本の内容...",
       "rawRequired": "先に原文を入力してください",
-      "skipDone": "AI リライトをスキップしました。原文をそのまま使用します"
+      "skipDone": "AI リライトをスキップしました。原文をそのまま使用します",
+      "rewriteMode": "書き換え方式",
+      "modeTypewriter": "タイプライター",
+      "modeTypewriterHint": "書きながら表示（デフォルト）",
+      "modeOneShot": "一括",
+      "modeOneShotHint": "脚本全体が書き終わってから表示",
+      "stopTyping": "停止",
+      "typingProgress": "AI が書き換え中…{n} 文字",
+      "typingWaiting": "AI が構想中、まもなく出力します…",
+      "typingInterrupted": "書き換えが中断されました。もう一度お試しください",
+      "typingStopped": "停止しました。元の脚本を残しています"
     },
     "prod": {
       "assets": "アセット制作",
@@ -776,7 +794,8 @@
       "emptyDesc": "キャラクター、シーン、小道具は抽出後ここに表示されます。個別に抽出するか、一括で並行抽出できます。",
       "startExtract": "抽出を開始",
       "scriptFirst": "先に脚本を完成させてください",
-      "goBack": "処理に戻る"
+      "goBack": "処理に戻る",
+      "reextractAll": "すべての素材を再抽出"
     },
     "asset": {
       "fallbackType": "資産",

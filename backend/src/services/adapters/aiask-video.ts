@@ -12,8 +12,13 @@
  * - multimodal_reference  multipart 文件字段 image[]（可重复，与 wokey 官方 Video Studio 一致；Grok Imagine Video 1.5 最多 7 张）
  * 分镜绑定的角色 / 场景 / 道具图属于"参考图"而非首帧，默认走 multimodal_reference；
  * 不支持多模态参考的模型（*-lite）退化为 image_to_video，取第一张参考图。
+ *
+ * 状态接口不太稳（偶尔 5xx / 404，或先报 failed 随后又成功，wokey.ai 上看其实已经生成好了）：
+ * 判失败之前 confirmFailure 隔一会儿复查几次状态，并直接试取 /content，取得到就当成功下载。
+ * 上游并发数有限：generation.ts 按 gpu-queue 的云端队列（默认同时 2 个）提交，繁忙时自动重交。
  */
 import type {
+  FailureContext,
   VideoProviderAdapter,
   ProviderRequest,
   AIConfig,
@@ -25,8 +30,20 @@ import type {
 import { joinProviderUrl } from './url'
 import { loadReferenceFile, parseUrlArray } from './media'
 import { gatewayVideoDownload, toGrokImageRefs } from './video-common'
+import { stagePercent, type TaskProgressPatch } from '../task-progress'
 
-export const AIASK_DEFAULT_VIDEO_MODEL = 'grok-imagine-video-1.5'
+export const AIASK_DEFAULT_VIDEO_MODEL = 'grok-imagine-video-1.5-lite'
+
+const COMPLETED_STATUSES = ['completed', 'succeeded', 'success', 'succeed', 'done', 'finished', 'complete']
+const FAILED_STATUSES = ['failed', 'failure', 'cancelled', 'canceled', 'expired', 'error']
+
+/** 判失败前复查的间隔（毫秒），总共约 2 分钟；AIASK_VIDEO_CONFIRM_MS 调整基数（测试用） */
+function confirmDelays(): number[] {
+  const base = Number(process.env.AIASK_VIDEO_CONFIRM_MS) || 10_000
+  return [1, 2, 3, 6].map((n) => n * base)
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 const VALID_RATIOS = ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'] as const
 const MAX_REFERENCE_IMAGES = 7
@@ -176,7 +193,7 @@ export class AiaskVideoAdapter implements VideoProviderAdapter {
   parsePollResponse(result: any): VideoPollResponse {
     const video = unwrapVideo(result)
     const status = String(video?.status || '').toLowerCase()
-    if (status === 'completed' || status === 'succeeded' || status === 'done') {
+    if (COMPLETED_STATUSES.includes(status)) {
       const videoUrl = this.extractVideoUrl(result)
       // 已完成却拿不到成片地址：直接失败，避免轮询到超时
       if (!videoUrl) return { status: 'failed', error: '视频已完成但上游没有返回成片地址' }
@@ -187,7 +204,7 @@ export class AiaskVideoAdapter implements VideoProviderAdapter {
         duration: Number.isFinite(duration) && duration > 0 ? duration : undefined,
       }
     }
-    if (['failed', 'cancelled', 'canceled', 'expired', 'error'].includes(status)) {
+    if (FAILED_STATUSES.includes(status)) {
       const err = video?.error ?? result?.error
       const msg = typeof err === 'string' ? err : (err?.message || err?.code || '')
       return { status: 'failed', error: msg ? `[${status}] ${msg}` : `Video generation ${status}` }
@@ -200,6 +217,64 @@ export class AiaskVideoAdapter implements VideoProviderAdapter {
     const direct = video?.content_url || video?.video?.url || video?.video_url || video?.url
     if (typeof direct === 'string' && direct) return direct
     return video?.id != null ? `/v1/videos/${encodeURIComponent(String(video.id))}/content` : null
+  }
+
+  /** 轮询间隔：默认 10 秒；AIASK_VIDEO_POLL_MS 可调（测试用） */
+  get pollProfile() {
+    const intervalMs = Number(process.env.AIASK_VIDEO_POLL_MS) || 10_000
+    return { attempts: Math.ceil(3_600_000 / intervalMs), intervalMs, maxDurationMs: null }
+  }
+
+  /** 上游排队位置 / 生成百分比（有就显示，没有用通用的「生成中」） */
+  describeProgress(_config: AIConfig, _taskId: string, result: any): TaskProgressPatch | null {
+    const video = unwrapVideo(result)
+    const status = String(video?.status || '').toLowerCase()
+    const position = Number(video?.queue?.position ?? video?.queue_position)
+    if (Number.isFinite(position) && position > 0 && (status === 'queued' || status === 'pending' || status === 'in_progress')) {
+      return { stage: 'queued', message: `aiask.me 上游排队中：前面还有 ${position} 个任务`, detail: { queue_ahead: position, provider_status: status } }
+    }
+    let pct = Number(video?.progress ?? video?.progress_percent ?? video?.percent)
+    if (!Number.isFinite(pct) || pct <= 0) return null
+    if (pct <= 1) pct *= 100
+    pct = Math.min(99, Math.round(pct))
+    return { stage: 'running', percent: stagePercent('running', pct / 100), message: `aiask.me 上游生成中：${pct}%`, detail: { provider_status: status } }
+  }
+
+  /**
+   * 判失败前复查：隔一会儿再查状态，并直接试取成片。
+   * 状态变成功 / 成片取得到 → completed；状态回到生成中 → processing（接着轮询）；一直失败 → null
+   */
+  async confirmFailure(config: AIConfig, taskId: string, _failure: FailureContext): Promise<VideoPollResponse | null> {
+    let last: VideoPollResponse | null = null
+    for (const delay of confirmDelays()) {
+      await sleep(delay)
+      try {
+        const { url, method, headers } = this.buildPollRequest(config, taskId)
+        const resp = await fetch(url, { method, headers, signal: AbortSignal.timeout(30_000) })
+        if (resp.ok) {
+          const parsed = this.parsePollResponse(await resp.json())
+          if (parsed.status !== 'failed') return parsed
+          last = parsed
+        }
+      } catch { /* 状态接口还是不通：再试成片 */ }
+      if (await this.contentReady(config, taskId)) {
+        return { status: 'completed', videoUrl: `/v1/videos/${encodeURIComponent(taskId)}/content` }
+      }
+    }
+    return last
+  }
+
+  /** /v1/videos/{id}/content 能取到视频（只取开头 1 KB 判断） */
+  async contentReady(config: AIConfig, taskId: string): Promise<boolean> {
+    const { url, headers } = gatewayVideoDownload(config, `/v1/videos/${encodeURIComponent(taskId)}/content`)
+    try {
+      const resp = await fetch(url, { headers: { ...headers, Range: 'bytes=0-1023' }, signal: AbortSignal.timeout(30_000) })
+      const type = String(resp.headers.get('content-type') || '').toLowerCase()
+      await resp.body?.cancel().catch(() => {})
+      return resp.ok && !type.includes('json') && !type.startsWith('text/')
+    } catch {
+      return false
+    }
   }
 
   /** content_url 是网关相对地址且需要鉴权；外部直链（CDN 签名地址）不带 Key */

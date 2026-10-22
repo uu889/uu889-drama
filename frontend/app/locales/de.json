@@ -295,7 +295,10 @@
         "text": "Textfunktionen: Drehbuch-Umschreibung, Asset-Extraktion, Storyboard-Aufteilung",
         "image": "Standbildgenerierung: Figuren, Szenen und Shots",
         "video": "Direkte Videogenerierung pro Shot: aiask.me Grok-Video, lokales ComfyUI, Seedance und mehr"
-      }
+      },
+      "quickModelSaved": "Gespeichert: Standard-{type}-Modell ist {model}",
+      "quickModelPicked": "{type}-Modell {model} gewählt; gilt nach Eingabe des Schlüssels und Übernehmen",
+      "quickPickHint": "Klicken zum Verwenden, wird automatisch gespeichert"
     },
     "styles": {
       "title": "Stilvorlagen",
@@ -660,7 +663,12 @@
         "fingerprint": "Host-Schlüssel",
         "fingerprintHint": "Beim ersten Verbinden mit ssh-keygen -lf auf dem Server vergleichen"
       },
-      "diagnosis": "An dieser Adresse erkannt: {name}"
+      "diagnosis": "An dieser Adresse erkannt: {name}",
+      "aiask": {
+        "concurrentTitle": "Gleichzeitig erzeugte Videos",
+        "concurrentDefault": "2 (Standard)",
+        "concurrentHint": "aiask.me-Grok-Videos werden vorgelagert von wokey.ai erzeugt, das gleichzeitige Videos begrenzt und den Rest ablehnt. Stapel werden in dieser Anzahl eingereiht, bei Überlastung automatisch neu gesendet. Erhöhen, wenn Ihr Konto mehr erlaubt."
+      }
     },
     "styleDialog": {
       "editTitle": "Stilvorlage bearbeiten",
@@ -758,7 +766,17 @@
       "rewriting": "Drehbuch wird umgeschrieben...",
       "scriptPlaceholder": "Formatierter Drehbuchinhalt...",
       "rawRequired": "Bitte zuerst den Rohinhalt ausfüllen",
-      "skipDone": "KI-Umschreibung übersprungen; der Rohinhalt wird direkt verwendet"
+      "skipDone": "KI-Umschreibung übersprungen; der Rohinhalt wird direkt verwendet",
+      "rewriteMode": "Umschreibmodus",
+      "modeTypewriter": "Schreibmaschine",
+      "modeTypewriterHint": "Zeigt das Drehbuch beim Schreiben (Standard)",
+      "modeOneShot": "Auf einmal",
+      "modeOneShotHint": "Zeigt das ganze Drehbuch, wenn es fertig ist",
+      "stopTyping": "Stopp",
+      "typingProgress": "KI schreibt… bisher {n} Zeichen",
+      "typingWaiting": "KI denkt nach, Ausgabe beginnt gleich…",
+      "typingInterrupted": "Das Umschreiben wurde unterbrochen, bitte erneut versuchen",
+      "typingStopped": "Gestoppt, das bisherige Drehbuch bleibt erhalten"
     },
     "prod": {
       "assets": "Asset-Produktion",
@@ -776,7 +794,8 @@
       "emptyDesc": "Figuren, Szenen und Requisiten erscheinen nach der Extraktion hier. Jeden Typ einzeln oder alle parallel extrahieren.",
       "startExtract": "Extraktion starten",
       "scriptFirst": "Bitte zuerst das Drehbuch fertigstellen",
-      "goBack": "Zurück"
+      "goBack": "Zurück",
+      "reextractAll": "Alle Assets neu extrahieren"
     },
     "asset": {
       "fallbackType": "Asset",
