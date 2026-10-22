@@ -289,6 +289,23 @@ export const sqliteSchemaStatements = [
     deleted_at TEXT
   )`,
 
+  // 原始内容附件：上传给 AI 改写的 txt / PDF / Word / 图片，text 为提取出的文字
+  `CREATE TABLE IF NOT EXISTS episode_attachments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    episode_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    mime_type TEXT,
+    size INTEGER NOT NULL DEFAULT 0,
+    file_path TEXT NOT NULL,
+    text TEXT,
+    status TEXT NOT NULL DEFAULT 'processing',
+    error_msg TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_episode_attachments_episode ON episode_attachments(episode_id)`,
+
   // 应用级全局设置（key-value，如 AI 内容语言 content_language）
   `CREATE TABLE IF NOT EXISTS app_settings (
     key TEXT PRIMARY KEY,

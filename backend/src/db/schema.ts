@@ -286,6 +286,21 @@ export const assets = sqliteTable('assets', {
   deletedAt: text('deleted_at'),
 })
 
+export const episodeAttachments = sqliteTable('episode_attachments', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  episodeId: integer('episode_id').notNull(),
+  name: text('name').notNull(),
+  kind: text('kind').notNull(),
+  mimeType: text('mime_type'),
+  size: integer('size').notNull().default(0),
+  filePath: text('file_path').notNull(),
+  text: text('text'),
+  status: text('status').notNull().default('processing'),
+  errorMsg: text('error_msg'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+})
+
 export const appSettings = sqliteTable('app_settings', {
   key: text('key').primaryKey(),
   value: text('value').notNull(),

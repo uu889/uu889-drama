@@ -1320,6 +1320,20 @@
       "skipped": "{n} 本をスキップ：{reason}",
       "done": "高画質化が完了しました",
       "failed": "高画質化に失敗しました"
+    },
+    "attach": {
+      "upload": "ファイルをアップロード",
+      "hint": "txt / PDF / Word（.docx）/ 画像、最大 {max} 個・各 {mb}MB、ドラッグでも可。AI 書き直し時に上の原文と一緒に読み込みます",
+      "image": "画像",
+      "extracting": "テキスト抽出中…",
+      "reading": "画像を認識中…",
+      "chars": "{n} 字",
+      "failed": "失敗",
+      "retry": "再認識",
+      "remove": "削除",
+      "uploaded": "{n} 個のファイルをアップロードしました。テキストを抽出しています",
+      "tooMany": "1 話あたり最大 {max} 個です。あと {n} 個まで追加できます",
+      "tooBig": "{name} は {mb}MB を超えています。分割または圧縮してください"
     }
   },
   "errors": {

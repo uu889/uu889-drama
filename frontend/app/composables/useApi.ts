@@ -61,6 +61,20 @@ export const episodeAPI = {
   extractStatus: (id: number) => api.get(`/episodes/${id}/extract-status`),
   generateVideoPrompts: (id: number, model?: string, configId?: number, storyboardIds?: number[]) => api.post(`/episodes/${id}/generate-video-prompts`, { model: model || undefined, config_id: configId || undefined, storyboard_ids: storyboardIds?.length ? storyboardIds : undefined }),
   videoPromptsStatus: (id: number) => api.get(`/episodes/${id}/video-prompts-status`),
+  /** 原始内容附件（txt / PDF / Word / 图片，AI 改写时一起读取） */
+  attachments: (id: number) => api.get<{ items: any[]; limits: { max_files: number; max_file_mb: number; max_total_chars: number } }>(`/episodes/${id}/attachments`),
+  uploadAttachments: async (id: number, files: File[], model?: string, configId?: number) => {
+    const fd = new FormData()
+    for (const f of files) fd.append('files', f)
+    if (model) fd.append('model', model)
+    if (configId) fd.append('config_id', String(configId))
+    const resp = await fetch(`/api/v1/episodes/${id}/attachments`, { method: 'POST', body: fd })
+    const json = await resp.json().catch(() => ({}))
+    if (!resp.ok || (json.code && json.code >= 400)) throw new Error(json.message || `${resp.status}`)
+    return (json.data ?? json) as { items: any[] }
+  },
+  retryAttachment: (id: number, attachmentId: number, model?: string, configId?: number) => api.post(`/episodes/${id}/attachments/${attachmentId}/retry`, { model: model || undefined, config_id: configId || undefined }),
+  deleteAttachment: (id: number, attachmentId: number) => api.del(`/episodes/${id}/attachments/${attachmentId}`),
 }
 
 export const storyboardAPI = {

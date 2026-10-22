@@ -1320,6 +1320,20 @@
       "skipped": "{n} übersprungen: {reason}",
       "done": "Video hochskaliert",
       "failed": "Hochskalieren fehlgeschlagen"
+    },
+    "attach": {
+      "upload": "Dateien hochladen",
+      "hint": "txt / PDF / Word (.docx) / Bilder, bis zu {max} Dateien, je {mb} MB – auch per Drag & Drop. Die KI liest sie zusammen mit dem Text oben",
+      "image": "Bild",
+      "extracting": "Text wird extrahiert…",
+      "reading": "Bild wird gelesen…",
+      "chars": "{n} Zeichen",
+      "failed": "Fehler",
+      "retry": "Erneut",
+      "remove": "Entfernen",
+      "uploaded": "{n} Datei(en) hochgeladen, Text wird extrahiert",
+      "tooMany": "Höchstens {max} Anhänge pro Folge; noch {n} möglich",
+      "tooBig": "{name} ist größer als {mb} MB – bitte teilen oder komprimieren"
     }
   },
   "errors": {

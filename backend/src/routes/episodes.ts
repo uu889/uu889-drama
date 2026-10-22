@@ -9,6 +9,7 @@ import { getActiveConfigId } from '../services/ai.js'
 import { EXTRACT_TARGETS, getExtractionStatus, startExtraction, type ExtractTarget } from '../services/extraction.js'
 import { getVideoPromptBatchStatus, startVideoPromptBatch } from '../services/video-prompts.js'
 import { startEpisodeUpscale } from '../services/video-upscale.js'
+import { ATTACHMENT_LIMITS, AttachmentError, addAttachments, deleteAttachment, listAttachments, retryAttachment } from '../services/source-attachments.js'
 
 const app = new Hono()
 
@@ -93,6 +94,51 @@ app.delete('/:id', async (c) => {
 })
 
 // GET /episodes/:id/characters — characters linked to this episode
+// ── 原始内容附件（txt / PDF / Word / 图片，给 AI 改写用） ──
+// GET /episodes/:id/attachments → { items, limits }
+app.get('/:id/attachments', async (c) => {
+  const id = Number(c.req.param('id'))
+  const items = await listAttachments(id)
+  return success(c, { items: toSnakeCaseArray(items), limits: { max_files: ATTACHMENT_LIMITS.maxFiles, max_file_mb: ATTACHMENT_LIMITS.maxFileBytes / 1024 / 1024, max_total_chars: ATTACHMENT_LIMITS.maxTotalChars } })
+})
+
+// POST /episodes/:id/attachments — multipart：files（可多个），model / config_id（识别图片用的文本模型）
+app.post('/:id/attachments', async (c) => {
+  const id = Number(c.req.param('id'))
+  const [ep] = await db.select().from(schema.episodes).where(eq(schema.episodes.id, id))
+  if (!ep) return notFound(c, '剧集不存在')
+  const body = await c.req.parseBody({ all: true })
+  const raw = body['files'] ?? body['file']
+  const list = (Array.isArray(raw) ? raw : [raw]).filter((f): f is File => f instanceof File)
+  if (!list.length) return badRequest(c, '请选择要上传的文件')
+  try {
+    const files = await Promise.all(list.map(async (f) => ({ name: f.name, type: f.type, data: await f.arrayBuffer() })))
+    const rows = await addAttachments(id, files, {
+      model: typeof body['model'] === 'string' && body['model'] ? body['model'] : undefined,
+      configId: Number(body['config_id']) || undefined,
+    })
+    return success(c, { items: toSnakeCaseArray(rows) })
+  } catch (err: any) {
+    if (err instanceof AttachmentError) return badRequest(c, err.message)
+    throw err
+  }
+})
+
+// POST /episodes/:id/attachments/:aid/retry — 重新提取（换了能看图的模型后重新识别图片）
+app.post('/:id/attachments/:aid/retry', async (c) => {
+  const body = await c.req.json().catch(() => ({}))
+  const row = await retryAttachment(Number(c.req.param('id')), Number(c.req.param('aid')), { model: body.model || undefined, configId: Number(body.config_id) || undefined })
+  if (!row) return notFound(c, '附件不存在')
+  return success(c, toSnakeCase(row))
+})
+
+// DELETE /episodes/:id/attachments/:aid
+app.delete('/:id/attachments/:aid', async (c) => {
+  const ok = await deleteAttachment(Number(c.req.param('id')), Number(c.req.param('aid')))
+  if (!ok) return notFound(c, '附件不存在')
+  return success(c, null)
+})
+
 app.get('/:id/characters', async (c) => {
   const episodeId = Number(c.req.param('id'))
   const links = await db.select().from(schema.episodeCharacters)

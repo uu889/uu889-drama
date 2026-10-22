@@ -1320,6 +1320,20 @@
       "skipped": "Skipped {n}: {reason}",
       "done": "Video upscaled",
       "failed": "Upscaling failed"
+    },
+    "attach": {
+      "upload": "Upload files",
+      "hint": "txt / PDF / Word (.docx) / images, up to {max} files, {mb}MB each — or drag them here. The AI rewrite reads them together with the text above",
+      "image": "Image",
+      "extracting": "Extracting text…",
+      "reading": "Reading image…",
+      "chars": "{n} chars",
+      "failed": "Failed",
+      "retry": "Retry",
+      "remove": "Remove",
+      "uploaded": "Uploaded {n} file(s), extracting text",
+      "tooMany": "Up to {max} attachments per episode; you can add {n} more",
+      "tooBig": "{name} is over {mb}MB — split or compress it first"
     }
   },
   "errors": {

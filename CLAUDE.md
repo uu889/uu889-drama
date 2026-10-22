@@ -66,6 +66,7 @@ configs/   — 遗留死配置，代码零引用
 - Nuxt 3 SPA，动态路由在 `nuxt.config.ts` 的 `pages:extend` 手动注册（views/drama/）
 - `app/composables/useApi.ts` 统一 fetch 客户端（全相对路径，生产与后端同源）
 - 剧本改写默认「打字机」模式（localStorage `uu889:rewrite-mode`，可切「一次性」走原 Agent 工具保存）：`POST /agent/script_rewriter/stream`（SSE：delta / done / error），Agent 不带工具（`activeTools: []`）直接把剧本当正文流式输出，`agents/script-stream.ts cleanStreamedScript` 清理后保存；前端点「停止」断开则不保存
+- 原始内容附件：`services/source-attachments.ts` + 表 `episode_attachments`，`/episodes/:id/attachments`（GET / POST multipart files / `:aid/retry` / DELETE）；txt（UTF-8，乱码多时 GB18030）/ PDF（unpdf 文字层，扫描件提示转图片）/ .docx（mammoth）/ 图片（当前改写文本模型看图，逐字提取 + 画面描述）后台提取文字；每集 ≤10 个、单个 ≤20MB，交给 AI 的附件文字合计 ≤10 万字；`rewriteSourceText` 把原文 + 附件拼给剧本改写（打字机路由与 script-tools 两处）；前端原始内容下方上传 / 拖放 / 列表
 - 核心工作台 `app/views/drama/episode.vue`（剧本→制作→导出流水线）
 
 ### Desktop

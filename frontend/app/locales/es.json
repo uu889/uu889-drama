@@ -1320,6 +1320,20 @@
       "skipped": "{n} omitido(s): {reason}",
       "done": "Vídeo mejorado",
       "failed": "Error al mejorar"
+    },
+    "attach": {
+      "upload": "Subir archivos",
+      "hint": "txt / PDF / Word (.docx) / imágenes, hasta {max} archivos de {mb} MB, o arrástralos aquí. La IA los lee junto con el texto de arriba",
+      "image": "Imagen",
+      "extracting": "Extrayendo texto…",
+      "reading": "Leyendo imagen…",
+      "chars": "{n} caracteres",
+      "failed": "Error",
+      "retry": "Reintentar",
+      "remove": "Quitar",
+      "uploaded": "{n} archivo(s) subidos, extrayendo texto",
+      "tooMany": "Máximo {max} adjuntos por episodio; puedes añadir {n} más",
+      "tooBig": "{name} supera {mb} MB: divídelo o comprímelo"
     }
   },
   "errors": {

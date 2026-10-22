@@ -1320,6 +1320,20 @@
       "skipped": "{n}개 건너뜀: {reason}",
       "done": "고화질화 완료",
       "failed": "고화질화 실패"
+    },
+    "attach": {
+      "upload": "파일 업로드",
+      "hint": "txt / PDF / Word(.docx) / 이미지, 최대 {max}개, 각 {mb}MB, 끌어다 놓아도 됩니다. AI 각색 시 위 원문과 함께 읽습니다",
+      "image": "이미지",
+      "extracting": "텍스트 추출 중…",
+      "reading": "이미지 인식 중…",
+      "chars": "{n}자",
+      "failed": "실패",
+      "retry": "다시 인식",
+      "remove": "삭제",
+      "uploaded": "파일 {n}개 업로드, 텍스트 추출 중",
+      "tooMany": "회차당 최대 {max}개, 이번에 {n}개 더 추가할 수 있습니다",
+      "tooBig": "{name}이(가) {mb}MB를 넘습니다. 나누거나 압축하세요"
     }
   },
   "errors": {

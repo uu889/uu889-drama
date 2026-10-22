@@ -447,3 +447,8 @@ export const agentRegistry: Record<string, Agent> = Object.fromEntries(
     }),
   ]),
 )
+
+/** 指定模型 / 文本配置（与工作台改写用的一致）的文本模型，如识别上传的原始素材图片 */
+export function getTextModelFor(modelOverride?: string, textConfigId?: number) {
+  return getModel(undefined, modelOverride, textConfigId)
+}

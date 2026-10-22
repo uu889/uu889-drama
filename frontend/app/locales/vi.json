@@ -1320,6 +1320,20 @@
       "skipped": "Bỏ qua {n}: {reason}",
       "done": "Đã nâng nét video",
       "failed": "Nâng nét thất bại"
+    },
+    "attach": {
+      "upload": "Tải tệp lên",
+      "hint": "txt / PDF / Word (.docx) / ảnh, tối đa {max} tệp, mỗi tệp {mb}MB, có thể kéo thả. AI đọc cùng với văn bản ở trên khi viết lại",
+      "image": "Ảnh",
+      "extracting": "Đang trích văn bản…",
+      "reading": "Đang nhận dạng ảnh…",
+      "chars": "{n} ký tự",
+      "failed": "Lỗi",
+      "retry": "Thử lại",
+      "remove": "Xóa",
+      "uploaded": "Đã tải {n} tệp, đang trích văn bản",
+      "tooMany": "Tối đa {max} tệp mỗi tập; còn thêm được {n}",
+      "tooBig": "{name} vượt {mb}MB, hãy chia nhỏ hoặc nén lại"
     }
   },
   "errors": {

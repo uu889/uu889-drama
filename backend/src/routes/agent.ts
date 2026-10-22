@@ -1,6 +1,7 @@
 /**
  * Agent 聊天路由 — 非流式版本；剧本改写另有打字机模式（SSE 流式）
  */
+import { rewriteSourceText } from '../services/source-attachments.js'
 import { Hono } from 'hono'
 import { streamSSE } from 'hono/streaming'
 import { eq } from 'drizzle-orm'
@@ -123,8 +124,9 @@ app.post('/script_rewriter/stream', async (c) => {
   if (!episode_id || !drama_id) return badRequest(c, '需要 drama_id 与 episode_id')
   const [ep] = await db.select().from(schema.episodes).where(eq(schema.episodes.id, episode_id))
   if (!ep) return badRequest(c, '剧集不存在')
-  const source = (ep.content || ep.scriptContent || '').trim()
-  if (!source) return badRequest(c, '本集还没有原始内容，请先填写原文')
+  // 原文 + 上传的附件（txt / PDF / Word / 图片识别出的文字）
+  const source = (await rewriteSourceText(ep.id, ep.content) || ep.scriptContent || '').trim()
+  if (!source) return badRequest(c, '本集还没有原始内容，请先填写原文或上传文件')
   const agent = mastra.getAgent('script_rewriter')
   if (!agent) return badRequest(c, 'Agent 不存在')
 

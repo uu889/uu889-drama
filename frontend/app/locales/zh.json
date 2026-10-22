@@ -1320,6 +1320,20 @@
       "skipped": "跳过 {n} 个：{reason}",
       "done": "视频高清化完成",
       "failed": "高清化失败"
+    },
+    "attach": {
+      "upload": "上传文件",
+      "hint": "可上传 txt / PDF / Word（.docx）/ 图片，最多 {max} 个、每个 {mb}MB，也可以拖进来；AI 改写时会连同上面的原文一起读取",
+      "image": "图片",
+      "extracting": "提取文字中…",
+      "reading": "识别图片中…",
+      "chars": "{n} 字",
+      "failed": "失败",
+      "retry": "重新识别",
+      "remove": "删除",
+      "uploaded": "已上传 {n} 个文件，正在提取文字",
+      "tooMany": "每集最多 {max} 个附件，这次最多还能传 {n} 个",
+      "tooBig": "{name} 超过 {mb}MB，请拆小或压缩后再传"
     }
   },
   "errors": {

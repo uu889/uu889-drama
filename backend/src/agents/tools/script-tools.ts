@@ -2,6 +2,7 @@
  * 剧本改写 Agent 工具
  * 模块级单例 — episodeId 通过 RequestContext 按请求注入
  */
+import { rewriteSourceText } from '../../services/source-attachments.js'
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { db, schema } from '../../db/index.js'
@@ -19,7 +20,7 @@ const readEpisodeScript = createTool({
     const [ep] = await db.select().from(schema.episodes)
       .where(eq(schema.episodes.id, episodeId))
     if (!ep) return { error: `Episode not found (id=${episodeId})` }
-    const content = ep.content || ep.scriptContent
+    const content = (await rewriteSourceText(episodeId, ep.content)) || ep.scriptContent
     if (!content) return { error: `Episode has no content (id=${episodeId})` }
     return { content, word_count: content.length, episode_id: episodeId }
   },
@@ -37,7 +38,8 @@ const rewriteToScreenplay = createTool({
     const [ep] = await db.select().from(schema.episodes)
       .where(eq(schema.episodes.id, episodeId))
     if (!ep) return { error: `Episode not found` }
-    const source = ep.content || ep.scriptContent
+    // 原文 + 上传的附件文字
+    const source = (await rewriteSourceText(episodeId, ep.content)) || ep.scriptContent
     if (!source) return { error: `Episode has no content to rewrite` }
 
     return {

@@ -185,6 +185,44 @@
             v-model="localRaw"
             :placeholder="t('episode.script.rawPlaceholder')"
           />
+          <!-- 附件：txt / PDF / Word / 图片，提取出的文字在 AI 改写时连同原文一起交给 AI -->
+          <div
+            :class="['source-attach', { 'is-dragging': attachDragging }]"
+            @dragover.prevent="attachDragging = true"
+            @dragleave.prevent="attachDragging = false"
+            @drop.prevent="onAttachDrop"
+          >
+            <div class="source-attach-head">
+              <button
+                class="btn btn-sm"
+                :disabled="attachUploading || attachments.length >= attachLimits.max_files"
+                @click="attachInput?.click()"
+              >
+                <Loader2 v-if="attachUploading" :size="11" class="animate-spin" />
+                <svg v-else width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                {{ t('episode.attach.upload') }}
+              </button>
+              <span class="source-attach-hint">{{ t('episode.attach.hint', { max: attachLimits.max_files, mb: attachLimits.max_file_mb }) }}</span>
+              <span v-if="attachments.length" class="source-attach-count">{{ attachments.length }} / {{ attachLimits.max_files }}</span>
+              <input ref="attachInput" type="file" multiple hidden :accept="ATTACH_ACCEPT" @change="onAttachPick" />
+            </div>
+            <div v-if="attachments.length" class="source-attach-list">
+              <div v-for="a in attachments" :key="a.id" :class="['attach-row', 'is-' + a.status]">
+                <span class="attach-kind">{{ attachKindLabel(a) }}</span>
+                <div class="attach-main">
+                  <div class="attach-name" :title="a.status === 'ready' ? (a.text || '').slice(0, 400) : a.name">{{ a.name }}</div>
+                  <div v-if="a.status === 'error'" class="attach-error">{{ a.error_msg }}</div>
+                </div>
+                <span class="attach-state">
+                  <template v-if="a.status === 'processing'"><Loader2 :size="11" class="animate-spin" /> {{ a.kind === 'image' ? t('episode.attach.reading') : t('episode.attach.extracting') }}</template>
+                  <template v-else-if="a.status === 'ready'">{{ t('episode.attach.chars', { n: (a.text || '').length }) }}</template>
+                  <template v-else>{{ t('episode.attach.failed') }}</template>
+                </span>
+                <button v-if="a.status === 'error' && a.kind === 'image'" class="btn btn-sm" @click="retryAttach(a)">{{ t('episode.attach.retry') }}</button>
+                <button class="attach-remove" :title="t('episode.attach.remove')" @click="removeAttach(a)">×</button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Step 1: Rewrite -->
@@ -3322,8 +3360,77 @@ async function typewriterRewrite() {
   }
 }
 function stopTypewriter() { typingAbort?.abort() }
+
+// ===== 原始内容附件：txt / PDF / Word / 图片，后端提取文字，AI 改写时连同原文一起读取 =====
+const ATTACH_ACCEPT = '.txt,.md,.markdown,.srt,.csv,.pdf,.docx,.png,.jpg,.jpeg,.webp,.gif,.bmp,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*'
+const attachments = ref([])
+const attachLimits = ref({ max_files: 10, max_file_mb: 20, max_total_chars: 100000 })
+const attachUploading = ref(false)
+const attachDragging = ref(false)
+const attachInput = ref(null)
+let attachTimer = null
+async function loadAttachments() {
+  if (!epId.value) { attachments.value = []; return }
+  try {
+    const res = await episodeAPI.attachments(epId.value)
+    attachments.value = res.items || []
+    if (res.limits) attachLimits.value = res.limits
+  } catch { /* 静默 */ }
+  clearTimeout(attachTimer)
+  // 还有在提取 / 识别的就隔 2 秒再看
+  if (attachments.value.some(a => a.status === 'processing')) attachTimer = setTimeout(loadAttachments, 2000)
+}
+watch(epId, () => loadAttachments(), { immediate: true })
+onBeforeUnmount(() => clearTimeout(attachTimer))
+function attachKindLabel(a) {
+  if (a.kind === 'image') return t('episode.attach.image')
+  if (a.kind === 'docx') return 'Word'
+  if (a.kind === 'pdf') return 'PDF'
+  return (a.name.split('.').pop() || 'TXT').toUpperCase()
+}
+async function uploadAttachFiles(list) {
+  const files = Array.from(list || [])
+  if (!files.length || !epId.value) return
+  const room = attachLimits.value.max_files - attachments.value.length
+  if (files.length > room) { toast.warning(t('episode.attach.tooMany', { max: attachLimits.value.max_files, n: Math.max(0, room) })); return }
+  const big = files.find(f => f.size > attachLimits.value.max_file_mb * 1024 * 1024)
+  if (big) { toast.warning(t('episode.attach.tooBig', { name: big.name, mb: attachLimits.value.max_file_mb })); return }
+  attachUploading.value = true
+  try {
+    await episodeAPI.uploadAttachments(epId.value, files, chatModelOverride(), chatConfigId())
+    toast.success(t('episode.attach.uploaded', { n: files.length }))
+  } catch (e) {
+    toastError(e)
+  } finally {
+    attachUploading.value = false
+    loadAttachments()
+  }
+}
+function onAttachPick(e) {
+  uploadAttachFiles(e.target.files)
+  e.target.value = ''
+}
+function onAttachDrop(e) {
+  attachDragging.value = false
+  uploadAttachFiles(e.dataTransfer?.files)
+}
+async function retryAttach(a) {
+  try { await episodeAPI.retryAttachment(epId.value, a.id, chatModelOverride(), chatConfigId()) } catch (e) { toastError(e) }
+  loadAttachments()
+}
+async function removeAttach(a) {
+  try {
+    await episodeAPI.deleteAttachment(epId.value, a.id)
+    attachments.value = attachments.value.filter(x => x.id !== a.id)
+  } catch (e) { toastError(e) }
+}
+/** 只有附件、没填原文时「跳过改写」用附件文字 */
+function attachmentsPlainText() {
+  return attachments.value.filter(a => a.status === 'ready' && a.text).map(a => a.text).join('\n\n')
+}
+
 function skipRewrite() {
-  const raw = (localRaw.value || rawContent.value || '').trim()
+  const raw = (localRaw.value || rawContent.value || attachmentsPlainText() || '').trim()
   if (!raw) {
     toast.warning(t('episode.script.rawRequired'))
     return
@@ -4789,6 +4896,24 @@ onMounted(() => setTimeout(() => autoTour('episode', EPISODE_TOUR, t), 900))
   font-family: var(--font-body); background: var(--bg-input); color: var(--text-0);
 }
 .fill-textarea:focus { box-shadow: none; }
+
+/* 原始内容附件 */
+.source-attach { border-top: 1px solid var(--border); background: var(--bg-1, var(--bg-input)); padding: 10px 16px; max-height: 40%; overflow-y: auto; flex-shrink: 0; }
+.source-attach.is-dragging { outline: 2px dashed var(--accent); outline-offset: -4px; background: var(--accent-bg); }
+.source-attach-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.source-attach-hint { font-size: 12px; color: var(--text-2); flex: 1; min-width: 200px; }
+.source-attach-count { font-size: 12px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.source-attach-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.attach-row { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-input); font-size: 12.5px; }
+.attach-row.is-error { border-color: var(--error, #e5484d); }
+.attach-kind { flex-shrink: 0; min-width: 42px; text-align: center; font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: var(--accent-bg); color: var(--accent); }
+.attach-main { flex: 1; min-width: 0; }
+.attach-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-0); }
+.attach-error { margin-top: 2px; font-size: 12px; color: var(--error, #e5484d); line-height: 1.5; white-space: normal; }
+.attach-state { flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; color: var(--text-2); font-size: 12px; }
+.attach-row.is-error .attach-state { color: var(--error, #e5484d); }
+.attach-remove { flex-shrink: 0; border: none; background: none; color: var(--text-2); font-size: 16px; line-height: 1; cursor: pointer; padding: 0 4px; }
+.attach-remove:hover { color: var(--error, #e5484d); }
 
 /* Step Empty State */
 .step-empty {
