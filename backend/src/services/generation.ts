@@ -11,7 +11,7 @@ import fs from 'fs'
 import { downloadFile, fetchImageAsCompressedDataUrl, generateImageThumb, getAbsolutePath, readImageAsCompressedDataUrl, readImageAsDataUrl, saveBase64Image } from '../utils/storage.js'
 import { endFramePathFor, extractVideoEndFrame, extractVideoPoster, posterPathFor } from '../utils/video-poster.js'
 import { getImageAdapter, getVideoAdapter } from './adapters/registry'
-import type { AIConfig, GenerateContext, ImageProviderAdapter, ProviderRequest, RetryContext, VideoProviderAdapter } from './adapters/types'
+import type { AIConfig, GenerateContext, ImageProviderAdapter, ProviderRequest, RetryContext, VideoGenerationRecord, VideoProviderAdapter } from './adapters/types'
 import { formatBytes, formatEta, setTaskProgress, stagePercent, type TaskProgressPatch } from './task-progress.js'
 import { maybeTranslatePrompt, needsTranslation, shouldTranslatePrompt } from './prompt-translate.js'
 import { getDramaStyleKey } from './style-preset.js'
@@ -297,6 +297,8 @@ async function processTask(id: number, config: AIConfig) {
 
     let url: string, method: string, headers: Record<string, string>, body: unknown
     let request: ProviderRequest
+    /** 视频请求的输入（提交被拒时 fallbackRequest 用它换一种方式重建） */
+    let videoRecord: VideoGenerationRecord | null = null
     // 适配器构建请求时（上传参考图、连接进度通道等）上报进度
     const ctx: GenerateContext = { report: (patch) => { setTaskProgress(id, patch) } }
 
@@ -369,7 +371,7 @@ async function processTask(id: number, config: AIConfig) {
         percent: 2,
         message: imageCount ? `已读取 ${imageCount} 张首尾帧 / 参考图，构建请求` : '构建生成请求（纯文生视频）',
       })
-      request = await adapter.buildGenerateRequest(config, {
+      request = await adapter.buildGenerateRequest(config, videoRecord = {
         id: record.id,
         model: record.model,
         prompt,
@@ -402,7 +404,7 @@ async function processTask(id: number, config: AIConfig) {
       model: record.model,
     })
 
-    const isMultipart = body instanceof FormData
+    let isMultipart = body instanceof FormData
     logTaskPayload(label, 'request payload', {
       id, method, url, headers,
       // multipart 表单（如 OpenAI /v1/images/edits）无法 JSON 化，记录字段摘要
@@ -417,6 +419,7 @@ async function processTask(id: number, config: AIConfig) {
     let resp: Response
     try {
       // 上游繁忙（429 / 并发数已满 / 限流）：任务没有被接收，等一会儿原样重新提交，不直接判失败
+      let fellBack = false
       for (let attempt = 0; ; attempt++) {
         resp = await fetch(url, {
           method,
@@ -427,7 +430,22 @@ async function processTask(id: number, config: AIConfig) {
         if (resp.ok) break
         const text = await resp.text()
         const message = mediaAdapter.describeError?.(resp.status, text) || formatUpstreamError(resp.status, text)
-        if (attempt >= SUBMIT_BUSY_RETRIES || !isUpstreamBusy(resp.status, text)) throw new Error(message)
+        const busy = isUpstreamBusy(resp.status, text)
+        // 请求方式不被接受（如模型不支持多参考图）：适配器换一种方式重建，只换一次
+        if (!busy && videoRecord && !fellBack && type === 'video') {
+          const fb = await getVideoAdapter(config.provider).fallbackRequest?.(config, videoRecord, resp.status, text)
+          if (fb) {
+            fellBack = true
+            request = fb.request
+            ;({ url, method, headers, body } = request)
+            isMultipart = body instanceof FormData
+            addTaskNote(id, fb.note)
+            logTaskWarn(label, 'submit-fallback', { id, status: resp.status, note: fb.note, error: message.slice(0, 200) })
+            setTaskProgress(id, { stage: 'submitting', message: fb.note })
+            continue
+          }
+        }
+        if (attempt >= SUBMIT_BUSY_RETRIES || !busy) throw new Error(message)
         const waitMs = retryAfterMs(resp.headers.get('retry-after')) ?? busyBackoffMs(attempt)
         logTaskWarn(label, 'submit-busy-retry', { id, status: resp.status, attempt: attempt + 1, waitMs, error: message.slice(0, 200) })
         setTaskProgress(id, {

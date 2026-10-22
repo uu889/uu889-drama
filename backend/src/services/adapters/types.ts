@@ -116,6 +116,12 @@ export interface VideoProviderAdapter {
   /** 可选：任务已提交（拿到上游任务 ID）后调用，如 ComfyUI 开始订阅该 prompt 的执行事件；report 用于实时推送进度 */
   onSubmitted?(config: AIConfig, taskId: string, request: ProviderRequest, report?: ProgressReporter): void
 
+  /**
+   * 可选：提交被拒绝（非繁忙）时换一种请求方式再交一次（如模型不支持多参考图：退回单图图生视频）。
+   * 返回 { request, note } 时用新请求重新提交并在任务里备注，返回 null 照常报错。只会调用一次。
+   */
+  fallbackRequest?(config: AIConfig, record: VideoGenerationRecord, status: number, bodyText: string): Promise<{ request: ProviderRequest; note: string } | null>
+
   /** 可选：每次轮询后给出细粒度进度（排队位置、采样步数等）；返回 null 用通用的「生成中」 */
   describeProgress?(config: AIConfig, taskId: string, pollResult: any): TaskProgressPatch | null
 

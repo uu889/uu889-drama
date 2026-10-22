@@ -79,11 +79,23 @@ test('aiask grok video: first/last frames and lite models', async () => {
   assert.ok((flf.body as FormData).get('first_frame') instanceof Blob)
   assert.ok((flf.body as FormData).get('last_frame') instanceof Blob)
 
-  const lite = await adapter.buildGenerateRequest({ ...aiask, model: 'grok-imagine-video-1.5-lite' }, {
-    id: 4, prompt: 'p', model: 'grok-imagine-video-1.5-lite', referenceImageUrls: JSON.stringify([PNG, PNG]),
-  })
-  assert.equal((lite.body as FormData).get('mode'), 'image_to_video')
-  assert.equal((lite.body as FormData).getAll('image[]').length, 1)
+  // lite 也按多参考图提交（角色 / 场景 / 道具图都发出去）
+  const liteRecord = { id: 4, prompt: '@图片1咖啡厅里，@图片2小明坐下', model: 'grok-imagine-video-1.5-lite', referenceImageUrls: JSON.stringify([PNG, PNG]) }
+  const lite = await adapter.buildGenerateRequest({ ...aiask, model: 'grok-imagine-video-1.5-lite' }, liteRecord)
+  assert.equal((lite.body as FormData).get('mode'), 'multimodal_reference')
+  assert.equal((lite.body as FormData).getAll('image[]').length, 2)
+  assert.equal((lite.body as FormData).get('prompt'), '<IMAGE_0>咖啡厅里，<IMAGE_1>小明坐下')
+
+  // 上游不接受多参考图：退回单图图生视频，去掉图片编号，之后同一模型直接走单图
+  assert.equal(await adapter.fallbackRequest(aiask, liteRecord, 400, 'invalid prompt'), null)
+  const fb = await adapter.fallbackRequest({ ...aiask, model: 'grok-imagine-video-1.5-lite' }, liteRecord, 400, '{"error":{"message":"mode multimodal_reference is not supported for this model"}}')
+  assert.ok(fb)
+  assert.equal((fb!.request.body as FormData).get('mode'), 'image_to_video')
+  assert.equal((fb!.request.body as FormData).getAll('image[]').length, 1)
+  assert.equal((fb!.request.body as FormData).get('prompt'), '咖啡厅里，小明坐下')
+  assert.match(fb!.note, /不接受多张参考图/)
+  const again = await adapter.buildGenerateRequest({ ...aiask, model: 'grok-imagine-video-1.5-lite' }, liteRecord)
+  assert.equal((again.body as FormData).get('mode'), 'image_to_video')
 })
 
 test('aiask grok video: create / poll / download lifecycle', () => {

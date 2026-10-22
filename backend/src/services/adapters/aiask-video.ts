@@ -10,8 +10,8 @@
  * - image_to_video        multipart 文件字段 image[]（wokey 官方客户端写法）
  * - first_last_frames     multipart 文件字段 first_frame + last_frame
  * - multimodal_reference  multipart 文件字段 image[]（可重复，与 wokey 官方 Video Studio 一致；Grok Imagine Video 1.5 最多 7 张）
- * 分镜绑定的角色 / 场景 / 道具图属于"参考图"而非首帧，默认走 multimodal_reference；
- * 不支持多模态参考的模型（*-lite）退化为 image_to_video，取第一张参考图。
+ * 分镜绑定的角色 / 场景 / 道具图属于"参考图"而非首帧，默认走 multimodal_reference（1.5 和 1.5-lite 都是）；
+ * 上游拒绝多参考图时 fallbackRequest 退回 image_to_video（第一张图做首帧），并记住该模型。
  *
  * 状态接口不太稳（偶尔 5xx / 404，或先报 failed 随后又成功，wokey.ai 上看其实已经生成好了）：
  * 判失败之前 confirmFailure 隔一会儿复查几次状态，并直接试取 /content，取得到就当成功下载。
@@ -51,9 +51,27 @@ const DURATION_RANGE = { min: 1, max: 15 } as const
 
 type VideosApiMode = 'text_to_video' | 'image_to_video' | 'first_last_frames' | 'multimodal_reference'
 
-/** 只支持文生 / 图生的轻量模型（如 grok-imagine-video-1.5-lite） */
+/**
+ * 上游拒绝过多参考图的模型（本次运行内记住，之后直接走单图图生视频）。
+ * grok-imagine-video-1.5 / -lite 都按多参考图提交（xAI 的 Grok Imagine 参考图生视频所有型号都支持，1.5 以外最多 7 张）；
+ * 某个网关 / 模型不接受时由 fallbackRequest 退回单图，并在任务里说明。
+ */
+const noMultiRefModels = new Set<string>()
 function supportsMultimodalReference(model: string): boolean {
-  return !/-lite\b/i.test(model)
+  return !noMultiRefModels.has(model.toLowerCase())
+}
+
+/** 上游的拒绝是不是「不支持这种模式 / 多参考图」（而不是提示词、鉴权等别的问题） */
+export function isReferenceModeRejected(status: number, text: string): boolean {
+  if (status < 400 || status >= 500 || status === 401 || status === 403 || status === 429) return false
+  const s = String(text || '')
+  if (/提示词|prompt|余额|balance|quota|moderation|审核|key/i.test(s) && !/mode|reference|multimodal|image\[\]/i.test(s)) return false
+  return /multimodal|reference|\bmode\b|image\[\]|too many (images|files)|unsupported|not support|不支持|参考图|多图/i.test(s)
+}
+
+/** 单图图生视频时去掉 @图片N 标记，只留名字（模型只拿到一张图，编号没有意义） */
+export function stripImageTags(prompt: string): string {
+  return prompt.replace(/@图片\d+/g, '')
 }
 
 export function normalizeAiaskRatio(ratio?: string | null): string {
@@ -127,15 +145,17 @@ export class AiaskVideoAdapter implements VideoProviderAdapter {
         // 其它字段名会被拒绝：A reference file uses an unsupported multipart field name
         for (const ref of refImages.slice(0, MAX_REFERENCE_IMAGES)) files.push(['image[]', ref])
       } else {
+        // 不支持多参考图：第一张（接戏帧或场景图）做首帧
         mode = 'image_to_video'
         files.push(['image[]', refImages[0]])
       }
     }
+    const usedPrompt = mode === 'image_to_video' && refImages.length && !firstFrame && !lastFrame ? stripImageTags(prompt) : prompt
 
     // Grok Imagine 的多参考图用 <IMAGE_0>… 指代参考图
     const referenceCount = mode === 'multimodal_reference' ? files.length : 0
     const grok = /^grok/i.test(model)
-    const withRefs = referenceCount && grok ? toGrokImageRefs(prompt, referenceCount) : prompt
+    const withRefs = referenceCount && grok ? toGrokImageRefs(usedPrompt, referenceCount) : usedPrompt
     // Grok 最多 4096 字节：<IMAGE_n> 比 @图片N 长，换完再量一次
     const finalPrompt = grok ? fitGrokPrompt(config, withRefs) : withRefs
 
@@ -175,6 +195,19 @@ export class AiaskVideoAdapter implements VideoProviderAdapter {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${config.apiKey}` },
       body: form,
+    }
+  }
+
+  /** 多参考图被拒（模式 / 字段不支持）：记住这个模型，改成单图图生视频再交一次 */
+  async fallbackRequest(config: AIConfig, record: VideoGenerationRecord, status: number, bodyText: string) {
+    const model = record.model || config.model || AIASK_DEFAULT_VIDEO_MODEL
+    const refs = parseUrlArray(record.referenceImageUrls)
+    const hasFrames = Boolean(record.firstFrameUrl || record.imageUrl || record.lastFrameUrl)
+    if (hasFrames || refs.length < 1 || !supportsMultimodalReference(model) || !isReferenceModeRejected(status, bodyText)) return null
+    noMultiRefModels.add(model.toLowerCase())
+    return {
+      request: await this.buildGenerateRequest(config, record),
+      note: `${model} 不接受多张参考图（上游：${String(bodyText).slice(0, 120)}），已改为只用第 1 张图做首帧的图生视频；角色一致性要靠首帧和提示词`,
     }
   }
 

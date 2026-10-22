@@ -50,6 +50,8 @@ let maxRunning = 0
 let rejected = 0
 let submits = 0
 let lastSubmit: any = null
+let rejectMultiRef = false
+let lastMode: string | null = null
 const tasks = new Map<string, { polls: number; done: boolean; busyFail: boolean }>()
 const MP4 = Buffer.concat([Buffer.from([0, 0, 0, 0x18]), Buffer.from('ftypmp42'), Buffer.alloc(64)])
 let server: http.Server
@@ -72,6 +74,11 @@ before(async () => {
         submits++
         if (running >= 2) { rejected++; return json(429, { error: { message: 'Too many concurrent video tasks' } }) }
         try { lastSubmit = JSON.parse(raw) } catch { lastSubmit = null }
+        // 模拟某个模型不接受多参考图
+        if (rejectMultiRef && /name="mode"\r\n\r\nmultimodal_reference/.test(raw)) {
+          return json(400, { error: { message: 'mode multimodal_reference is not supported for this model' } })
+        }
+        if (/name="mode"/.test(raw)) lastMode = /name="mode"\r\n\r\n([a-z_]+)/.exec(raw)?.[1] || null
         // Grok 上游：提示词超过 4096 字节直接 400
         if (lastSubmit && Buffer.byteLength(String(lastSubmit.prompt || '')) > 4096) {
           return json(400, { error: { message: '提示词过长。Grok视频最多支持4096字节的UTF-8文本，请缩短后重试。' } })
@@ -204,4 +211,18 @@ test('long Chinese prompt is fitted under the byte limit and duration clamped to
   assert.equal(lastSubmit.duration_seconds, 15)
   assert.match(String(row.errorMsg), /超过上限 4090 字节/)
   assert.match(String(row.errorMsg), /按 15 秒生成/)
+})
+
+test('model rejects multiple reference images: falls back to single-image video once and notes it', async () => {
+  reset('normal')
+  rejectMultiRef = true
+  try {
+    const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+    const row = await waitDone(await generateVideo({ prompt: '@图片1咖啡厅，@图片2小明坐下', duration: 5, referenceImageUrls: [PNG, PNG] } as any))
+    assert.equal(row.status, 'completed', String(row.errorMsg))
+    assert.equal(lastMode, 'image_to_video')
+    assert.match(String(row.errorMsg), /不接受多张参考图/)
+  } finally {
+    rejectMultiRef = false
+  }
 })
