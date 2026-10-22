@@ -21,7 +21,7 @@ the close-up and the full-body views are the same character, full body in frame,
 the three full-body views equal in height, side by side, tops of heads and soles of feet aligned;
 [age impression + gender impression + physique], [facial features], [hairstyle], [clothing + accessories];
 the face, hairstyle, and clothing of the front-face close-up and the three views are completely identical;
-pure white background, soft even lighting, cinematic quality
+pure white background, soft studio key light from the front-side with natural light-to-shadow falloff and visible volume, sharp focus, crisp across the whole sheet, fine natural skin texture, individual hair strands, clearly visible fabric weave, seams and folds, highly detailed, high resolution
 ```
 
 ## Description Order Rules
@@ -42,8 +42,18 @@ Convert the character's personality traits into outward bearing and expression d
 - Right three full-body views: front, 90-degree side, and back of the same character, **equal in height, side by side, evenly spaced**, tops of heads and soles of feet on the same horizontal lines
 - The close-up and the three full-body views must have the same face, the same hairstyle, and the same clothing — explicitly state "the face, hairstyle, and clothing of the front-face close-up and the three full-body views are completely identical"
 - Neutral stance, natural expression — easy to reuse as a reference image
-- Soft, even studio lighting; no dramatic light and shadow (the reference image must work in every kind of scene)
+- Soft studio lighting with the key light from the front-side and natural shadow falloff, so the face and body read in three dimensions; no dramatic, harsh light and shadow (the reference image must work in every kind of scene), and no directionless flat light either (it looks fake)
 - Do not mix unrelated words into the output
+
+## Image Quality & Detail (not blurry, not fake)
+
+Blurry, fake-looking images usually come from vague prompts that only say things like "high quality". Write it like this:
+
+- **Focus & sharpness**: state "sharp focus, crisp across the whole sheet"; never write depth of field, background blur, soft focus or haze (every part of a reference image must be legible)
+- **Concrete textures**: give each key element a visible physical texture — skin (fine, natural skin texture), hair (individual strands with layered sheen), fabric (weave, seams, folds, wear), metal / leather / wood accessories (scratches, patina, reflections). "A coat" is weaker than "a charcoal wool coat with a fine twill weave, slightly pilled at the elbows"
+- **Directional light**: soft is not flat — name the key-light direction and the light-to-shadow falloff (e.g. "soft key light from the front-left, natural shadow falloff on the right side of the face"); directionless flat light looks the most fake
+- **Closing quality anchor**: highly detailed, high resolution — once, at the end; do not pile on empty words like "masterpiece, 8K, best quality"
+- Do not write words like "flawless" or "porcelain-smooth" that cause airbrushed, plastic-looking skin
 
 ## Prohibitions
 
@@ -51,6 +61,7 @@ Convert the character's personality traits into outward bearing and expression d
 - Cropping the body (full-body views must be full body, head to soles fully in frame; the close-up must have head and shoulders fully in frame)
 - Text, labels, watermarks, signatures
 - Heavy shadows, colored background lighting, background props
+- Depth-of-field blur, soft focus, hazy filters; airbrushed, plastic or waxy skin
 
 ## Saving
 

@@ -20,7 +20,7 @@ Single-item product shot, standard product-photography viewpoint,
 accurate proportions of all parts, placed in isolation on a pure white background,
 centered and fully in frame, edges complete with no cropping;
 background clean and carrying no narrative content, no other objects, no people, no scene;
-soft even studio light, faint shadows, high detail
+soft even studio light, faint contact shadow, the whole object in sharp focus with crisp edges, clear and realistic surface detail (texture, scratches, wear, reflections), highly detailed, high resolution
 ```
 
 ## Generation Rules
@@ -32,6 +32,13 @@ soft even studio light, faint shadows, high detail
 - Describe only the item itself; do not mention plot, characters, or usage (neither the background nor the frame carries narrative content)
 - Do not mix unrelated words into the output; **do not** use "cinematic quality"-type words (a prop image is a product shot, not a film still)
 
+## Image Quality & Detail (not blurry, not fake)
+
+- **Focus**: state "the whole object in sharp focus with crisp edges"; never write depth of field, blur or soft focus
+- **Concrete materials**: write out surface texture, scratches, wear, patina, reflections and seams item by item — this is what makes a prop look real. "A key" is weaker than "a brass key, its teeth polished bright from use, fine scratches and dark green oxidation spots on the bow"
+- **Light with volume**: soft and even but still directional, so the object's form and thickness read clearly, with a faint contact shadow underneath
+- **Closing quality anchor**: highly detailed, high resolution — once; do not pile on empty words like "masterpiece, 8K, best quality"
+
 ## Prohibitions
 
 - Hands holding it, people, other objects, or scene environment in frame
@@ -39,6 +46,7 @@ soft even studio light, faint shadows, high detail
 - Text, watermarks, signatures (text and graphics printed on the prop itself may be kept and described)
 - Environmental reflections, colored light
 - Exaggerated perspective, distortion, proportion errors, edge cropping
+- Depth-of-field blur, soft focus; overly smooth, texture-less plastic-looking surfaces
 
 ## Saving
 

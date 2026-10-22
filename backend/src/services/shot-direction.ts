@@ -345,8 +345,8 @@ export function buildShotDirectives(input: ShotDirectionInput): string {
         : `[Scene lock] Layout, furniture, doors / windows and light direction follow ${ref(input.sceneName)} and match the other shots in this location.`)
     }
     blocks.push(zh
-      ? `【画风一致】${input.hasStylePreset ? '严格保持开头指定的画风，' : ''}画风、色调、光影质感与参考图一致，全片不得切换成其他画风（如写实 / 动漫 / 3D 互换）。`
-      : `[Style lock] ${input.hasStylePreset ? 'Keep the style given at the start. ' : ''}Art style, color grading and lighting match the reference images; never switch styles (e.g. realistic ↔ anime ↔ 3D).`)
+      ? `【画风一致】${input.hasStylePreset ? '严格保持开头指定的画风，' : ''}画风、色调、光影质感与参考图一致，全片不得切换成其他画风（如写实 / 动漫 / 3D 互换）；画面清晰锐利、细节丰富，人物五官、发丝与服装面料纹理清楚，不要虚焦、涂抹感、磨皮或塑料感。`
+      : `[Style lock] ${input.hasStylePreset ? 'Keep the style given at the start. ' : ''}Art style, color grading and lighting match the reference images; never switch styles (e.g. realistic ↔ anime ↔ 3D). Keep the image sharp and richly detailed — clear facial features, hair strands and fabric texture; no soft-focus blur, smeared detail, airbrushed or plastic look.`)
   }
 
   // ── 站位与接戏 ──

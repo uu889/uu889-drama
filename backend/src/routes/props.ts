@@ -73,8 +73,9 @@ function propImagePrompt(prop: typeof schema.props.$inferSelect, stylePrompt = '
     prop.description || '',
     'isolated on a pure white background',
     'no other objects, no people, no scenery',
-    'soft even studio lighting',
-    'high detail',
+    'soft even studio lighting with a faint contact shadow',
+    'whole object in sharp focus, crisp edges, realistic surface texture and wear',
+    'highly detailed, high resolution',
     'no text, no watermark',
   ].filter(Boolean).join(', ')
 }

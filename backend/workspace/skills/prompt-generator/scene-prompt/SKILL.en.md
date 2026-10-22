@@ -20,6 +20,7 @@ walls ([wall material and color]);
 [key set dressing and its fixed relative positions];
 spatial structure continuous and self-consistent;
 [light sources + color temperature + brightness contrast], [mood];
+deep focus with foreground, midground and background all sharp, clearly visible material detail on the floor, walls and furnishings (texture, wear, dust, reflections), believable tonal layering and contact shadows, highly detailed, high resolution;
 No people in the scene, empty scene, cinematic quality
 ```
 
@@ -51,12 +52,22 @@ All set dressing, period texture, and key visual elements in `prompt` (scene des
 - Make mood words concrete: "oppressive" → "stifling air, dim and low light"; do not write only abstract emotion words
 - Do not mix unrelated words into the output
 
+## Image Quality & Detail (not blurry, not fake)
+
+Blurry, fake-looking scenes usually list furnishings without textures, or use flat lighting. Write it like this:
+
+- **Deep focus**: state "deep focus, foreground, midground and background all in sharp focus"; never write shallow depth of field, background blur, soft focus or haze (every position in this image must be legible)
+- **Concrete materials**: give the floor, walls and main furnishings visible textures and traces — wood grain, brick joints, tile grout, rust, dust, water stains, scratches, reflections on glass and metal. "A table" is weaker than "a table of old planks with chipped paint, edges worn pale, a few ring marks from cups"
+- **Believable light**: name the light direction, tonal layering and contact shadows (where objects meet the floor), and keep detail in the shadows; avoid washed-out, grey, over-exposed images
+- **Closing quality anchor**: highly detailed, high resolution — once; do not pile on empty words like "masterpiece, 8K, best quality"
+
 ## Prohibitions
 
 - Any people — **no people of any kind may appear in the scene image; keep only the scene itself**
 - Text, readable text on signboards, watermarks, signatures
 - Motion blur, objects in motion (the scene reference image must be still and stable)
 - Merely listing set dressing without giving relative positions (the spatial structure must be continuous and self-consistent)
+- Shallow depth of field, background blur, soft focus, hazy images; grey or washed-out images from overly diffuse light
 
 ## Saving
 

@@ -82,6 +82,7 @@ app.post('/:id/generate-image', async (c) => {
     scene.time || '',
     scene.prompt || '高质量场景',
     scene.lighting || '电影感光影',
+    '全景深，前中后景都清晰对焦，材质细节清楚，高细节，高清晰度',
     '画面中没有任何人物，空场景，只有场景本身',
   ].filter(Boolean).join(', ')
   try {

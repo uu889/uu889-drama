@@ -4,7 +4,7 @@
 import { parseDataUrl } from '../../utils/storage.js'
 
 /** 通用 SD 负向提示词（本地生图未配置负向提示词时使用） */
-export const LOCAL_DEFAULT_NEGATIVE_PROMPT = 'lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, jpeg artifacts, signature, watermark, username, blurry'
+export const LOCAL_DEFAULT_NEGATIVE_PROMPT = 'lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, jpeg artifacts, signature, watermark, username, blurry, out of focus, soft focus, depth of field blur, hazy, washed out, over-smoothed, airbrushed skin, plastic skin, waxy, smeared details, flat lighting'
 
 /**
  * 项目尺寸（如 1920x1080）→ 本地 SD 系模型适合的出图尺寸：

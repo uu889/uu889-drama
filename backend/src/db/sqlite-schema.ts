@@ -306,12 +306,12 @@ export const sqliteSchemaStatements = [
 export const stylePresetSeeds = [
   {
     name: '3D 漫剧', value: '3d', sortOrder: 1,
-    prompt: 'high-quality 3D CG animation still, modern game-engine cinematic render, Unreal Engine and Pixar grade quality, semi-realistic stylized characters with refined facial features, clean sculpted anatomy, detailed skin shader with subtle subsurface scattering, PBR materials with crisp detailed textures, volumetric cinematic lighting with soft rim light, rich depth of field, polished film color grading, detailed environment art, sharp focus, consistent character design across shots, avoid flat lighting, avoid plastic waxy skin, avoid low-poly blurry look, avoid 2D flat cel shading, avoid anime line art',
+    prompt: 'high-end 3D CG animated drama still, cinematic game-engine render with near-photoreal materials, semi-realistic characters with refined facial features and believable proportions, detailed skin shader with subtle subsurface scattering and visible fine skin texture, individual hair strands, fabric with visible weave, stitching and natural folds, PBR materials with crisp high-resolution textures, physically based global illumination with a directional key light, soft rim light and grounded contact shadows, polished film color grading, detailed environment art, sharp focus throughout, ultra-detailed, high resolution, consistent character design across shots, avoid blurry or soft-focus image, avoid heavy depth-of-field blur, avoid hazy washed-out look, avoid flat lighting, avoid plastic waxy skin, avoid over-smoothed toy-like faces, avoid low-poly look, avoid 2D flat cel shading, avoid anime line art',
     description: '游戏引擎级 3D 渲染，半写实角色，当前短剧主流的 3D 漫剧质感',
   },
   {
     name: '日漫赛璐璐', value: 'anime', sortOrder: 2,
-    prompt: 'Japanese TV anime style, clean cel shading with hard-edged shadow shapes, crisp uniform black line art, vivid saturated color palette, expressive large-eyed character design with on-model proportions, detailed hand-painted anime backgrounds, dramatic anime key lighting with screentone highlights, key-visual poster quality, consistent character design across shots, avoid 3D CGI look, avoid painterly soft blending, avoid watercolor texture, avoid photorealism, avoid thick western comic outlines',
+    prompt: 'Japanese TV anime style, clean cel shading with hard-edged shadow shapes, crisp uniform black line art, vivid saturated color palette, expressive large-eyed character design with on-model proportions, detailed hand-painted anime backgrounds, dramatic anime key lighting with screentone highlights, key-visual poster quality, sharp focus, crisp high-resolution details, consistent character design across shots, avoid 3D CGI look, avoid painterly soft blending, avoid watercolor texture, avoid photorealism, avoid thick western comic outlines, avoid blurry soft-focus look',
     description: '日式赛璐璐动画风格',
   },
   {
@@ -331,12 +331,12 @@ export const stylePresetSeeds = [
   },
   {
     name: '国风 2.5D', value: 'guofeng', sortOrder: 7,
-    prompt: 'Chinese guofeng 2.5D illustration style, semi-realistic donghua-quality character art, elegant flowing line work, rich traditional Chinese aesthetic elements, layered ink-wash inspired atmospheric backgrounds, refined silk and fabric textures, soft luminous lighting with gentle haze, sophisticated muted jewel-tone palette, xianxia drama poster quality, consistent character design across shots, avoid flat cel shading, avoid western comic ink style, avoid photorealism, avoid plastic 3D look, avoid modern clothing and props unless specified',
+    prompt: 'Chinese guofeng 2.5D illustration style, semi-realistic donghua-quality character art, elegant flowing line work, rich traditional Chinese aesthetic elements, layered ink-wash inspired atmospheric backgrounds, refined silk and fabric textures, soft luminous directional lighting with subtle atmospheric depth, sophisticated muted jewel-tone palette, finely detailed rendering of faces, hair, embroidery and fabric, sharp focus, high resolution, xianxia drama poster quality, consistent character design across shots, avoid flat cel shading, avoid western comic ink style, avoid photorealism, avoid blurry hazy soft-focus look, avoid plastic 3D look, avoid modern clothing and props unless specified',
     description: '国风动画/仙侠剧质感，2.5D 半写实',
   },
   {
     name: '韩系网漫', value: 'webtoon', sortOrder: 8,
-    prompt: 'Korean webtoon manhwa style, clean digital painting with soft gradient shading, slim elegant character proportions, large expressive eyes with detailed highlights, soft glowing skin rendering, romantic dreamy lighting, modern pastel-to-vivid color palette, detailed fashion and fabric rendering, webtoon key visual quality, consistent character design across shots, avoid heavy black ink outlines, avoid halftone dots, avoid 3D render look, avoid watercolor paper texture, avoid chibi proportions',
+    prompt: 'Korean webtoon manhwa style, clean digital painting with soft gradient shading, slim elegant character proportions, large expressive eyes with detailed highlights, soft glowing skin rendering, romantic dreamy lighting, modern pastel-to-vivid color palette, detailed fashion and fabric rendering, sharp clean rendering, high resolution, webtoon key visual quality, consistent character design across shots, avoid heavy black ink outlines, avoid halftone dots, avoid 3D render look, avoid watercolor paper texture, avoid chibi proportions, avoid blurry soft-focus look',
     description: '韩国条漫/网漫精致上色风',
   },
   {
@@ -347,15 +347,18 @@ export const stylePresetSeeds = [
 ]
 
 /**
- * 旧版种子 prompt（v1 一句话风格描述）— 用于内容寻址升级：
- * 仅当库中行的 prompt 仍等于旧种子值（未被用户在设置页编辑过）才覆盖为新 prompt
+ * 旧版种子 prompt — 用于内容寻址升级：
+ * 仅当库中行的 prompt 仍等于某个旧种子值（未被用户在设置页编辑过）才覆盖为新 prompt
+ * v1：一句话风格描述；v2：结构化风格描述（v1.0.27 起补了清晰度 / 质感，避免出图发虚、塑料感）
  */
-const LEGACY_SEED_PROMPTS: Record<string, string> = {
-  '3d': '3D CG animation style, game-engine quality render, semi-realistic stylized characters, refined facial features, detailed materials and textures, cinematic lighting, high detail',
-  anime: 'Japanese anime style, cel shading, clean crisp line art, vivid saturated colors, expressive character designs, detailed painted backgrounds',
-  ghibli: 'Studio Ghibli style, hand-drawn animation, soft watercolor painted backgrounds, warm nostalgic lighting, gentle natural palette, whimsical cozy atmosphere',
-  watercolor: 'watercolor illustration style, soft translucent washes, visible paper texture, delicate fluid brushwork, light airy atmosphere, hand-painted storybook feel',
-  comic: 'Western comic book style, bold black ink outlines, halftone dot shading, dynamic saturated colors, dramatic contrast lighting, flat graphic novel look',
+const LEGACY_SEED_PROMPTS: Record<string, string[]> = {
+  '3d': ['3D CG animation style, game-engine quality render, semi-realistic stylized characters, refined facial features, detailed materials and textures, cinematic lighting, high detail', 'high-quality 3D CG animation still, modern game-engine cinematic render, Unreal Engine and Pixar grade quality, semi-realistic stylized characters with refined facial features, clean sculpted anatomy, detailed skin shader with subtle subsurface scattering, PBR materials with crisp detailed textures, volumetric cinematic lighting with soft rim light, rich depth of field, polished film color grading, detailed environment art, sharp focus, consistent character design across shots, avoid flat lighting, avoid plastic waxy skin, avoid low-poly blurry look, avoid 2D flat cel shading, avoid anime line art'],
+  anime: ['Japanese anime style, cel shading, clean crisp line art, vivid saturated colors, expressive character designs, detailed painted backgrounds', 'Japanese TV anime style, clean cel shading with hard-edged shadow shapes, crisp uniform black line art, vivid saturated color palette, expressive large-eyed character design with on-model proportions, detailed hand-painted anime backgrounds, dramatic anime key lighting with screentone highlights, key-visual poster quality, consistent character design across shots, avoid 3D CGI look, avoid painterly soft blending, avoid watercolor texture, avoid photorealism, avoid thick western comic outlines'],
+  ghibli: ['Studio Ghibli style, hand-drawn animation, soft watercolor painted backgrounds, warm nostalgic lighting, gentle natural palette, whimsical cozy atmosphere'],
+  watercolor: ['watercolor illustration style, soft translucent washes, visible paper texture, delicate fluid brushwork, light airy atmosphere, hand-painted storybook feel'],
+  comic: ['Western comic book style, bold black ink outlines, halftone dot shading, dynamic saturated colors, dramatic contrast lighting, flat graphic novel look'],
+  guofeng: ['Chinese guofeng 2.5D illustration style, semi-realistic donghua-quality character art, elegant flowing line work, rich traditional Chinese aesthetic elements, layered ink-wash inspired atmospheric backgrounds, refined silk and fabric textures, soft luminous lighting with gentle haze, sophisticated muted jewel-tone palette, xianxia drama poster quality, consistent character design across shots, avoid flat cel shading, avoid western comic ink style, avoid photorealism, avoid plastic 3D look, avoid modern clothing and props unless specified'],
+  webtoon: ['Korean webtoon manhwa style, clean digital painting with soft gradient shading, slim elegant character proportions, large expressive eyes with detailed highlights, soft glowing skin rendering, romantic dreamy lighting, modern pastel-to-vivid color palette, detailed fashion and fabric rendering, webtoon key visual quality, consistent character design across shots, avoid heavy black ink outlines, avoid halftone dots, avoid 3D render look, avoid watercolor paper texture, avoid chibi proportions'],
 }
 
 /**
@@ -366,6 +369,9 @@ const LEGACY_SEED_PROMPTS: Record<string, string> = {
 const REMOVED_SEED_PROMPTS: Record<string, string> = {
   live: 'ultra-realistic cinematic live-action look, professional film photography, natural skin tones with detailed pores and realistic texture, true human anatomy and proportions, shallow depth of field with creamy bokeh, cinematic three-point lighting, subtle film grain, 35mm lens cinematic framing, true-to-life color grading, detailed real-world environments, consistent actor appearance across shots, avoid cartoon or anime features, avoid 3D render look, avoid illustration style, avoid plastic waxy skin, avoid over-smoothing beauty filter',
 }
+
+/** 存最终提示词（开头带项目风格词）的表 */
+const FINAL_PROMPT_TABLES = ['characters', 'scenes', 'props']
 
 // INSERT ... SELECT WHERE NOT EXISTS → 幂等：只补缺失行，不覆盖用户编辑
 // （SQLite 无 FROM DUAL，无 FROM 的 SELECT 合法）
@@ -399,10 +405,16 @@ export function initSqliteSchema(sqlite: Database.Database) {
   for (const s of stylePresetSeeds) {
     const ts = new Date().toISOString()
     insertSeed.run(s.name, s.value, s.prompt, s.description, s.sortOrder, ts, ts, s.value)
-    const legacyPrompt = LEGACY_SEED_PROMPTS[s.value]
-    if (legacyPrompt) {
+    for (const legacyPrompt of LEGACY_SEED_PROMPTS[s.value] || []) {
       const res = upgradeSeed.run(s.name, s.prompt, s.description, s.sortOrder, ts, s.value, legacyPrompt)
-      if (res.changes > 0) console.log(`🎨 风格预设「${s.name}」已升级为结构化提示词`)
+      if (res.changes > 0) {
+        console.log(`🎨 风格预设「${s.name}」已升级到新版提示词`)
+        // 已保存的最终提示词开头拼的是旧风格词（save_*_final_prompt 注入），一并换成新版，不用逐个重新生成
+        for (const table of FINAL_PROMPT_TABLES) {
+          sqlite.prepare(`UPDATE ${table} SET final_prompt = ? || substr(final_prompt, ?) WHERE substr(final_prompt, 1, ?) = ?`)
+            .run(s.prompt, legacyPrompt.length + 1, legacyPrompt.length, legacyPrompt)
+        }
+      }
     }
   }
   for (const [value, prompt] of Object.entries(REMOVED_SEED_PROMPTS)) {

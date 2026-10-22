@@ -48,7 +48,10 @@ function characterImagePrompt(char: typeof schema.characters.$inferSelect, style
     '16:9 横版角色定妆照',
     '半身角色海报构图',
     '正面',
-    '高质量',
+    '焦点清晰，全图锐利',
+    '五官、发丝与服装面料纹理清晰可见',
+    '柔和的主光从侧前方打来，明暗过渡自然',
+    '高细节，高清晰度',
     '白色背景',
   ].filter(Boolean).join(', ')
 }
