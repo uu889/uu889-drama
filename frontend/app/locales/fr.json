@@ -677,10 +677,11 @@
         "concurrentHint": "Les vidéos Grok d’aiask.me sont générées en amont par wokey.ai, qui limite les vidéos simultanées et rejette le reste. Les lots sont mis en file selon ce nombre et les erreurs de saturation sont renvoyées automatiquement. Augmentez-le si votre compte le permet."
       },
       "video": {
-        "maxDuration": "Durée vidéo max (secondes)",
-        "maxDurationHint": "Par plan (une vidéo), pas la durée du montage final. L'IA garde chaque plan sous cette durée et découpe ceux qui dépassent. Par défaut 15.",
-        "maxPromptBytes": "Longueur max du prompt (octets UTF-8)",
-        "maxPromptBytesHint": "Par défaut 4090 ; un caractère chinois = 3 octets. Par prompt vidéo : l'IA en écrit environ 60 % (le reste pour les consignes ajoutées) ; au-delà à l'envoi, les consignes annexes sont retirées puis le texte raccourci. 0 = sans limite. Grok accepte au plus 4096 octets."
+        "maxDuration": "Durée max d'un plan (secondes)",
+        "maxDurationHint": "Par plan (une vidéo), pas la durée du montage final. Vide ou 0 = sans limite (par défaut). Si défini, l'IA garde chaque plan sous cette durée et découpe ceux qui dépassent.",
+        "maxPromptBytes": "Longueur max du prompt d'un plan (octets UTF-8)",
+        "maxPromptBytesHint": "Vide ou 0 = sans limite (par défaut) ; un caractère chinois = 3 octets. Si défini, l'IA en écrit environ 60 % (le reste pour les consignes ajoutées) ; au-delà à l'envoi, les consignes annexes sont retirées puis le texte raccourci. La limite propre de Grok (4096 octets) est gérée automatiquement.",
+        "unlimited": "Sans limite"
       }
     },
     "styleDialog": {

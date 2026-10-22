@@ -35,14 +35,16 @@ before(async () => {
   episodeId = (await db.select().from(schema.episodes))[0].id
 })
 
-test('limits follow the episode\'s locked video config, else the active one (defaults 15 s / 4090 bytes)', async () => {
+test('limits follow the episode\'s locked video config, else the active one (unlimited by default)', async () => {
   const locked = await shotLimitsForEpisode(episodeId)
   assert.equal(locked.maxDuration, 8)
   assert.equal(locked.maxPromptBytes, 2000)
   assert.equal(locked.promptBudgetBytes, 1200, '60% 留给 Agent，其余给自动追加的导演指令')
   const fallback = await shotLimitsForEpisode(null)
-  assert.equal(fallback.maxDuration, 15)
-  assert.equal(fallback.maxPromptBytes, 4090)
+  assert.equal(fallback.maxDuration, 0)
+  assert.equal(fallback.maxPromptBytes, 0)
+  assert.equal(fallback.promptBudgetBytes, 0)
+  assert.equal(shotLimitsAgentDirective('storyboard_breaker', fallback, 'zh'), '', '不限制时不追加说明')
   assert.equal(shotLimitsFrom({ max_prompt_bytes: 0 }).promptBudgetBytes, 0)
 })
 

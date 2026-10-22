@@ -191,7 +191,7 @@ app.post('/', async (c) => {
       const effectiveConfig = configId
         ? (await getConfigById(configId)) ?? await getActiveConfig('video')
         : await getActiveConfig('video')
-      // 时长超过这个视频接口的上限（设置页「最长视频时长」，默认 15 秒）按上限生成；
+      // 时长超过这个视频接口的上限（设置页「最长分镜视频时长」，默认不限）按上限生成；
       // 先于导演指令调整，【台词控制】里的「本段共 N 秒」才对得上
       const limits = videoLimits(effectiveConfig?.settings)
       const clamped = clampDuration(videoBody.duration, limits.maxDuration)

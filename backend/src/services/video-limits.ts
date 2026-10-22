@@ -1,19 +1,21 @@
 /**
  * 视频接口的上限：最长时长（秒）、提示词最大长度（UTF-8 字节）。
  *
- * 每个视频配置可在设置页改（settings.max_duration / settings.max_prompt_bytes），不设时默认 15 秒 / 4090 字节；
- * max_prompt_bytes = 0 表示不限制。Grok（aiask.me / xAI）最多 4096 字节，按字节算：一个汉字 3 字节，
- * 中文提示词约 1360 字就到上限。
+ * 每个视频配置可在设置页改（settings.max_duration / settings.max_prompt_bytes），都是单个分镜（一次生成）的上限；
+ * 不设或 0 = 不限制（默认）。接口自己的硬上限另由适配器处理（如 Grok 最多 4096 字节、15 秒，
+ * 见 video-common.ts fitGrokPrompt / aiask-video.ts normalizeAiaskDuration）。按字节算：一个汉字 3 字节。
  *
  * 提示词超长时 fitPromptBytes 按重要性精简，而不是直接截断丢掉结尾：
  * 先压缩空白，再依次去掉附加的导演指令块（画风 → 场景 → 物理 → 站位 → 接戏 → 人物外观 → 系统音），
  * 最后才在句子边界截短正文；【台词控制】最后才动（防止模型自己编台词）。
  */
 
-export const DEFAULT_MAX_DURATION = 15
-export const DEFAULT_MAX_PROMPT_BYTES = 4090
+/** 0 = 不限制 */
+export const DEFAULT_MAX_DURATION = 0
+export const DEFAULT_MAX_PROMPT_BYTES = 0
 
 export interface VideoLimits {
+  /** 0 = 不限 */
   maxDuration: number
   /** 0 = 不限 */
   maxPromptBytes: number
@@ -31,11 +33,11 @@ export function videoLimits(settings: Record<string, any> | null | undefined): V
   }
 }
 
-/** 时长超过上限时按上限；返回 null 表示没传时长 */
+/** 时长超过上限时按上限（maxDuration <= 0 不限）；返回 null 表示没传时长 */
 export function clampDuration(duration: unknown, maxDuration: number): number | null {
   const d = Number(duration)
   if (!Number.isFinite(d) || d <= 0) return null
-  return Math.min(d, maxDuration)
+  return maxDuration > 0 ? Math.min(d, maxDuration) : d
 }
 
 export const utf8Bytes = (s: string) => Buffer.byteLength(s, 'utf8')

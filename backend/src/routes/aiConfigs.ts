@@ -54,7 +54,7 @@ const QUEUE_RULES: Record<string, SettingRule> = {
 
 /** 视频接口上限（services/video-limits.ts）：最长时长（秒，默认 15）、提示词最大字节数（UTF-8，默认 4090，0 = 不限） */
 const VIDEO_LIMIT_RULES: Record<string, SettingRule> = {
-  max_duration: { kind: 'number', min: 1, max: 120, integer: true },
+  max_duration: { kind: 'number', min: 0, max: 120, integer: true },
   max_prompt_bytes: { kind: 'number', min: 0, max: 200000, integer: true },
 }
 

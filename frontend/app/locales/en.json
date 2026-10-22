@@ -677,10 +677,11 @@
         "concurrentHint": "aiask.me Grok videos are generated upstream by wokey.ai, which limits concurrent videos and rejects the rest. Batches are queued at this number, the next one is sent when one finishes, and busy errors are resubmitted automatically. Raise it if your account allows more."
       },
       "video": {
-        "maxDuration": "Max video length (seconds)",
-        "maxDurationHint": "Per shot (one video), not the length of the merged export. The AI keeps each shot within it when breaking down the script and splits shots that don't fit. Default 15.",
-        "maxPromptBytes": "Max prompt length (UTF-8 bytes)",
-        "maxPromptBytesHint": "Default 4090; a Chinese character counts as 3 bytes. Per video prompt: the AI writes prompts to about 60% of it (the rest is left for auto-added directives); anything still too long at submit drops optional instructions first, then shortens the text. 0 = no limit. Grok video allows at most 4096 bytes."
+        "maxDuration": "Max shot video length (seconds)",
+        "maxDurationHint": "Per shot (one video), not the length of the merged export. Empty or 0 = no limit (default). When set, the AI keeps each shot within it and splits shots that don't fit.",
+        "maxPromptBytes": "Max shot video prompt length (UTF-8 bytes)",
+        "maxPromptBytesHint": "Empty or 0 = no limit (default); a Chinese character counts as 3 bytes. When set, the AI writes prompts to about 60% of it (the rest is left for auto-added directives); anything still too long at submit drops optional instructions first, then shortens the text. Grok video's own 4096-byte limit is handled automatically.",
+        "unlimited": "No limit"
       }
     },
     "styleDialog": {

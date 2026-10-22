@@ -205,12 +205,24 @@ test('long Chinese prompt is fitted under the byte limit and duration clamped to
   reset('normal')
   const prompt = '小明推门进来，' + '雨水顺着外套往下滴，镜头缓缓推进。'.repeat(250) + '\n\n【台词控制】本段只有 1 句话：\n1. 小明：「我回来了。」\n【画风一致】画面清晰锐利。'
   assert.ok(Buffer.byteLength(prompt) > 4096)
-  const row = await waitDone(await generateVideo({ prompt, duration: 20 }))
-  assert.equal(row.status, 'completed', String(row.errorMsg))
-  assert.ok(Buffer.byteLength(lastSubmit.prompt) <= 4090, `sent ${Buffer.byteLength(lastSubmit.prompt)} bytes`)
+  // 默认不限制：只按 Grok 接口自身的 4096 字节 / 15 秒
+  const free = await waitDone(await generateVideo({ prompt, duration: 20 }))
+  assert.equal(free.status, 'completed', String(free.errorMsg))
+  assert.ok(Buffer.byteLength(lastSubmit.prompt) <= 4096, `sent ${Buffer.byteLength(lastSubmit.prompt)} bytes`)
   assert.equal(lastSubmit.duration_seconds, 15)
-  assert.match(String(row.errorMsg), /超过上限 4090 字节/)
-  assert.match(String(row.errorMsg), /按 15 秒生成/)
+
+  // 设置了单镜上限：按设置精简、夹时长，并在任务里说明
+  await db.update(schema.aiServiceConfigs).set({ settings: JSON.stringify({ max_duration: 10, max_prompt_bytes: 3000 }) }).where(eq(schema.aiServiceConfigs.provider, 'aiask'))
+  try {
+    const row = await waitDone(await generateVideo({ prompt, duration: 20 }))
+    assert.equal(row.status, 'completed', String(row.errorMsg))
+    assert.ok(Buffer.byteLength(lastSubmit.prompt) <= 3000, `sent ${Buffer.byteLength(lastSubmit.prompt)} bytes`)
+    assert.equal(lastSubmit.duration_seconds, 10)
+    assert.match(String(row.errorMsg), /超过上限 3000 字节/)
+    assert.match(String(row.errorMsg), /按 10 秒生成/)
+  } finally {
+    await db.update(schema.aiServiceConfigs).set({ settings: null }).where(eq(schema.aiServiceConfigs.provider, 'aiask'))
+  }
 })
 
 test('model rejects multiple reference images: falls back to single-image video once and notes it', async () => {

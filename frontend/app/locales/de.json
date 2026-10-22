@@ -677,10 +677,11 @@
         "concurrentHint": "aiask.me-Grok-Videos werden vorgelagert von wokey.ai erzeugt, das gleichzeitige Videos begrenzt und den Rest ablehnt. Stapel werden in dieser Anzahl eingereiht, bei Überlastung automatisch neu gesendet. Erhöhen, wenn Ihr Konto mehr erlaubt."
       },
       "video": {
-        "maxDuration": "Maximale Videolänge (Sekunden)",
-        "maxDurationHint": "Pro Shot (ein Video), nicht die Länge des Gesamtexports. Die KI hält jeden Shot beim Aufteilen darin und teilt zu lange Shots. Standard 15.",
-        "maxPromptBytes": "Maximale Promptlänge (UTF-8-Bytes)",
-        "maxPromptBytesHint": "Standard 4090; ein chinesisches Zeichen = 3 Bytes. Pro Videoprompt: Die KI schreibt etwa 60 % davon (Rest für automatische Anweisungen); zu lange Prompts verlieren beim Senden zuerst Zusatzanweisungen, dann wird gekürzt. 0 = unbegrenzt. Grok erlaubt höchstens 4096 Bytes."
+        "maxDuration": "Max. Shot-Videolänge (Sekunden)",
+        "maxDurationHint": "Pro Shot (ein Video), nicht die Länge des Gesamtexports. Leer oder 0 = unbegrenzt (Standard). Wenn gesetzt, hält die KI jeden Shot darin und teilt zu lange Shots.",
+        "maxPromptBytes": "Max. Shot-Promptlänge (UTF-8-Bytes)",
+        "maxPromptBytesHint": "Leer oder 0 = unbegrenzt (Standard); ein chinesisches Zeichen = 3 Bytes. Wenn gesetzt, schreibt die KI etwa 60 % davon (Rest für automatische Anweisungen); zu lange Prompts verlieren beim Senden zuerst Zusatzanweisungen, dann wird gekürzt. Das 4096-Byte-Limit von Grok wird automatisch beachtet.",
+        "unlimited": "Unbegrenzt"
       }
     },
     "styleDialog": {

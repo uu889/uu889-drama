@@ -724,12 +724,12 @@
           <div v-if="cfgForm.service_type === 'video'" class="comfy-row">
             <label class="field">
               <span class="field-label">{{ t('settings.cfg.video.maxDuration') }}</span>
-              <input v-model="cfgForm.max_duration" class="input" type="number" min="1" max="120" step="1" placeholder="15" />
+              <input v-model="cfgForm.max_duration" class="input" type="number" min="0" max="120" step="1" :placeholder="t('settings.cfg.video.unlimited')" />
               <span class="field-hint">{{ t('settings.cfg.video.maxDurationHint') }}</span>
             </label>
             <label class="field">
               <span class="field-label">{{ t('settings.cfg.video.maxPromptBytes') }}</span>
-              <input v-model="cfgForm.max_prompt_bytes" class="input" type="number" min="0" max="200000" step="1" placeholder="4090" />
+              <input v-model="cfgForm.max_prompt_bytes" class="input" type="number" min="0" max="200000" step="1" :placeholder="t('settings.cfg.video.unlimited')" />
               <span class="field-hint">{{ t('settings.cfg.video.maxPromptBytesHint') }}</span>
             </label>
           </div>

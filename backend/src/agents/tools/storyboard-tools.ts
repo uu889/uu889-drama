@@ -254,7 +254,7 @@ const storyboardFields = z.object({
 async function fitDurationToDialogue(sb: z.infer<typeof storyboardFields>, limits: ShotLimits): Promise<{ duration: number; warning?: string }> {
   const fitted = await fitDurationToDialogueRaw(sb)
   const max = limits.maxDuration
-  if (fitted.duration <= max) return fitted
+  if (!max || fitted.duration <= max) return fitted
   // 视频接口单次最多 max 秒：夹到上限，并让 Agent 把这段拆开
   return {
     duration: max,
@@ -486,7 +486,7 @@ const updateStoryboard = createTool({
     const limits = await shotLimitsForEpisode(episodeId)
     if ('duration' in fields) {
       updates.duration = fields.duration
-      if (Number(fields.duration) > limits.maxDuration) {
+      if (limits.maxDuration && Number(fields.duration) > limits.maxDuration) {
         updates.duration = limits.maxDuration
         warnings.push(`duration ${fields.duration} 秒超过视频接口单镜上限 ${limits.maxDuration} 秒，已改为 ${limits.maxDuration} 秒；演不完请拆成两个分镜`)
       }

@@ -5,9 +5,11 @@ import { fitGrokPrompt } from '../src/services/adapters/video-common'
 import { isTransientFailure, isUpstreamBusy } from '../src/services/upstream-busy'
 import { restartEveryVideos } from '../src/services/adapters/comfyui-common'
 
-test('limits: defaults 15 s / 4090 bytes, configurable, 0 = no prompt limit', () => {
-  assert.deepEqual(videoLimits(null), { maxDuration: 15, maxPromptBytes: 4090 })
-  assert.deepEqual(videoLimits({ max_duration: 10, max_prompt_bytes: 0 }), { maxDuration: 10, maxPromptBytes: 0 })
+test('limits: unlimited by default (0), configurable per video config', () => {
+  assert.deepEqual(videoLimits(null), { maxDuration: 0, maxPromptBytes: 0 })
+  assert.deepEqual(videoLimits({ max_duration: '', max_prompt_bytes: '' }), { maxDuration: 0, maxPromptBytes: 0 })
+  assert.deepEqual(videoLimits({ max_duration: 10, max_prompt_bytes: 4090 }), { maxDuration: 10, maxPromptBytes: 4090 })
+  assert.equal(clampDuration(20, 0), 20, '0 = 不限')
   assert.equal(clampDuration(20, 15), 15)
   assert.equal(clampDuration(8, 15), 8)
   assert.equal(clampDuration(undefined, 15), null)
@@ -53,7 +55,9 @@ test('a long Chinese prompt ends up under Grok 4096 bytes after <IMAGE_n> conver
   const long = '@图片1小明走进客厅，' + '镜头缓缓推进，'.repeat(400)
   const out = fitGrokPrompt({ provider: 'aiask', baseUrl: '', apiKey: '', model: '', settings: { max_prompt_bytes: 0 } }, long)
   assert.ok(utf8Bytes(out) <= 4096)
-  assert.ok(utf8Bytes(fitGrokPrompt({ provider: 'aiask', baseUrl: '', apiKey: '', model: '', settings: null }, long)) <= 4090)
+  // 不设上限时仍按 Grok 接口自身的 4096 字节；设得更小按设置
+  assert.ok(utf8Bytes(fitGrokPrompt({ provider: 'aiask', baseUrl: '', apiKey: '', model: '', settings: null }, long)) <= 4096)
+  assert.ok(utf8Bytes(fitGrokPrompt({ provider: 'aiask', baseUrl: '', apiKey: '', model: '', settings: { max_prompt_bytes: 3000 } }, long)) <= 3000)
 })
 
 test('upstream image download interruption is retried', () => {

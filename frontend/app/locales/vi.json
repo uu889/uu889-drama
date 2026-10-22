@@ -677,10 +677,11 @@
         "concurrentHint": "Video Grok của aiask.me được tạo ở wokey.ai, nơi giới hạn số video đồng thời và từ chối phần vượt. Khi tạo hàng loạt sẽ xếp hàng theo số này, lỗi quá tải được gửi lại tự động. Tăng lên nếu tài khoản cho phép."
       },
       "video": {
-        "maxDuration": "Thời lượng video tối đa (giây)",
-        "maxDurationHint": "Giới hạn mỗi phân cảnh (một video), không phải độ dài video ghép. AI giữ mỗi cảnh trong giới hạn này và tách cảnh quá dài. Mặc định 15.",
-        "maxPromptBytes": "Độ dài prompt tối đa (byte UTF-8)",
-        "maxPromptBytesHint": "Mặc định 4090; một chữ Hán = 3 byte. Mỗi prompt video: AI viết khoảng 60% (phần còn lại cho chỉ dẫn tự thêm); khi gửi vẫn vượt thì bỏ chỉ dẫn phụ rồi rút ngắn. 0 = không giới hạn. Grok tối đa 4096 byte."
+        "maxDuration": "Thời lượng tối đa mỗi phân cảnh (giây)",
+        "maxDurationHint": "Giới hạn mỗi phân cảnh (một video), không phải độ dài video ghép. Để trống hoặc 0 = không giới hạn (mặc định). Khi đặt, AI giữ mỗi cảnh trong giới hạn và tách cảnh quá dài.",
+        "maxPromptBytes": "Độ dài prompt tối đa mỗi phân cảnh (byte UTF-8)",
+        "maxPromptBytesHint": "Để trống hoặc 0 = không giới hạn (mặc định); một chữ Hán = 3 byte. Khi đặt, AI viết khoảng 60% (phần còn lại cho chỉ dẫn tự thêm); khi gửi vẫn vượt thì bỏ chỉ dẫn phụ rồi rút ngắn. Giới hạn 4096 byte của Grok được xử lý tự động.",
+        "unlimited": "Không giới hạn"
       }
     },
     "styleDialog": {
