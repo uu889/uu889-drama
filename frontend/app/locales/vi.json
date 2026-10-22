@@ -678,9 +678,9 @@
       },
       "video": {
         "maxDuration": "Thời lượng video tối đa (giây)",
-        "maxDurationHint": "Cảnh dài hơn sẽ tạo theo thời lượng này. Mặc định 15.",
+        "maxDurationHint": "Giới hạn mỗi phân cảnh (một video), không phải độ dài video ghép. AI giữ mỗi cảnh trong giới hạn này và tách cảnh quá dài. Mặc định 15.",
         "maxPromptBytes": "Độ dài prompt tối đa (byte UTF-8)",
-        "maxPromptBytesHint": "Mặc định 4090; một chữ Hán = 3 byte. Vượt quá thì bỏ chỉ dẫn phụ trước rồi rút ngắn nội dung; 0 = không giới hạn. Grok tối đa 4096 byte."
+        "maxPromptBytesHint": "Mặc định 4090; một chữ Hán = 3 byte. Mỗi prompt video: AI viết khoảng 60% (phần còn lại cho chỉ dẫn tự thêm); khi gửi vẫn vượt thì bỏ chỉ dẫn phụ rồi rút ngắn. 0 = không giới hạn. Grok tối đa 4096 byte."
       }
     },
     "styleDialog": {
@@ -1208,7 +1208,9 @@
       "prevNoVideo": "Cảnh #{n} chưa có video: hãy tạo nó trước để cảnh này nối từ khung hình cuối.",
       "prevAsFirst": "Mở đầu bằng khung hình cuối của cảnh #{n} làm khung hình đầu.",
       "prevAsRef": "Dùng khung hình cuối của cảnh #{n} làm ảnh tham chiếu 1 để vị trí mở đầu khớp.",
-      "chainBatch": "Đã bật nối cảnh: {n} nhóm cảnh cùng bối cảnh sẽ được tạo lần lượt, mỗi cảnh nối từ khung hình cuối của cảnh trước."
+      "chainBatch": "Đã bật nối cảnh: {n} nhóm cảnh cùng bối cảnh sẽ được tạo lần lượt, mỗi cảnh nối từ khung hình cuối của cảnh trước.",
+      "physicsLock": "Vật lý thật",
+      "physicsLockTip": "Thêm chỉ dẫn [Physics]: trọng lực, chân chạm đất, cầm nắm thật, không xuyên vật hay biến dạng, tốc độ tự nhiên. Mô hình mở chạy local (như MiniMax H3 VRAM thấp) dễ sai nhất."
     },
     "subtitle": {
       "enable": "Phụ đề (in lời thoại của cảnh vào video)",

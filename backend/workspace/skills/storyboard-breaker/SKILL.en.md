@@ -92,6 +92,8 @@ One storyboard = one **storyboard segment** = one video-generation task.
 
 ## Quality Requirements
 
+- **Actions must be filmable and physically plausible**: one simple action per sub-shot, with start, motion, end and body contact (where feet stand, what hands hold, what the body leans on); show a prop being picked up before it is held; split fights, running, throwing / catching into several sub-shots or shots. Vague or stacked actions are what make video models clip, float and morph
+
 - `description` should be human-readable, describing sub-shot by sub-shot what the audience actually sees and hears; dialogue/narration is written directly inside the corresponding `【镜头N】`
 - `image_prompt` should highlight the single-frame composition, character appearance, environment, and lighting (corresponding to the segment's first sub-shot)
 - `bgm_prompt` and `sound_effect` may be concise phrases, but must not be as vague as just "tense" or "sad"

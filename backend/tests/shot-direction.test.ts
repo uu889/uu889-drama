@@ -95,7 +95,7 @@ test('directives: blocking and continuity with the previous shot', () => {
     description: '', duration: 5, characters: [], prompt: '中文', previous: { number: 1 }, previousFrame: { mode: 'first_frame' }, options: { dialogueLock: false, appearanceLock: false },
   })
   assert.match(first, /视频从给定的首帧（上一镜结尾画面）直接开始/)
-  const off = buildShotDirectives({ description: ZH, duration: 8, characters: [], prompt: '中文', previous: { number: 1 }, options: { dialogueLock: false, appearanceLock: false, continuity: false } })
+  const off = buildShotDirectives({ description: ZH, duration: 8, characters: [], prompt: '中文', previous: { number: 1 }, options: { dialogueLock: false, appearanceLock: false, continuity: false, physicsLock: false } })
   assert.equal(off, '')
 })
 

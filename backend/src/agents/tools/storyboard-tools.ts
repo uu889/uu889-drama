@@ -2,6 +2,8 @@
  * 分镜拆解 Agent 工具
  * 模块级单例 — episodeId + dramaId 通过 RequestContext 按请求注入
  */
+import { shotLimitsForEpisode, type ShotLimits } from '../../services/shot-limits.js'
+import { utf8Bytes } from '../../services/video-limits.js'
 import { createTool } from '@mastra/core/tools'
 import type { ToolExecutionContext } from '@mastra/core/tools'
 import { z } from 'zod'
@@ -249,7 +251,26 @@ const storyboardFields = z.object({
 })
 
 /** 按台词校正段落时长：演不完的自动加长；空余过多的不改（可能有动作戏），返回提醒让 Agent 处理 */
-async function fitDurationToDialogue(sb: z.infer<typeof storyboardFields>): Promise<{ duration: number; warning?: string }> {
+async function fitDurationToDialogue(sb: z.infer<typeof storyboardFields>, limits: ShotLimits): Promise<{ duration: number; warning?: string }> {
+  const fitted = await fitDurationToDialogueRaw(sb)
+  const max = limits.maxDuration
+  if (fitted.duration <= max) return fitted
+  // 视频接口单次最多 max 秒：夹到上限，并让 Agent 把这段拆开
+  return {
+    duration: max,
+    warning: `#${sb.shot_number}: 这段需要约 ${fitted.duration} 秒，超过视频接口单镜上限 ${max} 秒，时长已改为 ${max} 秒。请把这段在台词 / 动作的停顿处拆成两个连续分镜（用 save_storyboards 重写这一批），否则台词会被截掉或念得过快`,
+  }
+}
+
+/** 视频提示词超过预算时的提醒 */
+function promptBudgetWarning(shot: number | string, videoPrompt: string | undefined, limits: ShotLimits): string | undefined {
+  if (!videoPrompt || !limits.promptBudgetBytes) return undefined
+  const bytes = utf8Bytes(videoPrompt)
+  if (bytes <= limits.promptBudgetBytes) return undefined
+  return `#${shot}: video_prompt ${bytes} 字节，超过预算 ${limits.promptBudgetBytes} 字节（视频接口上限 ${limits.maxPromptBytes} 字节，还要留给自动追加的导演指令）。请精简后用 update_storyboard 重写，否则提交时会被自动截短`
+}
+
+async function fitDurationToDialogueRaw(sb: z.infer<typeof storyboardFields>): Promise<{ duration: number; warning?: string }> {
   const requested = Number(sb.duration) || 10
   const ids = [...new Set((sb.character_ids || []).filter(Boolean))]
   const names = ids.length
@@ -310,11 +331,14 @@ const saveStoryboards = createTool({
     )
 
     const timingWarnings: string[] = []
+    const limits = await shotLimitsForEpisode(episodeId)
     for (const sb of storyboards) {
       await validateStoryboardBindings(episodeId, dramaId, sb.scene_id, sb.character_ids, sb.prop_ids)
-      const fitted = await fitDurationToDialogue(sb)
+      const fitted = await fitDurationToDialogue(sb, limits)
       sb.duration = fitted.duration
       if (fitted.warning) timingWarnings.push(fitted.warning)
+      const pw = promptBudgetWarning(sb.shot_number, sb.video_prompt, limits)
+      if (pw) timingWarnings.push(pw)
       const existingId = shotToId.get(sb.shot_number)
       if (existingId !== undefined) {
         await db.update(schema.storyboards).set({
@@ -458,7 +482,17 @@ const updateStoryboard = createTool({
     if ('description' in fields) updates.description = fields.description
     if ('blocking' in fields) updates.blocking = fields.blocking
     if ('scene_id' in fields) updates.sceneId = fields.scene_id
-    if ('duration' in fields) updates.duration = fields.duration
+    const warnings: string[] = []
+    const limits = await shotLimitsForEpisode(episodeId)
+    if ('duration' in fields) {
+      updates.duration = fields.duration
+      if (Number(fields.duration) > limits.maxDuration) {
+        updates.duration = limits.maxDuration
+        warnings.push(`duration ${fields.duration} 秒超过视频接口单镜上限 ${limits.maxDuration} 秒，已改为 ${limits.maxDuration} 秒；演不完请拆成两个分镜`)
+      }
+    }
+    const pw = promptBudgetWarning(storyboard.storyboardNumber, fields.video_prompt, limits)
+    if (pw) warnings.push(pw)
     await db.update(schema.storyboards).set(updates).where(eq(schema.storyboards.id, storyboard_id))
     if ('character_ids' in fields) await syncStoryboardCharacters(storyboard_id, fields.character_ids || [])
     if ('prop_ids' in fields) await syncStoryboardProps(storyboard_id, fields.prop_ids || [])
@@ -469,7 +503,7 @@ const updateStoryboard = createTool({
       characterIds: 'character_ids' in fields ? (fields.character_ids || []).join(',') : undefined,
       propIds: 'prop_ids' in fields ? (fields.prop_ids || []).join(',') : undefined,
     })
-    return { message: `Storyboard ${storyboard_id} updated` }
+    return { message: `Storyboard ${storyboard_id} updated`, ...(warnings.length ? { warnings } : {}) }
   },
 })
 

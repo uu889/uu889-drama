@@ -678,9 +678,9 @@
       },
       "video": {
         "maxDuration": "Max video length (seconds)",
-        "maxDurationHint": "Longer shots are generated at this length. Default 15.",
+        "maxDurationHint": "Per shot (one video), not the length of the merged export. The AI keeps each shot within it when breaking down the script and splits shots that don't fit. Default 15.",
         "maxPromptBytes": "Max prompt length (UTF-8 bytes)",
-        "maxPromptBytesHint": "Default 4090; a Chinese character counts as 3 bytes. Longer prompts drop optional add-on instructions first, then shorten the text; 0 = no limit. Grok video allows at most 4096 bytes."
+        "maxPromptBytesHint": "Default 4090; a Chinese character counts as 3 bytes. Per video prompt: the AI writes prompts to about 60% of it (the rest is left for auto-added directives); anything still too long at submit drops optional instructions first, then shortens the text. 0 = no limit. Grok video allows at most 4096 bytes."
       }
     },
     "styleDialog": {
@@ -1208,7 +1208,9 @@
       "prevNoVideo": "Shot #{n} has no video yet: generate it first so this shot can continue from its last frame.",
       "prevAsFirst": "Opens from the last frame of shot #{n} as the first frame.",
       "prevAsRef": "Uses the last frame of shot #{n} as reference 1 so the opening positions match.",
-      "chainBatch": "Continuity is on: {n} group(s) of same-scene shots will be generated in order, each continuing from the previous last frame."
+      "chainBatch": "Continuity is on: {n} group(s) of same-scene shots will be generated in order, each continuing from the previous last frame.",
+      "physicsLock": "Real physics",
+      "physicsLockTip": "Adds a [Physics] directive: gravity, planted feet, real grip, no clipping or morphing, natural speed. Local open models (e.g. small-VRAM MiniMax H3 tiers) break physics most often."
     },
     "subtitle": {
       "enable": "Subtitles (burn the shot's dialogue into the video)",

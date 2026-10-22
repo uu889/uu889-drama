@@ -57,6 +57,7 @@ async function buildStoryboardDirectives(
       dialogueLock: direction.dialogue_lock !== false,
       appearanceLock: direction.appearance_lock !== false,
       continuity: direction.continuity !== false,
+      physicsLock: direction.physics_lock !== false,
     },
   })
 }

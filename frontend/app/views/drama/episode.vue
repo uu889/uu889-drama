@@ -907,6 +907,10 @@
                       <input v-model="videoDirection.appearance_lock" type="checkbox" />
                       <span>{{ t('episode.direction.appearanceLock') }}</span>
                     </label>
+                    <label class="video-direction-toggle" :title="t('episode.direction.physicsLockTip')">
+                      <input v-model="videoDirection.physics_lock" type="checkbox" />
+                      <span>{{ t('episode.direction.physicsLock') }}</span>
+                    </label>
                     <label class="video-direction-toggle" :title="t('episode.direction.continuityTip')">
                       <input v-model="videoDirection.continuity" type="checkbox" />
                       <span>{{ t('episode.direction.continuity') }}</span>
@@ -3974,7 +3978,7 @@ function uploadAssetImage(kind, id) {
 
 // ===== 镜头导演：台词控制 / 人物场景画风锁定 / 接戏 =====
 const DIRECTION_STORE_KEY = 'uu889:video-direction'
-const DIRECTION_DEFAULTS = { dialogue_lock: true, appearance_lock: true, continuity: true, chain_previous: true }
+const DIRECTION_DEFAULTS = { dialogue_lock: true, appearance_lock: true, continuity: true, chain_previous: true, physics_lock: true }
 function readDirectionPrefs() {
   try { return { ...DIRECTION_DEFAULTS, ...(JSON.parse(localStorage.getItem(DIRECTION_STORE_KEY) || 'null') || {}) } } catch { return { ...DIRECTION_DEFAULTS } }
 }
@@ -4081,6 +4085,7 @@ async function genVid(sb, opts = {}) {
       dialogue_lock: videoDirection.dialogue_lock,
       appearance_lock: videoDirection.appearance_lock,
       continuity: videoDirection.continuity,
+      physics_lock: videoDirection.physics_lock,
       previous_frame: frameMode,
       previous_frame_index: frameMode === 'reference' ? 1 : undefined,
     },

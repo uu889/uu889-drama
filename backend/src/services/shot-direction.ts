@@ -251,7 +251,7 @@ export interface ShotDirectionInput {
   /** 已经解析好 @图片N 的视频提示词（用来沿用引用标记、判断语言） */
   prompt: string
   hasStylePreset?: boolean
-  options: { dialogueLock?: boolean; appearanceLock?: boolean; continuity?: boolean }
+  options: { dialogueLock?: boolean; appearanceLock?: boolean; continuity?: boolean; physicsLock?: boolean }
   /** 系统音（系统流）：开启时分镜里系统的台词按画外电子音处理 */
   systemVoice?: { enabled: boolean; name: string; voice: string; chime: string; panel: boolean } | null
 }
@@ -275,6 +275,9 @@ function endState(blocking: string | null | undefined): string {
   const m = s.match(/(结尾|收尾|结束时|最后|ending|end state|at the end)[^:：]{0,6}[:：]\s*([\s\S]+)/i)
   return clip(m ? m[2] : s, 160)
 }
+
+export const PHYSICS_ZH = '【物理真实】动作符合真实物理：重力向下，脚踩实地面、重心稳定，走路不滑步、不漂浮；手接触物体时真实抓握、受力，物体不穿过身体或彼此穿插，不凭空出现、消失或变形；人物肢体数量和比例始终正常，手指完整；动作速度自然连贯，不瞬移、不倒放、不突然加速；头发、衣摆、液体随动作和重力自然摆动。'
+export const PHYSICS_EN = '[Physics] Motion obeys real physics: gravity pulls down, feet stay planted with stable balance, no sliding or floating while walking; hands really grip and push objects, nothing passes through bodies or other objects, nothing appears, vanishes or morphs; limbs and fingers stay complete and correctly proportioned; movement is smooth at natural speed, no teleporting, reversing or sudden speed-ups; hair, clothing and liquids move naturally with motion and gravity.'
 
 /** 生成附加在视频提示词后面的导演指令（没有可加的内容时返回 ''） */
 export function buildShotDirectives(input: ShotDirectionInput): string {
@@ -374,6 +377,11 @@ export function buildShotDirectives(input: ShotDirectionInput): string {
         : 'Keep the 180-degree rule: characters stay on the same screen side through the conversation with consistent eyelines; nobody vanishes or swaps places.')
       blocks.push(zh ? `【接上一镜】${lines.join('')}` : `[Continuity] ${lines.join(' ')}`)
     }
+  }
+
+  // ── 物理真实：开源 / 量化 / 少步数的视频模型（如本地 MiniMax H3 小显存档）容易穿模、漂浮、变形 ──
+  if (input.options.physicsLock !== false) {
+    blocks.push(zh ? PHYSICS_ZH : PHYSICS_EN)
   }
 
   return blocks.join('\n')

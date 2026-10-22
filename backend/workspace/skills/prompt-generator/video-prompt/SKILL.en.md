@@ -69,6 +69,17 @@ Organize each segment's content in this order (items with no content may be omit
 - Number of segments = storyboard-segment duration ÷ 3 seconds (rounded up); the segment time ranges must add up exactly to the total segment duration
 - Content pacing: the first segment establishes → middle segments advance the action/conflict → the final segment lands on the result or emotional beat
 
+## Physically plausible motion (where video models fail most)
+
+Video models do not understand physics: vague or overloaded actions produce clipping, floating, morphing and props that appear from nowhere. Write:
+
+- **One simple action per segment**, with start → motion → end: "@Tom picks the cup up from the table, raises it to his lips, takes a sip, puts it back down" — not "he walks, talks on the phone and fixes his tie at once"
+- **Contact and force**: where the feet stand, what the hands hold, what the body leans on ("pushes up from the table edge with both hands", "slides down the door until sitting on the floor")
+- **Objects come from somewhere**: show the pick-up / taking-out before something is in a hand; say where it is put down
+- **Natural speed**: slowly, gently, briskly; never instantly or suddenly somewhere else
+- Fights, running, crowds pushing, throwing / catching, pouring liquids: split across segments, one beat each, with start and end positions
+- A [Physics] directive is appended automatically at generation time; do not repeat those general rules, describe only this shot's concrete actions
+
 ## Prohibitions
 
 - Cross-scene switching, flashbacks (a segment takes place in a single scene only)

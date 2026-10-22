@@ -678,9 +678,9 @@
       },
       "video": {
         "maxDuration": "Maximale Videolänge (Sekunden)",
-        "maxDurationHint": "Längere Shots werden mit dieser Länge erzeugt. Standard 15.",
+        "maxDurationHint": "Pro Shot (ein Video), nicht die Länge des Gesamtexports. Die KI hält jeden Shot beim Aufteilen darin und teilt zu lange Shots. Standard 15.",
         "maxPromptBytes": "Maximale Promptlänge (UTF-8-Bytes)",
-        "maxPromptBytesHint": "Standard 4090; ein chinesisches Zeichen = 3 Bytes. Zu lange Prompts verlieren zuerst Zusatzanweisungen, dann wird der Text gekürzt; 0 = unbegrenzt. Grok-Video erlaubt höchstens 4096 Bytes."
+        "maxPromptBytesHint": "Standard 4090; ein chinesisches Zeichen = 3 Bytes. Pro Videoprompt: Die KI schreibt etwa 60 % davon (Rest für automatische Anweisungen); zu lange Prompts verlieren beim Senden zuerst Zusatzanweisungen, dann wird gekürzt. 0 = unbegrenzt. Grok erlaubt höchstens 4096 Bytes."
       }
     },
     "styleDialog": {
@@ -1208,7 +1208,9 @@
       "prevNoVideo": "Shot #{n} hat noch kein Video: erst generieren, dann kann dieser Shot an sein letztes Bild anschließen.",
       "prevAsFirst": "Beginnt mit dem letzten Bild von Shot #{n} als Startbild.",
       "prevAsRef": "Nutzt das letzte Bild von Shot #{n} als Referenz 1, damit die Startpositionen passen.",
-      "chainBatch": "Anschluss ist an: {n} Gruppe(n) von Shots derselben Szene werden nacheinander erzeugt, jeweils ab dem letzten Bild des vorigen."
+      "chainBatch": "Anschluss ist an: {n} Gruppe(n) von Shots derselben Szene werden nacheinander erzeugt, jeweils ab dem letzten Bild des vorigen.",
+      "physicsLock": "Echte Physik",
+      "physicsLockTip": "Fügt eine [Physics]-Anweisung hinzu: Schwerkraft, fester Stand, echtes Greifen, kein Durchdringen oder Verformen, natürliches Tempo. Lokale offene Modelle (z. B. MiniMax H3 mit wenig VRAM) brechen Physik am häufigsten."
     },
     "subtitle": {
       "enable": "Untertitel (Dialog der Einstellung ins Video brennen)",

@@ -18,8 +18,9 @@ import { imagePromptTools } from './tools/image-prompt-tools.js'
 import { loadAgentSkills, skillWorkspaces } from './skills.js'
 import { loadAgentPromptFile, loadBasePromptFile } from './prompts.js'
 import { buildLanguageDirective } from './language.js'
-import { getContentLanguageFromRC, getDramaId } from './context.js'
+import { getContentLanguageFromRC, getDramaId, getEpisodeId } from './context.js'
 import { getDramaSystemVoice, systemVoiceAgentDirective } from '../services/system-voice.js'
+import { shotLimitsAgentDirective, shotLimitsForEpisode } from '../services/shot-limits.js'
 import { createAiaskChatFetch, createClaudeFetch } from './aiask-chat.js'
 
 /**
@@ -408,7 +409,13 @@ function buildInstructions(type: string) {
     const systemDirective = await getDramaSystemVoice(getDramaId(requestContext))
       .then(sv => systemVoiceAgentDirective(type, sv, lang))
       .catch(() => '')
-    return [baseInstructions, skillInstructions, systemDirective, languageDirective]
+    // 视频配置的单镜上限（最长时长 / 提示词字节）：拆分镜、写视频提示词时就按它写
+    const limitsDirective = type === 'storyboard_breaker' || type === 'prompt_generator'
+      ? await shotLimitsForEpisode(getEpisodeId(requestContext))
+        .then(l => shotLimitsAgentDirective(type, l, lang))
+        .catch(() => '')
+      : ''
+    return [baseInstructions, skillInstructions, systemDirective, limitsDirective, languageDirective]
       .filter(Boolean)
       .join('\n\n')
   }

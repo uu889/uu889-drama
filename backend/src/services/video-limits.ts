@@ -6,7 +6,7 @@
  * 中文提示词约 1360 字就到上限。
  *
  * 提示词超长时 fitPromptBytes 按重要性精简，而不是直接截断丢掉结尾：
- * 先压缩空白，再依次去掉附加的导演指令块（画风 → 场景 → 站位 → 接戏 → 人物外观 → 系统音），
+ * 先压缩空白，再依次去掉附加的导演指令块（画风 → 场景 → 物理 → 站位 → 接戏 → 人物外观 → 系统音），
  * 最后才在句子边界截短正文；【台词控制】最后才动（防止模型自己编台词）。
  */
 
@@ -63,12 +63,13 @@ export function truncateBytes(text: string, maxBytes: number): string {
 const DROP_ORDER: Array<{ re: RegExp; label: string }> = [
   { re: /^(【画风一致】|\[Style lock\])/, label: '画风一致' },
   { re: /^(【场景一致】|\[Scene lock\])/, label: '场景一致' },
+  { re: /^(【物理真实】|\[Physics\])/, label: '物理真实' },
   { re: /^(【人物站位】|\[Blocking\])/, label: '人物站位' },
   { re: /^(【接上一镜】|\[Continuity\])/, label: '接上一镜' },
   { re: /^(【人物外观锁定】|\[Character lock\])/, label: '人物外观锁定' },
   { re: /^(【系统音】|\[System voice\])/, label: '系统音' },
 ]
-const BLOCK_START = /^(【[^】]{2,8}】|\[(Dialogue control|System voice|Character lock|Scene lock|Style lock|Blocking|Continuity)\])/
+const BLOCK_START = /^(【[^】]{2,8}】|\[(Dialogue control|System voice|Character lock|Scene lock|Style lock|Blocking|Continuity|Physics)\])/
 
 export interface FitResult {
   prompt: string
@@ -96,7 +97,7 @@ export function fitPromptBytes(prompt: string, maxBytes: number): FitResult {
   // 2. 拆出正文和后面的指令块（指令块从行首的【xx】/ [Xxx] 开始，直到下一个块）
   const lines = text.split('\n')
   // 正文里也可能有【镜头1】之类：只从第一个能识别的导演指令开始算指令块
-  const firstBlock = lines.findIndex((l) => /^(【(台词控制|系统音|人物外观锁定|场景一致|画风一致|人物站位|接上一镜)】|\[(Dialogue control|System voice|Character lock|Scene lock|Style lock|Blocking|Continuity)\])/.test(l))
+  const firstBlock = lines.findIndex((l) => /^(【(台词控制|系统音|人物外观锁定|场景一致|画风一致|人物站位|接上一镜|物理真实)】|\[(Dialogue control|System voice|Character lock|Scene lock|Style lock|Blocking|Continuity|Physics)\])/.test(l))
   const body = (firstBlock < 0 ? lines : lines.slice(0, firstBlock)).join('\n').trim()
   const blocks: string[] = []
   if (firstBlock >= 0) {

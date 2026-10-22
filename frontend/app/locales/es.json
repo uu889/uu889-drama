@@ -678,9 +678,9 @@
       },
       "video": {
         "maxDuration": "Duración máxima del vídeo (s)",
-        "maxDurationHint": "Los planos más largos se generan con esta duración. Por defecto 15.",
+        "maxDurationHint": "Por plano (un vídeo), no la duración del montaje final. La IA mantiene cada plano dentro del límite y divide los que no caben. Por defecto 15.",
         "maxPromptBytes": "Longitud máxima del prompt (bytes UTF-8)",
-        "maxPromptBytesHint": "Por defecto 4090; un carácter chino = 3 bytes. Si se excede, primero se quitan instrucciones añadidas y luego se acorta el texto; 0 = sin límite. Grok admite como máximo 4096 bytes."
+        "maxPromptBytesHint": "Por defecto 4090; un carácter chino = 3 bytes. Por prompt de vídeo: la IA escribe hasta un 60 % (el resto para instrucciones automáticas); si al enviar aún se excede, se quitan instrucciones añadidas y se acorta. 0 = sin límite. Grok admite como máximo 4096 bytes."
       }
     },
     "styleDialog": {
@@ -1208,7 +1208,9 @@
       "prevNoVideo": "El plano #{n} aún no tiene vídeo: genéralo primero para enlazar con su último fotograma.",
       "prevAsFirst": "Empieza con el último fotograma del plano #{n} como primer fotograma.",
       "prevAsRef": "Usa el último fotograma del plano #{n} como referencia 1 para igualar las posiciones iniciales.",
-      "chainBatch": "Raccord activado: {n} grupo(s) de planos del mismo escenario se generarán en orden, cada uno desde el último fotograma del anterior."
+      "chainBatch": "Raccord activado: {n} grupo(s) de planos del mismo escenario se generarán en orden, cada uno desde el último fotograma del anterior.",
+      "physicsLock": "Física real",
+      "physicsLockTip": "Añade una instrucción [Physics]: gravedad, pies apoyados, agarre real, sin atravesar ni deformar objetos, velocidad natural. Los modelos abiertos locales (p. ej. MiniMax H3 con poca VRAM) fallan más en esto."
     },
     "subtitle": {
       "enable": "Subtítulos (incrustar los diálogos del plano)",
