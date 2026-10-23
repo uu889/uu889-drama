@@ -681,7 +681,9 @@
         "maxDurationHint": "Por plano (un vídeo), no la duración del montaje final. Vacío o 0 = sin límite (por defecto). Si se fija, la IA mantiene cada plano dentro y divide los que no caben.",
         "maxPromptBytes": "Longitud máxima del prompt por plano (bytes UTF-8)",
         "maxPromptBytesHint": "Vacío o 0 = sin límite (por defecto); un carácter chino = 3 bytes. Si se fija, la IA escribe hasta un 60 % (el resto para instrucciones automáticas); si al enviar aún se excede, se quitan instrucciones añadidas y se acorta. El límite propio de Grok (4096 bytes) se aplica automáticamente.",
-        "unlimited": "Sin límite"
+        "unlimited": "Sin límite",
+        "moderationRetries": "Reintentos por moderación",
+        "moderationRetriesHint": "Cuántas veces reenviar sin cambios cuando la moderación bloquea un vídeo (la moderación de Grok es irregular; un contenido correcto suele pasar al reenviar). Vacío = 2, 0 = nunca."
       }
     },
     "styleDialog": {
@@ -1203,13 +1205,15 @@
       "continuity": "Raccord (posiciones + regla de 180°)",
       "continuityTip": "Añade las posiciones de este plano y el estado final del plano anterior del mismo escenario, manteniendo izquierda/derecha.",
       "chain": "Empezar con el último fotograma del plano anterior",
-      "chainTip": "Cuando se genera el plano anterior del mismo escenario, su último fotograma pasa a ser el primer fotograma o la referencia 1 de este. En lote, los planos de un escenario se generan en orden.",
+      "chainTip": "Cuando se genera el plano anterior del mismo escenario, su último fotograma pasa a ser el primer fotograma o la referencia 1 de este. En la generación por lotes, las tomas de la misma escena se generan una tras otra; si una falla (los falsos positivos de moderación se reintentan antes automáticamente), las siguientes se pausan.",
       "noPrev": "Escenario distinto al del plano anterior: este plano abre una escena nueva.",
       "prevTextOnly": "Continúa desde las posiciones finales del plano #{n} (sin su imagen).",
       "prevNoVideo": "El plano #{n} aún no tiene vídeo: genéralo primero para enlazar con su último fotograma.",
       "prevAsFirst": "Empieza con el último fotograma del plano #{n} como primer fotograma.",
       "prevAsRef": "Usa el último fotograma del plano #{n} como referencia 1 para igualar las posiciones iniciales.",
       "chainBatch": "Raccord activado: {n} grupo(s) de planos del mismo escenario se generarán en orden, cada uno desde el último fotograma del anterior.",
+      "chainPaused": "La toma anterior #{n} no se generó. Esta toma continúa desde su último fotograma, así que se pausó y no se envió. Cuando #{n} tenga vídeo, pulsa «Reintentar fallidos» para seguir en orden.",
+      "chainPausedToast": "#{n} no se generó. Las {count} toma(s) de la misma escena que continúan desde ella se pausaron y no se enviaron, para no gastar créditos en imágenes que no encajan.",
       "physicsLock": "Física real",
       "physicsLockTip": "Añade una instrucción [Physics]: gravedad, pies apoyados, agarre real, sin atravesar ni deformar objetos, velocidad natural. Los modelos abiertos locales (p. ej. MiniMax H3 con poca VRAM) fallan más en esto."
     },

@@ -12,11 +12,12 @@ process.env.SQLITE_PATH = path.join(DATA, 'test.sqlite3')
 process.env.AIASK_VIDEO_POLL_MS = '30'
 process.env.AIASK_VIDEO_CONFIRM_MS = '30'
 process.env.UPSTREAM_BUSY_RETRY_MS = '30'
+process.env.MODERATION_RETRY_MS = '30'
 
 const { db, initDb, schema } = await import('../src/db/index')
 const { eq } = await import('drizzle-orm')
 const { generateVideo } = await import('../src/services/generation')
-const { isBusyMessage, isUpstreamBusy, retryAfterMs } = await import('../src/services/upstream-busy')
+const { isBusyMessage, isModerationFailure, isUpstreamBusy, moderationRetries, retryAfterMs } = await import('../src/services/upstream-busy')
 const { cloudLaneKey, cloudLaneLimit } = await import('../src/services/gpu-queue')
 
 test('busy detection: concurrency / rate limit retried, auth / balance / moderation not', () => {
@@ -43,6 +44,7 @@ test('cloud lane: aiask video queues (default 2, configurable), others do not', 
 
 // ─── 模拟 aiask.me /v1/videos：上游同时最多 2 个，超出 429；状态接口按场景出错 ───
 type Scenario = 'normal' | 'poll-failed-but-done' | 'poll-404-but-done' | 'busy-after-accept' | 'download-interrupted'
+  | 'moderation-after-accept' | 'moderation-always' | 'moderation-on-submit'
 let scenario: Scenario = 'normal'
 let seq = 0
 let running = 0
@@ -52,7 +54,8 @@ let submits = 0
 let lastSubmit: any = null
 let rejectMultiRef = false
 let lastMode: string | null = null
-const tasks = new Map<string, { polls: number; done: boolean; busyFail: boolean }>()
+const tasks = new Map<string, { polls: number; done: boolean; busyFail: boolean; modFail?: boolean }>()
+const MODERATION_MSG = '内容未通过审核，请调整提示词或切换模型后重试'
 const MP4 = Buffer.concat([Buffer.from([0, 0, 0, 0x18]), Buffer.from('ftypmp42'), Buffer.alloc(64)])
 let server: http.Server
 let base = ''
@@ -83,16 +86,18 @@ before(async () => {
         if (lastSubmit && Buffer.byteLength(String(lastSubmit.prompt || '')) > 4096) {
           return json(400, { error: { message: '提示词过长。Grok视频最多支持4096字节的UTF-8文本，请缩短后重试。' } })
         }
+        if (scenario === 'moderation-on-submit' && submits === 1) return json(400, { error: { message: MODERATION_MSG } })
         const id = `v${++seq}`
         running++
         maxRunning = Math.max(maxRunning, running)
-        tasks.set(id, { polls: 0, done: false, busyFail: (scenario === 'busy-after-accept' || scenario === 'download-interrupted') && seq === 1 })
+        tasks.set(id, { polls: 0, done: false, busyFail: (scenario === 'busy-after-accept' || scenario === 'download-interrupted') && seq === 1,
+          modFail: scenario === 'moderation-always' || (scenario === 'moderation-after-accept' && seq === 1) })
         return json(202, { id, object: 'video', status: 'in_progress' })
       }
       const content = /^\/v1\/videos\/(v\d+)\/content$/.exec(url)
       if (content) {
         const t = tasks.get(content[1])
-        if (!t?.done || t.busyFail) return json(404, { error: { message: 'not ready' } })
+        if (!t?.done || t.busyFail || t.modFail) return json(404, { error: { message: 'not ready' } })
         res.writeHead(200, { 'Content-Type': 'video/mp4' })
         return res.end(MP4)
       }
@@ -102,6 +107,10 @@ before(async () => {
         const t = tasks.get(id)
         if (!t) return json(404, { error: { message: 'not found' } })
         t.polls++
+        if (t.modFail && t.polls >= 2) {
+          finish(id)
+          return json(200, { id, status: 'failed', error: { message: MODERATION_MSG } })
+        }
         if (t.busyFail && t.polls >= 2) {
           finish(id)
           return json(200, { id, status: 'failed', error: { message: scenario === 'download-interrupted'
@@ -236,5 +245,52 @@ test('model rejects multiple reference images: falls back to single-image video 
     assert.match(String(row.errorMsg), /不接受多张参考图/)
   } finally {
     rejectMultiRef = false
+  }
+})
+
+test('moderation detection and retry count setting', () => {
+  assert.ok(isModerationFailure('内容未通过审核，请调整提示词或切换模型后重试'))
+  assert.ok(isModerationFailure('[failed] content moderation blocked'))
+  assert.ok(isModerationFailure('OutputVideoSensitiveContentDetected'))
+  assert.ok(!isModerationFailure('insufficient balance'))
+  assert.ok(!isModerationFailure('upstream concurrency limit exceeded'))
+  assert.equal(moderationRetries(null), 2)
+  assert.equal(moderationRetries({ moderation_retries: 0 }), 0)
+  assert.equal(moderationRetries({ moderation_retries: '3' }), 3)
+  assert.equal(moderationRetries({ moderation_retries: 99 }), 5)
+})
+
+test('Grok moderation misjudged once after accept: resubmitted automatically and noted', async () => {
+  reset('moderation-after-accept')
+  seq = 0
+  tasks.clear()
+  const row = await waitDone(await generateVideo({ prompt: '分镜 #6', duration: 5 }))
+  assert.equal(row.status, 'completed', String(row.errorMsg))
+  assert.equal(submits, 2)
+  assert.match(String(row.errorMsg), /审核未通过，自动原样重新提交 1 次后生成成功/)
+})
+
+test('moderation rejected at submit: resubmitted once and completes', async () => {
+  reset('moderation-on-submit')
+  seq = 0
+  tasks.clear()
+  const row = await waitDone(await generateVideo({ prompt: '分镜 #7', duration: 5 }))
+  assert.equal(row.status, 'completed', String(row.errorMsg))
+  assert.equal(submits, 2)
+  assert.match(String(row.errorMsg), /提交时审核未通过/)
+})
+
+test('moderation keeps failing: gives up after the configured retries (default 2)', async () => {
+  reset('moderation-always')
+  seq = 0
+  tasks.clear()
+  try {
+    const row = await waitDone(await generateVideo({ prompt: '分镜 #8', duration: 5 }))
+    assert.equal(row.status, 'failed')
+    assert.equal(submits, 3)
+    assert.match(String(row.errorMsg), /自动重试 2 次后仍失败/)
+    assert.match(String(row.errorMsg), /审核/)
+  } finally {
+    scenario = 'normal'
   }
 })

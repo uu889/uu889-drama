@@ -681,7 +681,9 @@
         "maxDurationHint": "Pro Shot (ein Video), nicht die Länge des Gesamtexports. Leer oder 0 = unbegrenzt (Standard). Wenn gesetzt, hält die KI jeden Shot darin und teilt zu lange Shots.",
         "maxPromptBytes": "Max. Shot-Promptlänge (UTF-8-Bytes)",
         "maxPromptBytesHint": "Leer oder 0 = unbegrenzt (Standard); ein chinesisches Zeichen = 3 Bytes. Wenn gesetzt, schreibt die KI etwa 60 % davon (Rest für automatische Anweisungen); zu lange Prompts verlieren beim Senden zuerst Zusatzanweisungen, dann wird gekürzt. Das 4096-Byte-Limit von Grok wird automatisch beachtet.",
-        "unlimited": "Unbegrenzt"
+        "unlimited": "Unbegrenzt",
+        "moderationRetries": "Wiederholungen bei Moderation",
+        "moderationRetriesHint": "Wie oft unverändert neu gesendet wird, wenn die Moderation ein Video blockiert (Grok moderiert uneinheitlich; unbedenkliche Inhalte gehen beim erneuten Senden oft durch). Leer = 2, 0 = nie."
       }
     },
     "styleDialog": {
@@ -1203,13 +1205,15 @@
       "continuity": "Anschluss (Blocking + 180-Grad-Regel)",
       "continuityTip": "Schreibt das Blocking dieses Shots und den Endzustand des vorigen Shots derselben Szene in den Prompt und hält links/rechts konstant.",
       "chain": "Mit dem letzten Bild des vorigen Shots beginnen",
-      "chainTip": "Nach dem vorigen Shot derselben Szene wird dessen letztes Bild zum Startbild oder zur ersten Referenz dieses Shots. Stapelgenerierung erzeugt Shots einer Szene nacheinander.",
+      "chainTip": "Nach dem vorigen Shot derselben Szene wird dessen letztes Bild zum Startbild oder zur ersten Referenz dieses Shots. Bei der Stapelerzeugung laufen Einstellungen derselben Szene nacheinander; schlägt eine fehl (Fehlurteile der Moderation werden zuerst automatisch wiederholt), werden die folgenden pausiert.",
       "noPrev": "Andere Szene als der vorige Shot – dieser Shot eröffnet eine neue Szene.",
       "prevTextOnly": "Schließt an das End-Blocking von Shot #{n} an (ohne dessen Bild).",
       "prevNoVideo": "Shot #{n} hat noch kein Video: erst generieren, dann kann dieser Shot an sein letztes Bild anschließen.",
       "prevAsFirst": "Beginnt mit dem letzten Bild von Shot #{n} als Startbild.",
       "prevAsRef": "Nutzt das letzte Bild von Shot #{n} als Referenz 1, damit die Startpositionen passen.",
       "chainBatch": "Anschluss ist an: {n} Gruppe(n) von Shots derselben Szene werden nacheinander erzeugt, jeweils ab dem letzten Bild des vorigen.",
+      "chainPaused": "Vorherige Einstellung #{n} wurde nicht erzeugt. Diese Einstellung schließt an ihr letztes Bild an und wurde daher pausiert, nicht gesendet. Sobald #{n} ein Video hat, mit „Fehlgeschlagene wiederholen“ der Reihe nach fortsetzen.",
+      "chainPausedToast": "#{n} wurde nicht erzeugt. Die {count} Einstellung(en) derselben Szene, die daran anschließen, wurden pausiert und nicht gesendet – so werden keine Credits für unpassendes Material verbraucht.",
       "physicsLock": "Echte Physik",
       "physicsLockTip": "Fügt eine [Physics]-Anweisung hinzu: Schwerkraft, fester Stand, echtes Greifen, kein Durchdringen oder Verformen, natürliches Tempo. Lokale offene Modelle (z. B. MiniMax H3 mit wenig VRAM) brechen Physik am häufigsten."
     },

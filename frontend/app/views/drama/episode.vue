@@ -2720,7 +2720,21 @@ function confirmBatchVideos() {
         if (!isPendingVideo(sb.id)) pendingVideoIds.value.push(sb.id)
       })
       ;(async () => {
-        for (const sb of chain) await genVid(sb, { silent: true, wait: true })
+        // 链头的上一镜不在这批里但正在生成（如刚单独重出）：先等它结束，失败就不提交
+        const head = previousShotInScene(chain[0])
+        if (head && isPendingVideo(head.id) && !await waitShotSettled(head.id)) {
+          pauseChain(chain, head)
+          return
+        }
+        for (let i = 0; i < chain.length; i++) {
+          let status = await genVid(chain[i], { silent: true, wait: true })
+          if (status === 'unknown') status = await waitShotSettled(chain[i].id) ? 'completed' : 'failed'
+          // 这一镜没出片（重试后仍审核不过 / 出错 / 超时）：后面接它结尾帧的镜头先暂停，不浪费额度生成错的画面
+          if (status !== 'completed') {
+            pauseChain(chain.slice(i + 1), chain[i])
+            return
+          }
+        }
       })()
     }
     if (chains.some(c => c.length > 1)) toast.info(t('episode.direction.chainBatch', { n: chains.filter(c => c.length > 1).length }))
@@ -2790,6 +2804,10 @@ async function loadGenTasks() {
     for (const id of pendingVideoIds.value) if (!latestBySb.has(id)) pending.add(id)
     // 批量接戏链里还没轮到的镜头：保持生成中
     for (const id of chainQueuedIds) { pending.add(id); delete failed[id] }
+    // 前一镜失败而暂停的接戏镜头：显示暂停原因（盖过更早的失败记录）
+    for (const [id, msg] of Object.entries(chainPausedMessages)) {
+      if (!pending.has(Number(id)) && !hasVid(sbs.value.find(s => s.id === Number(id)))) failed[id] = msg
+    }
     for (const id of Object.keys(failedVideoMessages.value)) {
       if (!latestBySb.has(Number(id))) failed[id] = failedVideoMessages.value[id]
     }
@@ -4114,6 +4132,27 @@ watch(() => videoSubtitle.enabled, (on) => {
 watch(videoSubtitle, v => { try { localStorage.setItem(SUBTITLE_STORE_KEY, JSON.stringify(v)) } catch { /* 静默 */ } }, { deep: true })
 /** 批量接戏链中排队、尚未提交的镜头 */
 const chainQueuedIds = new Set()
+/** 前一镜失败而暂停、没有提交的接戏镜头：分镜 id → 说明（显示为失败，「重试失败」会按顺序接着生成） */
+const chainPausedMessages = {}
+/** 前一镜没出片：链里后面的镜头不提交，标成暂停 */
+function pauseChain(rest, failedSb) {
+  if (!rest.length) return
+  const n = String(sbNumber(failedSb)).padStart(2, '0')
+  const msg = t('episode.direction.chainPaused', { n })
+  const ids = new Set(rest.map(sb => sb.id))
+  rest.forEach(sb => { chainQueuedIds.delete(sb.id); chainPausedMessages[sb.id] = msg })
+  pendingVideoIds.value = pendingVideoIds.value.filter(id => !ids.has(id))
+  const failed = { ...failedVideoMessages.value }
+  rest.forEach(sb => { if (!hasVid(sb)) failed[sb.id] = msg })
+  failedVideoMessages.value = failed
+  toast.warning(t('episode.direction.chainPausedToast', { n, count: rest.length }))
+}
+/** 等某个分镜正在生成的视频结束：出片返回 true，失败 / 超时返回 false */
+async function waitShotSettled(sbId, maxMs = 6 * 3600_000) {
+  const t0 = Date.now()
+  while (isPendingVideo(sbId) && Date.now() - t0 < maxMs) await sleep(4000)
+  return hasVid(sbs.value.find(s => s.id === sbId)) && !failedVideoMessages.value[sbId]
+}
 
 function sbNumber(sb) { return Number(sb?.storyboard_number ?? sb?.storyboardNumber ?? 0) }
 /** 同一场景、编号紧挨着的上一镜（与后端判定一致）；不同场景返回 null */
@@ -4203,18 +4242,20 @@ async function genVid(sb, opts = {}) {
   }
   if (!params.prompt && !referenceImages.length) {
     toast.error(t('episode.vid.needRefOrPrompt'))
-    return
+    return 'failed'
   }
   try {
     delete failedVideoMessages.value[sb.id]
+    delete chainPausedMessages[sb.id]
     if (!isPendingVideo(sb.id)) pendingVideoIds.value.push(sb.id)
     chainQueuedIds.delete(sb.id)
     const generation = await taskAPI.generate({ type: 'video', ...params })
     if (!opts.silent) toast.success(t('episode.vid.generating'))
     await refresh()
     // 接戏链要等本镜出片才能生成下一镜：本地服务可能排队很久，最多等 1 小时
-    if (opts.wait) await pollVideoGeneration(generation?.id, sb.id)
-    else pollVideoGeneration(generation?.id, sb.id)
+    if (opts.wait) return await pollVideoGeneration(generation?.id, sb.id)
+    pollVideoGeneration(generation?.id, sb.id)
+    return 'submitted'
   } catch (e) {
     pendingVideoIds.value = pendingVideoIds.value.filter(item => item !== sb.id)
     failedVideoMessages.value = {
@@ -4222,6 +4263,7 @@ async function genVid(sb, opts = {}) {
       [sb.id]: e.message || t('episode.vid.genFailed'),
     }
     toastError(e, { fallback: 'episode.vid.genFailed' })
+    return 'failed'
   }
 }
 // 后端会对本地显卡排队（批量时一个一个交给 ComfyUI），排队可能很久：前端一直等到任务结束（最多约 6 小时），
@@ -4234,7 +4276,7 @@ async function pollVideoGeneration(generationId, storyboardId, maxPolls = 5400, 
       if (done) pendingVideoIds.value = pendingVideoIds.value.filter(item => item !== storyboardId)
       return done
     }, 60, 4000)
-    return
+    return 'unknown'
   }
   for (let i = 0; i < maxPolls; i++) {
     await sleep(i < 30 ? 4000 : 6000)
@@ -4245,7 +4287,7 @@ async function pollVideoGeneration(generationId, storyboardId, maxPolls = 5400, 
         pendingVideoIds.value = pendingVideoIds.value.filter(item => item !== storyboardId)
         delete failedVideoMessages.value[storyboardId]
         toast.success(t(msgs.done || 'episode.vid.genDone'))
-        return
+        return 'completed'
       }
       if (res?.status === 'failed') {
         pendingVideoIds.value = pendingVideoIds.value.filter(item => item !== storyboardId)
@@ -4255,7 +4297,7 @@ async function pollVideoGeneration(generationId, storyboardId, maxPolls = 5400, 
           [storyboardId]: errMsg,
         }
         toastError(errMsg, { fallback: msgs.failed || 'episode.vid.genFailed' })
-        return
+        return 'failed'
       }
     } catch {}
   }
@@ -4265,6 +4307,7 @@ async function pollVideoGeneration(generationId, storyboardId, maxPolls = 5400, 
     [storyboardId]: t('episode.vid.genTimeout'),
   }
   toast.error(t('episode.vid.genTimeout'))
+  return 'timeout'
 }
 async function doMerge(ids) {
   const storyboardIds = Array.isArray(ids) ? ids : undefined

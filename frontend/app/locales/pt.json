@@ -681,7 +681,9 @@
         "maxDurationHint": "Por cena (um vídeo), não a duração do vídeo final unido. Vazio ou 0 = sem limite (padrão). Se definido, a IA mantém cada cena dentro do limite e divide as que não cabem.",
         "maxPromptBytes": "Tamanho máximo do prompt por cena (bytes UTF-8)",
         "maxPromptBytesHint": "Vazio ou 0 = sem limite (padrão); um caractere chinês = 3 bytes. Se definido, a IA escreve cerca de 60% (o resto fica para instruções automáticas); se ainda passar ao enviar, saem instruções extras e o texto é encurtado. O limite do próprio Grok (4096 bytes) é tratado automaticamente.",
-        "unlimited": "Sem limite"
+        "unlimited": "Sem limite",
+        "moderationRetries": "Novas tentativas por moderação",
+        "moderationRetriesHint": "Quantas vezes reenviar sem alterações quando a moderação bloqueia um vídeo (a moderação do Grok é inconsistente; conteúdo correto costuma passar ao reenviar). Vazio = 2, 0 = nunca."
       }
     },
     "styleDialog": {
@@ -1203,13 +1205,15 @@
       "continuity": "Continuidade (posições + regra dos 180°)",
       "continuityTip": "Adiciona as posições deste plano e o estado final do plano anterior do mesmo cenário, mantendo esquerda/direita.",
       "chain": "Começar pelo último quadro do plano anterior",
-      "chainTip": "Quando o plano anterior do mesmo cenário é gerado, seu último quadro vira o primeiro quadro ou a referência 1 deste. Em lote, planos do mesmo cenário são gerados em ordem.",
+      "chainTip": "Quando o plano anterior do mesmo cenário é gerado, seu último quadro vira o primeiro quadro ou a referência 1 deste. Na geração em lote, as tomadas da mesma cena são geradas uma após a outra; se uma falhar (falsos positivos da moderação são repetidos automaticamente antes), as seguintes ficam pausadas.",
       "noPrev": "Cenário diferente do plano anterior: este plano abre uma nova cena.",
       "prevTextOnly": "Continua das posições finais do plano #{n} (sem a imagem).",
       "prevNoVideo": "O plano #{n} ainda não tem vídeo: gere-o primeiro para emendar no seu último quadro.",
       "prevAsFirst": "Começa com o último quadro do plano #{n} como primeiro quadro.",
       "prevAsRef": "Usa o último quadro do plano #{n} como referência 1 para igualar as posições iniciais.",
       "chainBatch": "Continuidade ativada: {n} grupo(s) de planos do mesmo cenário serão gerados em ordem, cada um a partir do último quadro do anterior.",
+      "chainPaused": "A tomada anterior #{n} não foi gerada. Esta tomada continua a partir do último quadro dela, então foi pausada e não enviada. Quando #{n} tiver vídeo, clique em \"Repetir falhas\" para continuar em ordem.",
+      "chainPausedToast": "#{n} não foi gerada. As {count} tomada(s) da mesma cena que continuam a partir dela foram pausadas e não enviadas, para não gastar créditos com imagens que não combinam.",
       "physicsLock": "Física real",
       "physicsLockTip": "Adiciona uma instrução [Physics]: gravidade, pés firmes, pegada real, sem atravessar nem deformar objetos, velocidade natural. Modelos abertos locais (ex.: MiniMax H3 com pouca VRAM) erram mais nisso."
     },

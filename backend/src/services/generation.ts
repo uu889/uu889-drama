@@ -18,7 +18,7 @@ import { getDramaStyleKey } from './style-preset.js'
 import { burnSubtitles, normalizeSubtitleOptions, storyboardDialogue } from './subtitles.js'
 import { getEpisodeSystemVoice } from './system-voice.js'
 import { acquireGpuLane, cloudLaneKey, cloudLaneLimit, gpuLaneKey, laneLimit, laneNeedsFree, laneVideosSinceRestart, releaseGpuLane } from './gpu-queue.js'
-import { isBusyMessage, isTransientFailure, isUpstreamBusy, retryAfterMs } from './upstream-busy.js'
+import { isBusyMessage, isModerationFailure, isTransientFailure, isUpstreamBusy, moderationRetries, retryAfterMs } from './upstream-busy.js'
 import { clampDuration, describeFit, fitPromptBytes, videoLimits } from './video-limits.js'
 import { autoRestartEnabled, comfyAlive, comfyMemoryLeftover, comfySystemStats, freeComfyMemory, rebootComfy, restartEveryVideos, shouldFreeVramBetween, startComfyIfConfigured, waitComfyAlive } from './adapters/comfyui-common.js'
 import { resolveComfyTemplate } from './adapters/comfyui-templates.js'
@@ -420,6 +420,7 @@ async function processTask(id: number, config: AIConfig) {
     try {
       // 上游繁忙（429 / 并发数已满 / 限流）：任务没有被接收，等一会儿原样重新提交，不直接判失败
       let fallbacks = 0
+      let moderationResubmits = 0
       for (let attempt = 0; ; attempt++) {
         resp = await fetch(url, {
           method,
@@ -427,7 +428,10 @@ async function processTask(id: number, config: AIConfig) {
           body: isMultipart ? (body as FormData) : JSON.stringify(body),
           signal: AbortSignal.timeout(600_000),
         })
-        if (resp.ok) break
+        if (resp.ok) {
+          if (moderationResubmits) addTaskNote(id, `提交时审核未通过，自动原样重新提交 ${moderationResubmits} 次后通过`)
+          break
+        }
         const text = await resp.text()
         const message = mediaAdapter.describeError?.(resp.status, text) || formatUpstreamError(resp.status, text)
         const busy = isUpstreamBusy(resp.status, text)
@@ -444,6 +448,16 @@ async function processTask(id: number, config: AIConfig) {
             setTaskProgress(id, { stage: 'submitting', message: fb.note })
             continue
           }
+        }
+        // 视频提交时就被审核拦下（Grok 等审核有随机性，内容没问题时重交常常就过了）：等几秒原样重交
+        if (!busy && type === 'video' && isModerationFailure(message) && moderationResubmits < moderationRetries(config.settings)) {
+          moderationResubmits++
+          const max = moderationRetries(config.settings)
+          logTaskWarn(label, 'submit-moderation-retry', { id, status: resp.status, attempt: moderationResubmits, error: message.slice(0, 200) })
+          setTaskProgress(id, { stage: 'queued', message: `${config.provider} 审核未通过（${message.slice(0, 120)}），${MODERATION_RETRY_MS / 1000} 秒后原样重新提交（第 ${moderationResubmits} / ${max} 次）` })
+          await sleep(MODERATION_RETRY_MS)
+          setTaskProgress(id, submitPatch)
+          continue
         }
         if (attempt >= SUBMIT_BUSY_RETRIES || !busy) throw new Error(message)
         const waitMs = retryAfterMs(resp.headers.get('retry-after')) ?? busyBackoffMs(attempt)
@@ -557,6 +571,8 @@ function formatUpstreamError(status: number, text: string): string {
 const SUBMIT_BUSY_RETRIES = 8
 // 已接收的任务随后因上游繁忙失败：重新提交的次数
 const FAILED_BUSY_RESUBMITS = 4
+// 视频审核未通过后原样重交前等待的时间（次数见 upstream-busy.ts moderationRetries）
+const MODERATION_RETRY_MS = Number(process.env.MODERATION_RETRY_MS) || 5_000
 function busyBackoffMs(attempt: number): number {
   const base = Number(process.env.UPSTREAM_BUSY_RETRY_MS) || 15_000
   return Math.min(base * 8, base * (attempt + 1))
@@ -623,6 +639,8 @@ async function pollTask(record: SysTaskRecord, config: AIConfig, initialTaskId: 
   let retries = 0
   /** 上游繁忙导致的失败后重新提交的次数 */
   let busyResubmits = 0
+  /** 审核未通过后重新提交的次数 */
+  let moderationResubmits = 0
   /** 显存不足时降过分辨率（完成后写进任务备注） */
   let downgraded: { from: string; to: string } | undefined
   const report = (patch: TaskProgressPatch) => { setTaskProgress(record.id, patch) }
@@ -667,6 +685,21 @@ async function pollTask(record: SysTaskRecord, config: AIConfig, initialTaskId: 
         return true
       } catch (err: any) {
         logTaskWarn(label, 'retry-after-busy-error', { id: record.id, taskId, error: err?.message })
+        return false
+      }
+    }
+    // 审核未通过（Grok 等审核有随机性，内容没问题时重交常常就过了）：原样重交几次，仍不过才判失败
+    if (type === 'video' && isModerationFailure(error)) {
+      const max = moderationRetries(config.settings)
+      if (moderationResubmits >= max) return false
+      moderationResubmits++
+      report({ stage: 'queued', message: `${config.provider} 审核未通过（${error.slice(0, 120)}），${MODERATION_RETRY_MS / 1000} 秒后原样重新提交（第 ${moderationResubmits} / ${max} 次）` })
+      await sleep(MODERATION_RETRY_MS)
+      try {
+        await resubmit(error)
+        return true
+      } catch (err: any) {
+        logTaskWarn(label, 'retry-after-moderation-error', { id: record.id, taskId, error: err?.message })
         return false
       }
     }
@@ -855,6 +888,7 @@ async function pollTask(record: SysTaskRecord, config: AIConfig, initialTaskId: 
       logTaskSuccess(label, 'poll-complete', { id: record.id, taskId, videoUrl: pollResp.videoUrl })
       // 刚完成时成片可能还没就绪（网关 /content 短暂 404）：多等几次
       await withRetry(() => handleVideoComplete(record, config, pollResp.videoUrl, pollResp.duration), 5, 5000)
+      if (moderationResubmits) addTaskNote(record.id, `审核未通过，自动原样重新提交 ${moderationResubmits} 次后生成成功`)
       if (downgraded) addTaskNote(record.id, `显存不足，这个镜头降到 480p 生成（${downgraded.from} → ${downgraded.to}），可以用「高清化」放大到 1080p`)
       await flushTaskNotes(record.id)
     } catch (err: any) {

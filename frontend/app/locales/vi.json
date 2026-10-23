@@ -681,7 +681,9 @@
         "maxDurationHint": "Giới hạn mỗi phân cảnh (một video), không phải độ dài video ghép. Để trống hoặc 0 = không giới hạn (mặc định). Khi đặt, AI giữ mỗi cảnh trong giới hạn và tách cảnh quá dài.",
         "maxPromptBytes": "Độ dài prompt tối đa mỗi phân cảnh (byte UTF-8)",
         "maxPromptBytesHint": "Để trống hoặc 0 = không giới hạn (mặc định); một chữ Hán = 3 byte. Khi đặt, AI viết khoảng 60% (phần còn lại cho chỉ dẫn tự thêm); khi gửi vẫn vượt thì bỏ chỉ dẫn phụ rồi rút ngắn. Giới hạn 4096 byte của Grok được xử lý tự động.",
-        "unlimited": "Không giới hạn"
+        "unlimited": "Không giới hạn",
+        "moderationRetries": "Số lần thử lại khi bị kiểm duyệt",
+        "moderationRetriesHint": "Số lần gửi lại nguyên văn khi kiểm duyệt chặn video (kiểm duyệt của Grok không ổn định; nội dung không có vấn đề thường qua khi gửi lại). Để trống = 2, 0 = không thử lại."
       }
     },
     "styleDialog": {
@@ -1203,13 +1205,15 @@
       "continuity": "Nối cảnh (vị trí + quy tắc 180 độ)",
       "continuityTip": "Đưa vị trí nhân vật của cảnh này và trạng thái cuối của cảnh trước cùng bối cảnh vào prompt, giữ nguyên trái/phải.",
       "chain": "Mở đầu bằng khung hình cuối của cảnh trước",
-      "chainTip": "Khi cảnh trước cùng bối cảnh đã tạo xong, khung hình cuối của nó thành khung hình đầu hoặc ảnh tham chiếu 1 của cảnh này. Khi tạo hàng loạt, các cảnh cùng bối cảnh được tạo lần lượt.",
+      "chainTip": "Khi cảnh trước cùng bối cảnh đã tạo xong, khung hình cuối của nó thành khung hình đầu hoặc ảnh tham chiếu 1 của cảnh này. Khi tạo hàng loạt, các cảnh cùng bối cảnh được tạo lần lượt; nếu một cảnh lỗi (kiểm duyệt nhầm sẽ tự thử lại trước), các cảnh sau nó sẽ tạm dừng.",
       "noPrev": "Khác bối cảnh với cảnh trước — cảnh này mở đầu một cảnh mới.",
       "prevTextOnly": "Nối từ vị trí kết thúc của cảnh #{n} (không dùng hình).",
       "prevNoVideo": "Cảnh #{n} chưa có video: hãy tạo nó trước để cảnh này nối từ khung hình cuối.",
       "prevAsFirst": "Mở đầu bằng khung hình cuối của cảnh #{n} làm khung hình đầu.",
       "prevAsRef": "Dùng khung hình cuối của cảnh #{n} làm ảnh tham chiếu 1 để vị trí mở đầu khớp.",
       "chainBatch": "Đã bật nối cảnh: {n} nhóm cảnh cùng bối cảnh sẽ được tạo lần lượt, mỗi cảnh nối từ khung hình cuối của cảnh trước.",
+      "chainPaused": "Cảnh trước #{n} chưa tạo được. Cảnh này nối tiếp khung hình cuối của nó nên đã tạm dừng, chưa gửi. Khi #{n} có video, bấm «Thử lại mục lỗi» để tiếp tục theo thứ tự.",
+      "chainPausedToast": "#{n} chưa tạo được. {count} cảnh cùng bối cảnh nối tiếp sau nó đã tạm dừng, chưa gửi, để không tốn tín dụng cho hình ảnh không khớp.",
       "physicsLock": "Vật lý thật",
       "physicsLockTip": "Thêm chỉ dẫn [Physics]: trọng lực, chân chạm đất, cầm nắm thật, không xuyên vật hay biến dạng, tốc độ tự nhiên. Mô hình mở chạy local (như MiniMax H3 VRAM thấp) dễ sai nhất."
     },

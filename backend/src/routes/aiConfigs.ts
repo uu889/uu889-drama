@@ -52,10 +52,14 @@ const QUEUE_RULES: Record<string, SettingRule> = {
   max_concurrent: { kind: 'number', min: 1, max: 8, integer: true },
 }
 
-/** 视频接口上限（services/video-limits.ts）：最长时长（秒，默认 15）、提示词最大字节数（UTF-8，默认 4090，0 = 不限） */
+/**
+ * 视频接口上限（services/video-limits.ts）：单镜最长时长（秒）、提示词最大字节数（UTF-8），不设或 0 = 不限；
+ * 审核未通过自动原样重交次数（upstream-busy.ts moderationRetries，不设 = 2，0 关闭）
+ */
 const VIDEO_LIMIT_RULES: Record<string, SettingRule> = {
   max_duration: { kind: 'number', min: 0, max: 120, integer: true },
   max_prompt_bytes: { kind: 'number', min: 0, max: 200000, integer: true },
+  moderation_retries: { kind: 'number', min: 0, max: 5, integer: true },
 }
 
 /** 视觉风格 → 本地模型（三个本地服务都支持，默认关） */

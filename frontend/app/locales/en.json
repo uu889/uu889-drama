@@ -681,7 +681,9 @@
         "maxDurationHint": "Per shot (one video), not the length of the merged export. Empty or 0 = no limit (default). When set, the AI keeps each shot within it and splits shots that don't fit.",
         "maxPromptBytes": "Max shot video prompt length (UTF-8 bytes)",
         "maxPromptBytesHint": "Empty or 0 = no limit (default); a Chinese character counts as 3 bytes. When set, the AI writes prompts to about 60% of it (the rest is left for auto-added directives); anything still too long at submit drops optional instructions first, then shortens the text. Grok video's own 4096-byte limit is handled automatically.",
-        "unlimited": "No limit"
+        "unlimited": "No limit",
+        "moderationRetries": "Moderation retries",
+        "moderationRetriesHint": "How many times to resubmit unchanged when moderation blocks a video (Grok moderation is inconsistent; a clean prompt often passes on resubmit). Empty = 2, 0 = never."
       }
     },
     "styleDialog": {
@@ -1203,13 +1205,15 @@
       "continuity": "Continuity (blocking + 180-degree rule)",
       "continuityTip": "Adds this shot's blocking and the previous same-scene shot's end state to the prompt and keeps left/right positions.",
       "chain": "Open from the previous shot's last frame",
-      "chainTip": "After the previous same-scene shot is generated, its last frame becomes this shot's first frame or first reference. Batch generation runs same-scene shots one after another.",
+      "chainTip": "After the previous same-scene shot is generated, its last frame becomes this shot's first frame or first reference. In batch generation, same-scene shots run one after another; if a shot fails (moderation misjudgments are retried automatically first), the shots after it are paused.",
       "noPrev": "Different scene from the previous shot — this shot opens a new scene.",
       "prevTextOnly": "Continues from the end blocking of shot #{n} (without its image).",
       "prevNoVideo": "Shot #{n} has no video yet: generate it first so this shot can continue from its last frame.",
       "prevAsFirst": "Opens from the last frame of shot #{n} as the first frame.",
       "prevAsRef": "Uses the last frame of shot #{n} as reference 1 so the opening positions match.",
       "chainBatch": "Continuity is on: {n} group(s) of same-scene shots will be generated in order, each continuing from the previous last frame.",
+      "chainPaused": "Previous shot #{n} did not generate, and this shot continues from its last frame, so it was paused and not submitted. Once #{n} has a video, click Retry failed to continue in order.",
+      "chainPausedToast": "#{n} did not generate. The {count} same-scene shot(s) that continue from it were paused and not submitted, so no credits are spent on mismatched footage.",
       "physicsLock": "Real physics",
       "physicsLockTip": "Adds a [Physics] directive: gravity, planted feet, real grip, no clipping or morphing, natural speed. Local open models (e.g. small-VRAM MiniMax H3 tiers) break physics most often."
     },

@@ -681,7 +681,9 @@
         "maxDurationHint": "Par plan (une vidéo), pas la durée du montage final. Vide ou 0 = sans limite (par défaut). Si défini, l'IA garde chaque plan sous cette durée et découpe ceux qui dépassent.",
         "maxPromptBytes": "Longueur max du prompt d'un plan (octets UTF-8)",
         "maxPromptBytesHint": "Vide ou 0 = sans limite (par défaut) ; un caractère chinois = 3 octets. Si défini, l'IA en écrit environ 60 % (le reste pour les consignes ajoutées) ; au-delà à l'envoi, les consignes annexes sont retirées puis le texte raccourci. La limite propre de Grok (4096 octets) est gérée automatiquement.",
-        "unlimited": "Sans limite"
+        "unlimited": "Sans limite",
+        "moderationRetries": "Nouvelles tentatives (modération)",
+        "moderationRetriesHint": "Nombre de renvois à l'identique quand la modération bloque une vidéo (la modération de Grok est aléatoire ; un contenu correct passe souvent au renvoi). Vide = 2, 0 = jamais."
       }
     },
     "styleDialog": {
@@ -1203,13 +1205,15 @@
       "continuity": "Raccord (placement + règle des 180°)",
       "continuityTip": "Ajoute le placement de ce plan et l’état final du plan précédent du même décor, et garde les positions gauche/droite.",
       "chain": "Démarrer sur la dernière image du plan précédent",
-      "chainTip": "Une fois le plan précédent du même décor généré, sa dernière image devient la première image ou la référence 1 de ce plan. La génération par lot enchaîne les plans d’un même décor dans l’ordre.",
+      "chainTip": "Une fois le plan précédent du même décor généré, sa dernière image devient la première image ou la référence 1 de ce plan. En génération par lot, les plans d'une même scène sont générés l'un après l'autre ; si un plan échoue (les faux positifs de modération sont d'abord réessayés automatiquement), les suivants sont mis en pause.",
       "noPrev": "Décor différent du plan précédent : ce plan ouvre une nouvelle scène.",
       "prevTextOnly": "Enchaîne sur le placement final du plan #{n} (sans son image).",
       "prevNoVideo": "Le plan #{n} n’a pas encore de vidéo : générez-le d’abord pour raccorder sur sa dernière image.",
       "prevAsFirst": "Démarre sur la dernière image du plan #{n} comme première image.",
       "prevAsRef": "Utilise la dernière image du plan #{n} comme référence 1 pour des positions de départ identiques.",
       "chainBatch": "Raccord activé : {n} groupe(s) de plans d’un même décor seront générés dans l’ordre, chacun à partir de la dernière image du précédent.",
+      "chainPaused": "Le plan précédent #{n} n'a pas été généré. Ce plan reprend sa dernière image : il a été mis en pause et non envoyé. Quand #{n} aura une vidéo, cliquez sur « Relancer les échecs » pour continuer dans l'ordre.",
+      "chainPausedToast": "#{n} n'a pas été généré. Les {count} plan(s) de la même scène qui le suivent ont été mis en pause et non envoyés, pour ne pas dépenser de crédits sur des images qui ne raccordent pas.",
       "physicsLock": "Physique réaliste",
       "physicsLockTip": "Ajoute une consigne [Physics] : gravité, pieds ancrés, vraie prise en main, pas de traversée ni de déformation, vitesse naturelle. Les modèles ouverts locaux (ex. MiniMax H3 petite VRAM) cassent le plus souvent la physique."
     },

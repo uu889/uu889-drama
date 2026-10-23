@@ -42,6 +42,29 @@ export function isTransientFailure(text: string | null | undefined): boolean {
   return TRANSIENT_PATTERNS.some((re) => re.test(s))
 }
 
+const MODERATION_PATTERNS = [
+  /content (policy|moderation)|moderation|safety (check|filter|system)|(sensitive|unsafe) content|SensitiveContent/i,
+  /审核|违规|敏感/,
+]
+
+/**
+ * 文案是不是「内容审核未通过」。Grok 等模型的审核有随机性，内容本身没问题时原样重交常常就过了；
+ * 鉴权 / 额度类错误优先（文案里同时出现时不算审核）
+ */
+export function isModerationFailure(text: string | null | undefined): boolean {
+  const s = String(text || '')
+  if (!s || NOT_BUSY_PATTERNS.slice(0, 2).some((re) => re.test(s))) return false
+  return MODERATION_PATTERNS.some((re) => re.test(s))
+}
+
+/** 审核未通过时自动原样重交的次数：视频配置 settings.moderation_retries（0 关闭），默认 2 */
+export function moderationRetries(settings: Record<string, any> | null | undefined): number {
+  const raw = settings?.moderation_retries
+  if (raw === undefined || raw === null || raw === '') return 2
+  const n = Math.floor(Number(raw))
+  return Number.isFinite(n) && n >= 0 ? Math.min(n, 5) : 2
+}
+
 /** 鉴权 / 额度类错误：重试没用 */
 const NOT_BUSY_PATTERNS = [
   /insufficient|余额|额度不足|quota exceeded for|billing|balance/i,
