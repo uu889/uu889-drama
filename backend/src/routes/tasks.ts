@@ -8,8 +8,8 @@ import { success, created, badRequest } from '../utils/response.js'
 import { generateImage, generateVideo } from '../services/generation.js'
 import { getActiveConfig, getConfigById } from '../services/ai.js'
 import { getDramaStylePrompt } from '../services/style-preset.js'
-import { clampDuration, utf8Bytes, videoLimits } from '../services/video-limits.js'
-import { GROK_PROMPT_MAX_BYTES } from '../services/adapters/video-common.js'
+import { clampDuration, truncateBytes, videoLimits } from '../services/video-limits.js'
+import { promptByteLimitFor } from '../services/adapters/video-common.js'
 import { logTaskError, logTaskPayload, logTaskStart, logTaskSuccess } from '../utils/task-logger.js'
 
 const app = new Hono()
@@ -199,10 +199,7 @@ app.post('/', async (c) => {
       // 时长超过这个视频接口的上限（设置页「最长分镜视频时长」，默认不限）按上限生成；
       // 先于导演指令调整，【台词控制】里的「本段共 N 秒」才对得上
       const limits = videoLimits(effectiveConfig?.settings)
-      promptByteLimit = limits.maxPromptBytes
-      if (effectiveConfig?.provider === 'aiask' || effectiveConfig?.provider === 'xai') {
-        promptByteLimit = promptByteLimit > 0 ? Math.min(promptByteLimit, GROK_PROMPT_MAX_BYTES) : GROK_PROMPT_MAX_BYTES
-      }
+      promptByteLimit = promptByteLimitFor(effectiveConfig)
       const clamped = clampDuration(videoBody.duration, limits.maxDuration)
       if (clamped != null && clamped < Number(videoBody.duration)) videoBody.duration = clamped
       const validationError = validateVideoRequest(videoBody, effectiveConfig?.provider)
@@ -224,6 +221,8 @@ app.post('/', async (c) => {
     if (type === 'video' && String(videoPrompt || '').trim()) {
       const dramaId = body.drama_id ?? storyboardDramaId ?? null
       stylePrompt = await getDramaStylePrompt(dramaId)
+      // 限制了长度时画风词最多占 600 字节，正文留给本镜画面
+      if (stylePrompt && promptByteLimit > 0) stylePrompt = truncateBytes(stylePrompt, 600)
       if (stylePrompt) videoPrompt = `${stylePrompt}，\n${videoPrompt}`
     }
     // 镜头导演指令：台词控制（防止补台词）、人物 / 场景 / 画风锁定、站位与接上一镜
@@ -234,10 +233,12 @@ app.post('/', async (c) => {
         compact,
       })
       const withDirectives = (d: string) => d ? `${String(videoPrompt || '').trim()}\n\n${d}`.trim() : String(videoPrompt || '')
-      let full = withDirectives(await build(false))
-      // 超出提示词上限：先换精简版导演指令（约束不变、写得短），尽量不用在提交时整块去掉【接上一镜】等
-      if (promptByteLimit > 0 && utf8Bytes(full) > promptByteLimit) full = withDirectives(await build(true))
-      videoPrompt = full
+      // 两套：限制了提示词长度（设置了单镜上限，或 Grok 接口自身 4096 字节）时，导演指令一律用精简版，
+      // 每块各有长度上限，正文用剩下的预算；不限制时用完整版
+      const limited = promptByteLimit > 0
+      const directives = await build(limited)
+      videoPrompt = withDirectives(directives)
+      // 正文（画风词 + AI 写的提示词）超出剩下的预算：提交前 generation.ts fitPromptBytes 在句子边界截短正文并写进任务备注
     }
 
     const id = type === 'image'

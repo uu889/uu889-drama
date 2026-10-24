@@ -39,12 +39,12 @@ test('limits follow the episode\'s locked video config, else the active one (unl
   const locked = await shotLimitsForEpisode(episodeId)
   assert.equal(locked.maxDuration, 8)
   assert.equal(locked.maxPromptBytes, 2000)
-  assert.equal(locked.promptBudgetBytes, 1000, '一半留给 Agent，其余给画风词和自动追加的导演指令')
+  assert.equal(locked.promptBudgetBytes, 900, '45% 留给 Agent，其余给画风词和自动追加的导演指令')
   // 启用的是 aiask Grok：没设上限也按接口自身的 4096 字节给 Agent 预算
   const fallback = await shotLimitsForEpisode(null)
   assert.equal(fallback.maxDuration, 0)
   assert.equal(fallback.maxPromptBytes, 4096)
-  assert.equal(fallback.promptBudgetBytes, 2048)
+  assert.equal(fallback.promptBudgetBytes, 1843)
   assert.equal(shotLimitsFrom({ max_prompt_bytes: 8000 }, null, 'xai').maxPromptBytes, 4096)
   const free = shotLimitsFrom({}, null, 'comfyui')
   assert.equal(free.promptBudgetBytes, 0)
@@ -60,7 +60,7 @@ test('storyboard / video-prompt agents are told the per-shot limits', () => {
   assert.match(sb, /拆成两个/)
   assert.match(sb, /按 4-8 秒执行/)
   const vp = shotLimitsAgentDirective('prompt_generator', l, 'en')
-  assert.match(vp, /under 1000 bytes/)
+  assert.match(vp, /under 900 bytes/)
   assert.equal(shotLimitsAgentDirective('extractor', l, 'zh'), '')
 })
 
@@ -80,7 +80,7 @@ test('save_storyboards clamps a shot to the video API limit and asks the agent t
   assert.equal(rows.find((r) => r.storyboardNumber === 2)!.duration, 5)
   const warnings = res.timing_warnings.join('\n')
   assert.match(warnings, /#1: .*超过视频接口单镜上限 8 秒/)
-  assert.match(warnings, /#1: video_prompt 1500 字节，超过预算 1000 字节/)
+  assert.match(warnings, /#1: video_prompt 1500 字节，超过预算 900 字节/)
 
   const id = rows.find((r) => r.storyboardNumber === 2)!.id
   const upd: any = await (storyboardTools.updateStoryboard as any).execute({ storyboard_id: id, duration: 12 }, { requestContext })

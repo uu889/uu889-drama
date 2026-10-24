@@ -20,6 +20,7 @@ import { getEpisodeSystemVoice } from './system-voice.js'
 import { acquireGpuLane, cloudLaneKey, cloudLaneLimit, gpuLaneKey, laneLimit, laneNeedsFree, laneVideosSinceRestart, releaseGpuLane } from './gpu-queue.js'
 import { isBusyMessage, isModerationFailure, isTransientFailure, isUpstreamBusy, moderationRetries, retryAfterMs } from './upstream-busy.js'
 import { clampDuration, describeFit, fitPromptBytes, videoLimits } from './video-limits.js'
+import { promptByteLimitFor } from './adapters/video-common.js'
 import { autoRestartEnabled, comfyAlive, comfyMemoryLeftover, comfySystemStats, freeComfyMemory, rebootComfy, restartEveryVideos, shouldFreeVramBetween, startComfyIfConfigured, waitComfyAlive } from './adapters/comfyui-common.js'
 import { resolveComfyTemplate } from './adapters/comfyui-templates.js'
 import { logTaskError, logTaskPayload, logTaskProgress, logTaskStart, logTaskSuccess, logTaskWarn, redactUrl } from '../utils/task-logger.js'
@@ -325,9 +326,10 @@ async function processTask(id: number, config: AIConfig) {
         addTaskNote(id, `时长 ${params.duration} 秒超过这个视频接口的上限 ${limits.maxDuration} 秒，按 ${clamped} 秒生成`)
         params.duration = clamped
       }
-      const fit = fitPromptBytes(prompt || '', limits.maxPromptBytes)
-      if (fit.trimmed && fit.fromBytes > limits.maxPromptBytes) {
-        const note = describeFit(fit, limits.maxPromptBytes)
+      const maxBytes = promptByteLimitFor(config)
+      const fit = fitPromptBytes(prompt || '', maxBytes)
+      if (fit.trimmed && fit.fromBytes > maxBytes) {
+        const note = describeFit(fit, maxBytes)
         addTaskNote(id, note)
         logTaskWarn(label, 'prompt-fit', { id, fromBytes: fit.fromBytes, toBytes: fit.toBytes, removed: fit.removed, bodyCut: fit.bodyCut })
         setTaskProgress(id, { stage: 'preparing', message: note })

@@ -680,7 +680,7 @@
         "maxDuration": "Max shot video length (seconds)",
         "maxDurationHint": "Per shot (one video), not the length of the merged export. Empty or 0 = no limit (default). When set, the AI keeps each shot within it and splits shots that don't fit.",
         "maxPromptBytes": "Max shot video prompt length (UTF-8 bytes)",
-        "maxPromptBytesHint": "Empty or 0 = no limit (default); a Chinese character counts as 3 bytes. When set, the AI writes prompts to about half of it (the rest is for the style words and auto-added directives). If a prompt is still too long at submit, the directives switch to a compact version first, then the end of the text is shortened, and only then optional instructions are dropped — Continuity goes last. Grok video's own 4096-byte limit is handled automatically.",
+        "maxPromptBytesHint": "Empty or 0 = no limit (default); directives are appended in full. With a number (or with Grok video, whose API allows 4096 bytes) the limited mode applies: the AI writes the prompt to about 45% of it, and the style words and every directive have their own length caps in a compact version, so the total stays under the limit. If it is still over, only the end of the text is shortened and the directives are kept. A Chinese character is 3 bytes, a line break 2.",
         "unlimited": "No limit",
         "moderationRetries": "Moderation retries",
         "moderationRetriesHint": "How many times to resubmit unchanged when moderation blocks a video (Grok moderation is inconsistent; a clean prompt often passes on resubmit). Empty = 2, 0 = never."

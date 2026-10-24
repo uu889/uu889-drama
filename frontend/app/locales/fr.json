@@ -680,7 +680,7 @@
         "maxDuration": "Durée max d'un plan (secondes)",
         "maxDurationHint": "Par plan (une vidéo), pas la durée du montage final. Vide ou 0 = sans limite (par défaut). Si défini, l'IA garde chaque plan sous cette durée et découpe ceux qui dépassent.",
         "maxPromptBytes": "Longueur max du prompt d'un plan (octets UTF-8)",
-        "maxPromptBytesHint": "Vide ou 0 = sans limite (par défaut) ; un caractère chinois = 3 octets. Si défini, l'IA en écrit environ la moitié (le reste pour les mots de style et les consignes ajoutées). Si c'est encore trop long à l'envoi, les consignes passent d'abord en version courte, puis la fin du texte est raccourcie, et seulement ensuite les consignes annexes sont retirées — le raccord avec le plan précédent en dernier. La limite propre de Grok (4096 octets) est gérée automatiquement.",
+        "maxPromptBytesHint": "Vide ou 0 = sans limite (par défaut), consignes complètes. Avec un nombre (ou avec la vidéo Grok, limitée à 4096 octets), le mode limité s'applique : l'IA écrit environ 45 %, les mots de style et chaque consigne ont leur propre plafond en version courte, et le total reste sous la limite. Si ça dépasse encore, seule la fin du texte est raccourcie, les consignes sont conservées. Un caractère chinois = 3 octets, un saut de ligne = 2.",
         "unlimited": "Sans limite",
         "moderationRetries": "Nouvelles tentatives (modération)",
         "moderationRetriesHint": "Nombre de renvois à l'identique quand la modération bloque une vidéo (la modération de Grok est aléatoire ; un contenu correct passe souvent au renvoi). Vide = 2, 0 = jamais."

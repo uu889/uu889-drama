@@ -254,7 +254,8 @@ export interface ShotDirectionInput {
   hasStylePreset?: boolean
   options: { dialogueLock?: boolean; appearanceLock?: boolean; continuity?: boolean; physicsLock?: boolean; qualityLock?: boolean }
   /**
-   * 精简版：视频接口限制了提示词长度（如 Grok 4096 字节）时用，同样的约束写得更短（约一半），
+   * 精简版：视频接口限制了提示词长度（设置了单镜上限，或 Grok 4096 字节）时一律用，同样的约束写得更短（约一半），
+   * 每块各有长度上限（人物外观约 450 字节、站位 90 字、上一镜结尾 60 字），正文用剩下的预算，
    * 免得提交时为了凑长度整块去掉【接上一镜】【画风一致】等
    */
   compact?: boolean
@@ -369,8 +370,10 @@ export function buildShotDirectives(input: ShotDirectionInput): string {
   if (input.options.appearanceLock !== false) {
     const chars = input.characters.filter((c) => c.name && !(sv && sysNames.includes(c.name)))
     if (chars.length && compact) {
+      // 精简版整块约 450 字节以内：人物越多每人写得越短（至少外观 12 字、服装 8 字）
+      const per = Math.max(20, Math.floor(130 / chars.length))
       const rows = chars.map((c) => {
-        const desc = [clip(c.appearance, 45), clip(c.styling, 35)].filter(Boolean).join(zh ? '；' : '; ')
+        const desc = [clip(c.appearance, Math.max(12, Math.round(per * 0.6))), clip(c.styling, Math.max(8, Math.round(per * 0.4)))].filter(Boolean).join(zh ? '；' : '; ')
         return desc ? `${ref(c.name)}${zh ? '：' : ': '}${desc}` : ref(c.name)
       })
       blocks.push(zh
@@ -408,12 +411,12 @@ export function buildShotDirectives(input: ShotDirectionInput): string {
 
   // ── 站位与接戏 ──
   if (input.options.continuity !== false) {
-    const blocking = clip(input.blocking, compact ? 120 : 220)
+    const blocking = clip(input.blocking, compact ? 90 : 220)
     if (blocking) {
       blocks.push(zh ? `【人物站位】${blocking}` : `[Blocking] ${blocking}`)
     }
     if ((input.previous || input.previousFrame) && compact) {
-      const prevEnd = clip(endState(input.previous?.blocking), 80)
+      const prevEnd = clip(endState(input.previous?.blocking), 60)
       const lines: string[] = []
       if (input.previousFrame?.mode === 'first_frame') {
         lines.push(zh ? '从首帧（上一镜结尾画面）直接开始，站位、朝向、服装、光线与首帧一致。' : 'Start from the given first frame (last frame of the previous shot); same positions, facing, outfits and light.')

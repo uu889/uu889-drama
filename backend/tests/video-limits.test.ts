@@ -98,3 +98,19 @@ test('large reference images are shrunk to a ≤2048px JPEG before upload; small
   const file = { blob: new Blob([new Uint8Array(small)], { type: 'image/png' }), mimeType: 'image/png', filename: 'a.png' }
   assert.equal(await shrinkReferenceFile(file), file)
 })
+
+test('line breaks count as 2 bytes, so a fitted Grok prompt stays under 4096 after multipart turns \\n into \\r\\n', async () => {
+  const { fitGrokPrompt, promptByteLimitFor } = await import('../src/services/adapters/video-common')
+  assert.equal(utf8Bytes('a\nb'), 4)
+  assert.equal(utf8Bytes('a\r\nb'), 4)
+  const prompt = Array.from({ length: 400 }, (_, i) => `第${i}行：小明走过。`).join('\n')
+  const fitted = fitGrokPrompt({ provider: 'aiask', baseUrl: '', apiKey: '', model: '', settings: { max_prompt_bytes: 4080 } } as any, prompt)
+  const fd = new FormData()
+  fd.append('prompt', fitted)
+  const raw = Buffer.from(await new Response(fd).arrayBuffer()).toString('utf8')
+  const field = raw.split('\r\n\r\n')[1].replace(/\r\n--[\s\S]*$/, '')
+  assert.ok(Buffer.byteLength(field) <= 4080, `multipart field ${Buffer.byteLength(field)} bytes`)
+  assert.equal(promptByteLimitFor({ provider: 'aiask', settings: null }), 4032)
+  assert.equal(promptByteLimitFor({ provider: 'aiask', settings: { max_prompt_bytes: 3000 } }), 3000)
+  assert.equal(promptByteLimitFor({ provider: 'comfyui', settings: null }), 0)
+})

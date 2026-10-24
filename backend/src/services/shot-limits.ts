@@ -3,8 +3,8 @@
  * 不是拼接后成片的总长。拆分镜、写视频提示词时就按这个写，而不是等到提交时再截。
  *
  * 用哪一个视频配置：该集锁定的 video_config_id，没有就用当前启用的视频配置。两项默认都不限制（0），不限时不追加说明。
- * 提示词预算给 Agent 写的 video_prompt 留 50%：生成时还会追加项目画风词和【台词控制】【人物外观锁定】【接上一镜】等导演指令
- * （超限时用精简版，约 1~1.5KB）。Grok（aiask / xai）接口自身最多 4096 字节，没设或设得更大时按 4096 算。
+ * 提示词预算给 Agent 写的 video_prompt 留 45%：生成时还会追加项目画风词（限长时最多 600 字节）和【台词控制】【人物外观锁定】【画质】【接上一镜】等导演指令
+ * （限长时一律用精简版，约 1.2~1.8KB）。Grok（aiask / xai）接口自身最多 4096 字节，没设或设得更大时按 4096 算。
  */
 import { eq } from 'drizzle-orm'
 import { db, schema } from '../db/index.js'
@@ -17,7 +17,7 @@ export interface ShotLimits extends VideoLimits {
   configName: string | null
 }
 
-export const PROMPT_BUDGET_RATIO = 0.5
+export const PROMPT_BUDGET_RATIO = 0.45
 const GROK_MAX_PROMPT_BYTES = 4096
 
 export function shotLimitsFrom(settings: Record<string, any> | null | undefined, configName: string | null = null, provider?: string | null): ShotLimits {
@@ -83,12 +83,12 @@ export function shotLimitsAgentDirective(agentType: string, limits: ShotLimits, 
       ? [
           `## 视频接口上限（每条视频）`,
           ...(max ? [`- 视频时长以分镜 duration 为准，最多 ${max} 秒；时间分段不得超出 duration。`] : []),
-          ...(budget ? [`- 每条 video_prompt 不超过 ${budget} 字节（UTF-8，一个汉字 3 字节，约 ${chars} 个汉字）：生成时系统还会追加【台词控制】【人物外观锁定】等指令，加起来不能超过视频接口的 ${limits.maxPromptBytes} 字节上限，超了会被截掉。写短句、写看得见的动作，不要重复描写外貌和画风（系统会自动补）。`] : []),
+          ...(budget ? [`- 每条 video_prompt 不超过 ${budget} 字节（UTF-8，一个汉字 3 字节，约 ${chars} 个汉字）：其余约 ${limits.maxPromptBytes - budget} 字节已经留给系统自动追加的画风词和【台词控制】【人物外观锁定】【画质】【接上一镜】【物理真实】等指令，加起来不能超过视频接口的 ${limits.maxPromptBytes} 字节上限，超了正文结尾会被截掉。写短句、写看得见的动作，不要重复描写外貌、画风、画质和物理要求（系统会自动补）；换行也算 2 字节，少分行。`] : []),
         ].join('\n')
       : [
           `## Video API limit (per video)`,
           ...(max ? [`- The video length is the shot duration, at most ${max} seconds; time segments must not exceed it.`] : []),
-          ...(budget ? [`- Keep each video_prompt under ${budget} bytes (UTF-8): directives such as [Dialogue control] and [Character lock] are appended at generation time and the total must stay under the ${limits.maxPromptBytes}-byte API limit or it gets cut. Use short sentences and visible actions; do not repeat appearance or style (added automatically).`] : []),
+          ...(budget ? [`- Keep each video_prompt under ${budget} bytes (UTF-8): the remaining ~${limits.maxPromptBytes - budget} bytes are reserved for the style words and directives ([Dialogue control], [Character lock], [Quality], [Continuity], [Physics]) appended automatically; the total must stay under the ${limits.maxPromptBytes}-byte API limit or the end of the text gets cut. Use short sentences and visible actions; do not repeat appearance, style, quality or physics rules (added automatically); each line break counts as 2 bytes, so use few.`] : []),
         ].join('\n')
   }
   return ''

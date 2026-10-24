@@ -40,7 +40,16 @@ export function clampDuration(duration: unknown, maxDuration: number): number | 
   return maxDuration > 0 ? Math.min(d, maxDuration) : d
 }
 
-export const utf8Bytes = (s: string) => Buffer.byteLength(s, 'utf8')
+/**
+ * 提示词按上游实际收到的字节数算：UTF-8，换行算 2 字节。
+ * multipart 表单（aiask Grok 视频）提交时换行会被规范成 \r\n，按 1 字节算会出现「本地量着 4080、上游收到 4100」被 400 拒绝
+ */
+export const utf8Bytes = (s: string) => {
+  const str = String(s)
+  let lf = 0
+  for (let i = 0; i < str.length; i++) if (str.charCodeAt(i) === 10 && str.charCodeAt(i - 1) !== 13) lf++
+  return Buffer.byteLength(str, 'utf8') + lf
+}
 
 /** 按 UTF-8 字节截短，不切断字符；尽量停在句子 / 换行边界（边界离结尾太远时直接按字符截） */
 export function truncateBytes(text: string, maxBytes: number): string {

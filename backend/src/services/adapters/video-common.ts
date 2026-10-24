@@ -39,6 +39,20 @@ export function toGrokImageRefs(prompt: string, referenceCount: number): string 
 
 /** Grok 视频提示词最多 4096 字节（UTF-8）：按配置的上限（不超过 4096）精简，转换 <IMAGE_n> 之后再量一次 */
 export const GROK_PROMPT_MAX_BYTES = 4096
+/** 是不是 Grok 视频（aiask Grok 分组 / xAI 原生）：接口自身限提示词 4096 字节 */
+export function isGrokVideoProvider(provider: string | null | undefined): boolean {
+  return provider === 'aiask' || provider === 'xai'
+}
+/**
+ * 这个视频配置每次提交的提示词上限（字节，0 = 不限）：设置页的单镜上限；Grok 再夹到 4096，
+ * 并留 64 字节给适配器把 @图片N 换成 <IMAGE_n>（每处多 1 字节）
+ */
+export function promptByteLimitFor(config: { provider?: string | null; settings?: Record<string, any> | null } | null | undefined): number {
+  const configured = videoLimits(config?.settings).maxPromptBytes
+  if (!isGrokVideoProvider(config?.provider)) return configured
+  const grok = GROK_PROMPT_MAX_BYTES - 64
+  return configured > 0 ? Math.min(configured, grok) : grok
+}
 export function fitGrokPrompt(config: AIConfig, prompt: string): string {
   const configured = videoLimits(config.settings).maxPromptBytes
   const limit = configured > 0 ? Math.min(configured, GROK_PROMPT_MAX_BYTES) : GROK_PROMPT_MAX_BYTES
