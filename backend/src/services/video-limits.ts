@@ -5,9 +5,9 @@
  * 不设或 0 = 不限制（默认）。接口自己的硬上限另由适配器处理（如 Grok 最多 4096 字节、15 秒，
  * 见 video-common.ts fitGrokPrompt / aiask-video.ts normalizeAiaskDuration）。按字节算：一个汉字 3 字节。
  *
- * 提示词超长时 fitPromptBytes 按重要性精简，而不是直接截断丢掉结尾：
- * 先压缩空白，再依次去掉附加的导演指令块（画风 → 场景 → 物理 → 站位 → 接戏 → 人物外观 → 系统音），
- * 最后才在句子边界截短正文；【台词控制】最后才动（防止模型自己编台词）。
+ * 提示词超长时 fitPromptBytes 按重要性精简，而不是直接截断丢掉结尾（routes/tasks.ts 超限时先换精简版导演指令）：
+ * 先压缩空白；再在句子边界截短正文结尾（正文至少留上限的 55%，正文本来就短时最多截掉 20%）；还超才依次去掉附加的导演指令块
+ * （画风 → 物理 → 场景 → 站位 → 系统音 → 人物外观 → 接上一镜）；【台词控制】最后才动（防止模型自己编台词）。
  */
 
 /** 0 = 不限制 */
@@ -64,13 +64,16 @@ export function truncateBytes(text: string, maxBytes: number): string {
 /** 导演指令块（shot-direction.ts buildShotDirectives），按去掉的先后顺序 */
 const DROP_ORDER: Array<{ re: RegExp; label: string }> = [
   { re: /^(【画风一致】|\[Style lock\])/, label: '画风一致' },
-  { re: /^(【场景一致】|\[Scene lock\])/, label: '场景一致' },
   { re: /^(【物理真实】|\[Physics\])/, label: '物理真实' },
+  { re: /^(【场景一致】|\[Scene lock\])/, label: '场景一致' },
   { re: /^(【人物站位】|\[Blocking\])/, label: '人物站位' },
-  { re: /^(【接上一镜】|\[Continuity\])/, label: '接上一镜' },
-  { re: /^(【人物外观锁定】|\[Character lock\])/, label: '人物外观锁定' },
   { re: /^(【系统音】|\[System voice\])/, label: '系统音' },
+  { re: /^(【人物外观锁定】|\[Character lock\])/, label: '人物外观锁定' },
+  // 接戏最后才去：去掉后这一镜和上一镜对不上，整条白生成
+  { re: /^(【接上一镜】|\[Continuity\])/, label: '接上一镜' },
 ]
+/** 截短正文时至少留给正文的比例：再少就先去掉附加指令 */
+const BODY_FLOOR_RATIO = 0.55
 const BLOCK_START = /^(【[^】]{2,8}】|\[(Dialogue control|System voice|Character lock|Scene lock|Style lock|Blocking|Continuity|Physics)\])/
 
 export interface FitResult {
@@ -110,23 +113,33 @@ export function fitPromptBytes(prompt: string, maxBytes: number): FitResult {
   }
   const join = (b: string, bl: string[]) => [b, bl.join('\n')].filter(Boolean).join('\n\n')
 
-  // 3. 依次去掉次要的指令块
-  const removed: string[] = []
+  // 3. 截短正文结尾（指令块是约束，正文后半通常是细节）：正文不少于上限的 55% 时只截正文
   let kept = blocks.map((b) => b.trim()).filter(Boolean)
+  // 正文下限：上限的 55%；正文本来就短时最多截掉它的 20%
+  const bodyFloor = Math.floor(Math.min(maxBytes * BODY_FLOOR_RATIO, utf8Bytes(body) * 0.8))
+  if (body && kept.length) {
+    const bodyBudget = maxBytes - utf8Bytes(kept.join('\n')) - 2
+    if (bodyBudget >= bodyFloor) return result(join(truncateBytes(body, bodyBudget), kept), [], true)
+  }
+
+  // 4. 还超：正文先截到下限，再依次去掉次要的指令块
+  const floorBody = body && kept.length ? truncateBytes(body, bodyFloor) : body
+  const removed: string[] = []
   for (const { re, label } of DROP_ORDER) {
-    if (utf8Bytes(join(body, kept)) <= maxBytes) break
+    if (utf8Bytes(join(floorBody, kept)) <= maxBytes) break
     const before = kept.length
     kept = kept.filter((b) => !re.test(b))
     if (kept.length < before) removed.push(label)
   }
-  if (utf8Bytes(join(body, kept)) <= maxBytes) return result(join(body, kept), removed, false)
+  if (utf8Bytes(join(floorBody, kept)) <= maxBytes) {
+    // 去掉指令块后空出来的位置还给正文
+    const bodyBudget = maxBytes - (kept.length ? utf8Bytes(kept.join('\n')) + 2 : 0)
+    const b = truncateBytes(body, bodyBudget)
+    return result(join(b, kept), removed, b !== body)
+  }
 
-  // 4. 还超：截短正文，给剩下的指令块（台词控制）留位置；正文至少留一半
-  const blockBytes = kept.length ? utf8Bytes(kept.join('\n')) + 2 : 0
-  const bodyBudget = maxBytes - blockBytes
-  if (bodyBudget >= maxBytes * 0.5) return result(join(truncateBytes(body, bodyBudget), kept), removed, true)
-  // 台词控制本身太长：整体截短（正文在前）
-  return result(truncateBytes(join(body, kept), maxBytes), removed, true)
+  // 5. 台词控制本身太长：整体截短（正文在前）
+  return result(truncateBytes(join(floorBody, kept), maxBytes), removed, true)
 }
 
 /** 给用户看的精简说明 */

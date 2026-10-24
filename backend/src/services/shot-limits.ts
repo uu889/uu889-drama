@@ -3,7 +3,8 @@
  * 不是拼接后成片的总长。拆分镜、写视频提示词时就按这个写，而不是等到提交时再截。
  *
  * 用哪一个视频配置：该集锁定的 video_config_id，没有就用当前启用的视频配置。两项默认都不限制（0），不限时不追加说明。
- * 提示词预算给 Agent 写的 video_prompt 留 60%：生成时还会追加【台词控制】【人物外观锁定】等导演指令。
+ * 提示词预算给 Agent 写的 video_prompt 留 50%：生成时还会追加项目画风词和【台词控制】【人物外观锁定】【接上一镜】等导演指令
+ * （超限时用精简版，约 1~1.5KB）。Grok（aiask / xai）接口自身最多 4096 字节，没设或设得更大时按 4096 算。
  */
 import { eq } from 'drizzle-orm'
 import { db, schema } from '../db/index.js'
@@ -16,10 +17,14 @@ export interface ShotLimits extends VideoLimits {
   configName: string | null
 }
 
-export const PROMPT_BUDGET_RATIO = 0.6
+export const PROMPT_BUDGET_RATIO = 0.5
+const GROK_MAX_PROMPT_BYTES = 4096
 
-export function shotLimitsFrom(settings: Record<string, any> | null | undefined, configName: string | null = null): ShotLimits {
+export function shotLimitsFrom(settings: Record<string, any> | null | undefined, configName: string | null = null, provider?: string | null): ShotLimits {
   const l = videoLimits(settings)
+  if (provider === 'aiask' || provider === 'xai') {
+    l.maxPromptBytes = l.maxPromptBytes > 0 ? Math.min(l.maxPromptBytes, GROK_MAX_PROMPT_BYTES) : GROK_MAX_PROMPT_BYTES
+  }
   return {
     ...l,
     promptBudgetBytes: l.maxPromptBytes > 0 ? Math.max(600, Math.floor(l.maxPromptBytes * PROMPT_BUDGET_RATIO)) : 0,
@@ -42,7 +47,7 @@ export async function shotLimitsForEpisode(episodeId: number | null | undefined)
     if (ep?.videoConfigId) cfg = rows.find((r) => r.id === ep.videoConfigId)
   }
   cfg ??= rows.filter((r) => r.isActive).sort((a, b) => (b.priority || 0) - (a.priority || 0))[0]
-  return shotLimitsFrom(parseSettings(cfg?.settings), cfg?.name ?? null)
+  return shotLimitsFrom(parseSettings(cfg?.settings), cfg?.name ?? null, cfg?.provider)
 }
 
 /** 追加给拆分镜 / 视频提示词 Agent 的说明；两项都不限制（默认）时返回 '' */

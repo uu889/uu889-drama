@@ -680,7 +680,7 @@
         "maxDuration": "Duración máxima por plano (s)",
         "maxDurationHint": "Por plano (un vídeo), no la duración del montaje final. Vacío o 0 = sin límite (por defecto). Si se fija, la IA mantiene cada plano dentro y divide los que no caben.",
         "maxPromptBytes": "Longitud máxima del prompt por plano (bytes UTF-8)",
-        "maxPromptBytesHint": "Vacío o 0 = sin límite (por defecto); un carácter chino = 3 bytes. Si se fija, la IA escribe hasta un 60 % (el resto para instrucciones automáticas); si al enviar aún se excede, se quitan instrucciones añadidas y se acorta. El límite propio de Grok (4096 bytes) se aplica automáticamente.",
+        "maxPromptBytesHint": "Vacío o 0 = sin límite (por defecto); un carácter chino = 3 bytes. Si se fija, la IA escribe hasta la mitad (el resto para el estilo y las instrucciones automáticas). Si al enviar aún se excede, primero se usan instrucciones compactas, luego se acorta el final del texto y solo después se quitan instrucciones secundarias; la continuidad con la toma anterior, la última. El límite propio de Grok (4096 bytes) se aplica automáticamente.",
         "unlimited": "Sin límite",
         "moderationRetries": "Reintentos por moderación",
         "moderationRetriesHint": "Cuántas veces reenviar sin cambios cuando la moderación bloquea un vídeo (la moderación de Grok es irregular; un contenido correcto suele pasar al reenviar). Vacío = 2, 0 = nunca."

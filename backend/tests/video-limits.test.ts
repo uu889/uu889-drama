@@ -32,19 +32,25 @@ const DIRECTIVES = [
   '【人物站位】小明在画面左侧。',
 ].join('\n')
 
-test('fitPromptBytes drops optional add-on blocks first and keeps dialogue control and body', () => {
+test('fitPromptBytes trims a little of the body before dropping add-on blocks, then drops optional ones and keeps dialogue control', () => {
   const prompt = `${BODY}\n\n${DIRECTIVES}`
   const full = utf8Bytes(prompt)
+  // 只超一点：截掉正文结尾一句，指令块全保留
   const fit = fitPromptBytes(prompt, full - 50)
   assert.ok(fit.toBytes <= full - 50)
-  assert.deepEqual(fit.removed, ['画风一致'])
-  assert.ok(fit.prompt.startsWith(BODY))
-  assert.match(fit.prompt, /【台词控制】[\s\S]*【人物外观锁定】[\s\S]*【场景一致】[\s\S]*【人物站位】/)
-  assert.equal(fit.bodyCut, false)
+  assert.deepEqual(fit.removed, [])
+  assert.equal(fit.bodyCut, true)
+  assert.ok(fit.prompt.startsWith('小明推门进来'))
+  assert.match(fit.prompt, /【台词控制】[\s\S]*【人物外观锁定】[\s\S]*【场景一致】[\s\S]*【画风一致】[\s\S]*【人物站位】/)
+  // 超得多：去掉画风一致，空出来的位置还给正文
+  const more = fitPromptBytes(prompt, full - 400)
+  assert.deepEqual(more.removed, ['画风一致'])
+  assert.ok(more.prompt.startsWith(BODY))
+  assert.equal(more.bodyCut, false)
   // 更紧：去掉更多块
   const tight = fitPromptBytes(prompt, utf8Bytes(BODY) + 160)
   assert.ok(tight.toBytes <= utf8Bytes(BODY) + 160)
-  assert.ok(tight.prompt.startsWith(BODY))
+  assert.ok(tight.prompt.startsWith('小明推门进来'))
   assert.match(tight.prompt, /【台词控制】/)
   // 不超就原样
   assert.equal(fitPromptBytes(prompt, 0).prompt, prompt)

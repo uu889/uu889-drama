@@ -8,7 +8,8 @@ import { success, created, badRequest } from '../utils/response.js'
 import { generateImage, generateVideo } from '../services/generation.js'
 import { getActiveConfig, getConfigById } from '../services/ai.js'
 import { getDramaStylePrompt } from '../services/style-preset.js'
-import { clampDuration, videoLimits } from '../services/video-limits.js'
+import { clampDuration, utf8Bytes, videoLimits } from '../services/video-limits.js'
+import { GROK_PROMPT_MAX_BYTES } from '../services/adapters/video-common.js'
 import { logTaskError, logTaskPayload, logTaskStart, logTaskSuccess } from '../utils/task-logger.js'
 
 const app = new Hono()
@@ -18,7 +19,7 @@ async function buildStoryboardDirectives(
   storyboardId: number,
   prompt: string,
   direction: any,
-  extra: { duration: number; hasStylePreset: boolean },
+  extra: { duration: number; hasStylePreset: boolean; compact?: boolean },
 ): Promise<string> {
   const [sb] = await db.select().from(schema.storyboards).where(eq(schema.storyboards.id, storyboardId))
   if (!sb) return ''
@@ -52,6 +53,7 @@ async function buildStoryboardDirectives(
     previousFrame: frameMode && previous ? { mode: frameMode, index: Number(direction.previous_frame_index) || 1 } : null,
     prompt,
     hasStylePreset: extra.hasStylePreset,
+    compact: extra.compact,
     systemVoice: await getEpisodeSystemVoice(sb.episodeId),
     options: {
       dialogueLock: direction.dialogue_lock !== false,
@@ -174,6 +176,8 @@ app.post('/', async (c) => {
     // 请求显式指定 config_id（工作台模型下拉跨厂商切换）时优先；
     // 未指定才回退到集锁定配置，避免锁定配置与所选模型错配（如锁定 Seedance 却传 MiniMax 模型名）
     let configId: number | undefined = body.config_id
+    /** 这次提交的提示词上限（字节，0 = 不限）：设置页的单镜上限，Grok 另有接口硬上限 4096 */
+    let promptByteLimit = 0
     let episodeResolution: string | undefined
     let storyboardDramaId: number | undefined
     if (body.storyboard_id) {
@@ -194,6 +198,10 @@ app.post('/', async (c) => {
       // 时长超过这个视频接口的上限（设置页「最长分镜视频时长」，默认不限）按上限生成；
       // 先于导演指令调整，【台词控制】里的「本段共 N 秒」才对得上
       const limits = videoLimits(effectiveConfig?.settings)
+      promptByteLimit = limits.maxPromptBytes
+      if (effectiveConfig?.provider === 'aiask' || effectiveConfig?.provider === 'xai') {
+        promptByteLimit = promptByteLimit > 0 ? Math.min(promptByteLimit, GROK_PROMPT_MAX_BYTES) : GROK_PROMPT_MAX_BYTES
+      }
       const clamped = clampDuration(videoBody.duration, limits.maxDuration)
       if (clamped != null && clamped < Number(videoBody.duration)) videoBody.duration = clamped
       const validationError = validateVideoRequest(videoBody, effectiveConfig?.provider)
@@ -219,11 +227,16 @@ app.post('/', async (c) => {
     }
     // 镜头导演指令：台词控制（防止补台词）、人物 / 场景 / 画风锁定、站位与接上一镜
     if (type === 'video' && body.storyboard_id && body.direction && typeof body.direction === 'object') {
-      const directives = await buildStoryboardDirectives(Number(body.storyboard_id), String(videoBody?.prompt || ''), body.direction, {
+      const build = (compact: boolean) => buildStoryboardDirectives(Number(body.storyboard_id), String(videoBody?.prompt || ''), body.direction, {
         duration: Number(videoBody?.duration || 0),
         hasStylePreset: !!stylePrompt,
+        compact,
       })
-      if (directives) videoPrompt = `${String(videoPrompt || '').trim()}\n\n${directives}`.trim()
+      const withDirectives = (d: string) => d ? `${String(videoPrompt || '').trim()}\n\n${d}`.trim() : String(videoPrompt || '')
+      let full = withDirectives(await build(false))
+      // 超出提示词上限：先换精简版导演指令（约束不变、写得短），尽量不用在提交时整块去掉【接上一镜】等
+      if (promptByteLimit > 0 && utf8Bytes(full) > promptByteLimit) full = withDirectives(await build(true))
+      videoPrompt = full
     }
 
     const id = type === 'image'

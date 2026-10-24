@@ -252,6 +252,11 @@ export interface ShotDirectionInput {
   prompt: string
   hasStylePreset?: boolean
   options: { dialogueLock?: boolean; appearanceLock?: boolean; continuity?: boolean; physicsLock?: boolean }
+  /**
+   * 精简版：视频接口限制了提示词长度（如 Grok 4096 字节）时用，同样的约束写得更短（约一半），
+   * 免得提交时为了凑长度整块去掉【接上一镜】【画风一致】等
+   */
+  compact?: boolean
   /** 系统音（系统流）：开启时分镜里系统的台词按画外电子音处理 */
   systemVoice?: { enabled: boolean; name: string; voice: string; chime: string; panel: boolean } | null
 }
@@ -278,6 +283,29 @@ function endState(blocking: string | null | undefined): string {
 
 export const PHYSICS_ZH = '【物理真实】动作符合真实物理：重力向下，脚踩实地面、重心稳定，走路不滑步、不漂浮；手接触物体时真实抓握、受力，物体不穿过身体或彼此穿插，不凭空出现、消失或变形；人物肢体数量和比例始终正常，手指完整；动作速度自然连贯，不瞬移、不倒放、不突然加速；头发、衣摆、液体随动作和重力自然摆动。'
 export const PHYSICS_EN = '[Physics] Motion obeys real physics: gravity pulls down, feet stay planted with stable balance, no sliding or floating while walking; hands really grip and push objects, nothing passes through bodies or other objects, nothing appears, vanishes or morphs; limbs and fingers stay complete and correctly proportioned; movement is smooth at natural speed, no teleporting, reversing or sudden speed-ups; hair, clothing and liquids move naturally with motion and gravity.'
+export const PHYSICS_ZH_COMPACT = '【物理真实】符合重力与受力：脚踩实地，不漂浮、不滑步；手真实抓握，物体不穿模、不凭空出现或变形；肢体手指完整，动作速度自然。'
+export const PHYSICS_EN_COMPACT = '[Physics] Real gravity and contact: feet planted, no floating or sliding; hands really grip; nothing clips through, appears from nowhere or morphs; limbs and fingers intact; natural speed.'
+
+/** 精简版【台词控制】：约束不变（只说这几句、逐字、不加词、其余时间闭嘴），说明写短 */
+function compactDialogueBlock(plan: ReturnType<typeof planDialogue>, duration: number, zh: boolean, ref: (name: string) => string): string {
+  if (!plan.lines.length) {
+    return zh ? '【台词控制】本段没有台词和旁白：全程无人开口、不做说话口型。' : '[Dialogue control] No dialogue or narration: nobody speaks or moves their lips.'
+  }
+  const list = plan.lines.map((l, i) => {
+    const who = l.kind === 'narration'
+      ? (zh ? '旁白（画外音）' : 'Narration (V.O.)')
+      : l.kind === 'system'
+        ? (zh ? `${l.speaker}（画外电子音）` : `${l.speaker} (off-screen synthetic voice)`)
+        : ref(l.speaker || (zh ? '角色' : 'Character'))
+    return zh ? `${i + 1}. ${who}：「${l.text}」` : `${i + 1}. ${who}: "${l.text}"`
+  })
+  const hasNarration = plan.lines.some((l) => l.kind === 'narration')
+  return zh
+    ? [`【台词控制】本段 ${duration} 秒只有这 ${plan.lines.length} 句，按顺序各说一次、逐字一致，不加、不改、不重复：`, ...list,
+      `其余时间无人说话，不说话的人闭嘴，用倾听、对视、停顿填满。${hasNarration ? '旁白时画面人物不动嘴。' : ''}`].join('\n')
+    : [`[Dialogue control] This ${duration}s shot has ONLY these ${plan.lines.length} line(s), each said once, in order, word for word; add or change nothing:`, ...list,
+      `Otherwise nobody speaks; listeners keep their mouths closed and react with looks and pauses.${hasNarration ? ' No lip movement during narration.' : ''}`].join('\n')
+}
 
 /** 生成附加在视频提示词后面的导演指令（没有可加的内容时返回 ''） */
 export function buildShotDirectives(input: ShotDirectionInput): string {
@@ -291,10 +319,14 @@ export function buildShotDirectives(input: ShotDirectionInput): string {
   const sysNames = systemNamesFor(sv)
   const allLines = parseShotDialogue(input.description, names, { systemNames: sysNames, systemLabel: sv?.name })
 
+  const compact = input.compact === true
+
   // ── 台词控制 ──
   if (input.options.dialogueLock !== false) {
     const plan = planDialogue(allLines)
-    if (!plan.lines.length) {
+    if (compact) {
+      blocks.push(compactDialogueBlock(plan, duration, zh, ref))
+    } else if (!plan.lines.length) {
       blocks.push(zh
         ? '【台词控制】本段没有任何台词和旁白：所有人物全程不开口说话、不做说话口型，只有动作、表情与环境音。'
         : '[Dialogue control] This shot has NO dialogue and NO narration: nobody speaks or moves their lips at any time; only actions, expressions and ambient sound.')
@@ -333,7 +365,15 @@ export function buildShotDirectives(input: ShotDirectionInput): string {
   // ── 人物外观 / 场景 / 画风 一致 ──
   if (input.options.appearanceLock !== false) {
     const chars = input.characters.filter((c) => c.name && !(sv && sysNames.includes(c.name)))
-    if (chars.length) {
+    if (chars.length && compact) {
+      const rows = chars.map((c) => {
+        const desc = [clip(c.appearance, 45), clip(c.styling, 35)].filter(Boolean).join(zh ? '；' : '; ')
+        return desc ? `${ref(c.name)}${zh ? '：' : ': '}${desc}` : ref(c.name)
+      })
+      blocks.push(zh
+        ? `【人物外观锁定】脸、发型、服装、体型与各自参考图一致，全片不变：\n${rows.join('\n')}`
+        : `[Character lock] Face, hair, outfit and build match each reference image for the whole shot:\n${rows.join('\n')}`)
+    } else if (chars.length) {
       const rows = chars.map((c) => {
         const desc = [clip(c.appearance, 90), clip(c.styling, 70)].filter(Boolean).join(zh ? '；' : '; ')
         return desc ? `${ref(c.name)}：${desc}` : ref(c.name)
@@ -342,23 +382,43 @@ export function buildShotDirectives(input: ShotDirectionInput): string {
         ? `【人物外观锁定】以下人物的脸型五官、发型发色、服装配饰、体型与年龄必须与各自参考图完全一致，全片不变、不换装、不变脸：\n${rows.join('\n')}`
         : `[Character lock] Faces, hair, outfits, accessories, body type and age must match each character's reference image exactly and stay identical for the whole shot — no outfit or face changes:\n${rows.map((r) => r.replace('：', ': ')).join('\n')}`)
     }
-    if (input.sceneName) {
+    if (input.sceneName && compact) {
+      blocks.push(zh
+        ? `【场景一致】布局、陈设与光线以 ${ref(input.sceneName)} 为准。`
+        : `[Scene lock] Layout, furniture and lighting follow ${ref(input.sceneName)}.`)
+    } else if (input.sceneName) {
       blocks.push(zh
         ? `【场景一致】场景布局、陈设、门窗位置与光线方向以 ${ref(input.sceneName)} 为准，与同场景其他镜头保持一致。`
         : `[Scene lock] Layout, furniture, doors / windows and light direction follow ${ref(input.sceneName)} and match the other shots in this location.`)
     }
-    blocks.push(zh
+    if (compact) {
+      blocks.push(zh
+        ? '【画风一致】画风、色调与参考图一致，不换画风；画面清晰、细节丰富。'
+        : '[Style lock] Same style and colors as the references, no style switch; sharp and detailed.')
+    } else blocks.push(zh
       ? `【画风一致】${input.hasStylePreset ? '严格保持开头指定的画风，' : ''}画风、色调、光影质感与参考图一致，全片不得切换成其他画风（如写实 / 动漫 / 3D 互换）；画面清晰锐利、细节丰富，人物五官、发丝与服装面料纹理清楚，不要虚焦、涂抹感、磨皮或塑料感。`
       : `[Style lock] ${input.hasStylePreset ? 'Keep the style given at the start. ' : ''}Art style, color grading and lighting match the reference images; never switch styles (e.g. realistic ↔ anime ↔ 3D). Keep the image sharp and richly detailed — clear facial features, hair strands and fabric texture; no soft-focus blur, smeared detail, airbrushed or plastic look.`)
   }
 
   // ── 站位与接戏 ──
   if (input.options.continuity !== false) {
-    const blocking = clip(input.blocking, 220)
+    const blocking = clip(input.blocking, compact ? 120 : 220)
     if (blocking) {
       blocks.push(zh ? `【人物站位】${blocking}` : `[Blocking] ${blocking}`)
     }
-    if (input.previous || input.previousFrame) {
+    if ((input.previous || input.previousFrame) && compact) {
+      const prevEnd = clip(endState(input.previous?.blocking), 80)
+      const lines: string[] = []
+      if (input.previousFrame?.mode === 'first_frame') {
+        lines.push(zh ? '从首帧（上一镜结尾画面）直接开始，站位、朝向、服装、光线与首帧一致。' : 'Start from the given first frame (last frame of the previous shot); same positions, facing, outfits and light.')
+      } else if (input.previousFrame?.mode === 'reference') {
+        const tag = `@图片${input.previousFrame.index || 1}`
+        lines.push(zh ? `${tag} 是上一镜结尾画面：开场站位、朝向、服装、光线与它一致，人物左右关系不变。` : `${tag} is the previous shot's last frame: open with the same positions, facing, outfits and light; keep left/right order.`)
+      }
+      if (prevEnd) lines.push(zh ? `上一镜结尾：${prevEnd.replace(/[。.]?$/, '。')}` : `Previous shot ended: ${prevEnd.replace(/\.?$/, '.')}`)
+      lines.push(zh ? '遵守 180 度轴线，人物不凭空消失或换位。' : 'Keep the 180-degree rule; nobody vanishes or swaps places.')
+      blocks.push(zh ? `【接上一镜】${lines.join('')}` : `[Continuity] ${lines.join(' ')}`)
+    } else if (input.previous || input.previousFrame) {
       const prevEnd = endState(input.previous?.blocking)
       const lines: string[] = []
       if (input.previousFrame?.mode === 'first_frame') {
@@ -381,7 +441,7 @@ export function buildShotDirectives(input: ShotDirectionInput): string {
 
   // ── 物理真实：开源 / 量化 / 少步数的视频模型（如本地 MiniMax H3 小显存档）容易穿模、漂浮、变形 ──
   if (input.options.physicsLock !== false) {
-    blocks.push(zh ? PHYSICS_ZH : PHYSICS_EN)
+    blocks.push(compact ? (zh ? PHYSICS_ZH_COMPACT : PHYSICS_EN_COMPACT) : (zh ? PHYSICS_ZH : PHYSICS_EN))
   }
 
   return blocks.join('\n')

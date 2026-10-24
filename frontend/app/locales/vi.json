@@ -680,7 +680,7 @@
         "maxDuration": "Thời lượng tối đa mỗi phân cảnh (giây)",
         "maxDurationHint": "Giới hạn mỗi phân cảnh (một video), không phải độ dài video ghép. Để trống hoặc 0 = không giới hạn (mặc định). Khi đặt, AI giữ mỗi cảnh trong giới hạn và tách cảnh quá dài.",
         "maxPromptBytes": "Độ dài prompt tối đa mỗi phân cảnh (byte UTF-8)",
-        "maxPromptBytesHint": "Để trống hoặc 0 = không giới hạn (mặc định); một chữ Hán = 3 byte. Khi đặt, AI viết khoảng 60% (phần còn lại cho chỉ dẫn tự thêm); khi gửi vẫn vượt thì bỏ chỉ dẫn phụ rồi rút ngắn. Giới hạn 4096 byte của Grok được xử lý tự động.",
+        "maxPromptBytesHint": "Để trống hoặc 0 = không giới hạn (mặc định); một chữ Hán = 3 byte. Khi đặt, AI viết khoảng một nửa (phần còn lại cho từ phong cách và chỉ dẫn tự thêm). Khi gửi vẫn vượt thì trước tiên đổi sang chỉ dẫn rút gọn, sau đó rút ngắn phần cuối văn bản, cuối cùng mới bỏ chỉ dẫn phụ — nối cảnh trước bỏ sau cùng. Giới hạn 4096 byte của Grok được xử lý tự động.",
         "unlimited": "Không giới hạn",
         "moderationRetries": "Số lần thử lại khi bị kiểm duyệt",
         "moderationRetriesHint": "Số lần gửi lại nguyên văn khi kiểm duyệt chặn video (kiểm duyệt của Grok không ổn định; nội dung không có vấn đề thường qua khi gửi lại). Để trống = 2, 0 = không thử lại."

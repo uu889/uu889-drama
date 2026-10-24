@@ -680,7 +680,7 @@
         "maxDuration": "Max. Shot-Videolänge (Sekunden)",
         "maxDurationHint": "Pro Shot (ein Video), nicht die Länge des Gesamtexports. Leer oder 0 = unbegrenzt (Standard). Wenn gesetzt, hält die KI jeden Shot darin und teilt zu lange Shots.",
         "maxPromptBytes": "Max. Shot-Promptlänge (UTF-8-Bytes)",
-        "maxPromptBytesHint": "Leer oder 0 = unbegrenzt (Standard); ein chinesisches Zeichen = 3 Bytes. Wenn gesetzt, schreibt die KI etwa 60 % davon (Rest für automatische Anweisungen); zu lange Prompts verlieren beim Senden zuerst Zusatzanweisungen, dann wird gekürzt. Das 4096-Byte-Limit von Grok wird automatisch beachtet.",
+        "maxPromptBytesHint": "Leer oder 0 = unbegrenzt (Standard); ein chinesisches Zeichen = 3 Bytes. Wenn gesetzt, schreibt die KI etwa die Hälfte davon (Rest für Stilwörter und automatische Anweisungen). Ist der Prompt beim Senden noch zu lang, werden zuerst kompakte Anweisungen verwendet, dann das Textende gekürzt und erst danach Zusatzanweisungen entfernt – der Anschluss an die vorige Einstellung zuletzt. Das 4096-Byte-Limit von Grok wird automatisch beachtet.",
         "unlimited": "Unbegrenzt",
         "moderationRetries": "Wiederholungen bei Moderation",
         "moderationRetriesHint": "Wie oft unverändert neu gesendet wird, wenn die Moderation ein Video blockiert (Grok moderiert uneinheitlich; unbedenkliche Inhalte gehen beim erneuten Senden oft durch). Leer = 2, 0 = nie."
