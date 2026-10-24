@@ -683,6 +683,7 @@
                     />
                     <div v-if="task.error" class="video-task-error" :title="task.error">
                       {{ mapError(task.error) }}
+                      <div v-if="rawErrorLine(task.error)" class="video-task-error-raw">{{ t('errors.rawDetail', { detail: rawErrorLine(task.error) }) }}</div>
                       <div v-if="videoModerationHint(task.error)" class="video-task-error-hint">{{ videoModerationHint(task.error) }}</div>
                     </div>
                   </div>
@@ -1354,6 +1355,7 @@
                 <div v-if="row.errorMsg && row.status === 'completed'" class="video-task-note" :title="row.errorMsg">{{ row.errorMsg }}</div>
                 <div v-else-if="row.errorMsg" class="video-task-error" :title="row.errorMsg">
                   {{ mapError(row.errorMsg) }}
+                  <div v-if="rawErrorLine(row.errorMsg)" class="video-task-error-raw">{{ t('errors.rawDetail', { detail: rawErrorLine(row.errorMsg) }) }}</div>
                   <div v-if="row.kind === 'video' && videoModerationHint(row.errorMsg)" class="video-task-error-hint">{{ videoModerationHint(row.errorMsg) }}</div>
                 </div>
               </div>
@@ -1778,7 +1780,7 @@ import {
 import { api, dramaAPI, episodeAPI, storyboardAPI, characterAPI, sceneAPI, propAPI, taskAPI, mergeAPI, aiConfigAPI, uploadAPI } from '~/composables/useApi'
 import { startTour, autoTour } from '~/composables/useTour'
 import { useAgent } from '~/composables/useAgent'
-import { toastError, mapError, MODERATION_RE } from '~/composables/useToast'
+import { toastError, mapError, errorDetail, MODERATION_RE } from '~/composables/useToast'
 import LocaleSwitcher from '~/components/LocaleSwitcher.vue'
 import TaskProgress from '~/components/TaskProgress.vue'
 
@@ -2391,6 +2393,13 @@ function videoFailMessage(id) {
 
 // 内容审核类失败（真人/敏感内容，如火山的 OutputVideoSensitiveContentDetected）：
 // 各厂商审核尺度不同，给出切换模型重试的引导
+/** 失败列表里友好文案下面的「原始报错」：友好文案已经包含原文时不重复 */
+function rawErrorLine(msg) {
+  const detail = errorDetail(msg)
+  if (!detail) return ''
+  const friendly = mapError(msg)
+  return friendly.includes(detail.slice(0, 40)) ? '' : detail
+}
 function videoModerationHint(msg) {
   return MODERATION_RE.test(String(msg || '')) ? t('episode.vid.moderationHint') : ''
 }
@@ -5973,6 +5982,14 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
   border: 1px solid var(--accent-glow);
   border-radius: var(--radius-lg);
   background: var(--accent-bg);
+}
+/* 失败的原始报错（上游原文），可选中复制 */
+.video-task-error-raw {
+  margin-top: 2px;
+  color: var(--text-2);
+  font-size: 11px;
+  word-break: break-all;
+  user-select: text;
 }
 /* 审核失败引导 */
 .video-task-error-hint {

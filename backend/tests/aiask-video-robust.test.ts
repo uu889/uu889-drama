@@ -16,7 +16,7 @@ process.env.MODERATION_RETRY_MS = '30'
 
 const { db, initDb, schema } = await import('../src/db/index')
 const { eq } = await import('drizzle-orm')
-const { generateVideo } = await import('../src/services/generation')
+const { generateVideo, describeSubmitError } = await import('../src/services/generation')
 const { isBusyMessage, isModerationFailure, isUpstreamBusy, moderationRetries, retryAfterMs } = await import('../src/services/upstream-busy')
 const { cloudLaneKey, cloudLaneLimit } = await import('../src/services/gpu-queue')
 
@@ -293,4 +293,11 @@ test('moderation keeps failing: gives up after the configured retries (default 2
   } finally {
     scenario = 'normal'
   }
+})
+
+test('submit errors keep the real cause instead of a bare "fetch failed"', () => {
+  const err = Object.assign(new TypeError('fetch failed'), { cause: Object.assign(new Error('getaddrinfo ENOTFOUND aiask.me'), { code: 'ENOTFOUND' }) })
+  assert.match(describeSubmitError(err, 'https://aiask.me'), /连接 aiask\.me 失败（ENOTFOUND getaddrinfo ENOTFOUND aiask\.me）/)
+  assert.match(describeSubmitError(Object.assign(new Error('The operation was aborted due to timeout'), { name: 'TimeoutError' }), 'https://aiask.me'), /aiask\.me 超时/)
+  assert.equal(describeSubmitError(new Error('API error 400: bad ratio'), 'https://aiask.me'), 'API error 400: bad ratio')
 })

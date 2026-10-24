@@ -1352,7 +1352,10 @@
     "requestFailed": "Anfrage fehlgeschlagen ({status})",
     "unknown": "Vorgang fehlgeschlagen. Bitte erneut versuchen.",
     "modelFailed": "Modellanfrage fehlgeschlagen (HTTP {status}): {detail}",
-    "modelFailedPlain": "Modellanfrage fehlgeschlagen: {detail}"
+    "modelFailedPlain": "Modellanfrage fehlgeschlagen: {detail}",
+    "failed": "Vorgang fehlgeschlagen",
+    "failedWithDetail": "{action}: {detail}",
+    "rawDetail": "Ursprünglicher Fehler: {detail}"
   },
   "tour": {
     "next": "Weiter",

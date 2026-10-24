@@ -1352,7 +1352,10 @@
     "requestFailed": "请求失败（{status}）",
     "unknown": "操作失败，请重试",
     "modelFailed": "模型调用失败（HTTP {status}）：{detail}",
-    "modelFailedPlain": "模型调用失败：{detail}"
+    "modelFailedPlain": "模型调用失败：{detail}",
+    "failed": "操作失败",
+    "failedWithDetail": "{action}：{detail}",
+    "rawDetail": "原始报错：{detail}"
   },
   "tour": {
     "next": "下一步",

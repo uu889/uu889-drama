@@ -1352,7 +1352,10 @@
     "requestFailed": "Falha na solicitação ({status})",
     "unknown": "Falha na operação. Tente novamente.",
     "modelFailed": "Falha na solicitação ao modelo (HTTP {status}): {detail}",
-    "modelFailedPlain": "Falha na solicitação ao modelo: {detail}"
+    "modelFailedPlain": "Falha na solicitação ao modelo: {detail}",
+    "failed": "Falha na operação",
+    "failedWithDetail": "{action}: {detail}",
+    "rawDetail": "Erro original: {detail}"
   },
   "tour": {
     "next": "Avançar",

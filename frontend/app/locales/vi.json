@@ -1352,7 +1352,10 @@
     "requestFailed": "Yêu cầu thất bại ({status})",
     "unknown": "Thao tác thất bại. Vui lòng thử lại.",
     "modelFailed": "Yêu cầu mô hình thất bại (HTTP {status}): {detail}",
-    "modelFailedPlain": "Yêu cầu mô hình thất bại: {detail}"
+    "modelFailedPlain": "Yêu cầu mô hình thất bại: {detail}",
+    "failed": "Thao tác thất bại",
+    "failedWithDetail": "{action}: {detail}",
+    "rawDetail": "Lỗi gốc: {detail}"
   },
   "tour": {
     "next": "Tiếp",

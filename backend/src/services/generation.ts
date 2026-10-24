@@ -520,7 +520,7 @@ async function processTask(id: number, config: AIConfig) {
     handedToPoll = true
     pollTask(record, config, taskId!, request)
   } catch (err: any) {
-    await failTask(id, err.message)
+    await failTask(id, describeSubmitError(err, config.baseUrl))
   } finally {
     if (!handedToPoll) releaseGpuLane(id)
   }
@@ -532,6 +532,24 @@ async function markPolling(id: number, taskId: string | undefined) {
     .where(eq(schema.sysTask.id, id))
   setTaskProgress(id, { stage: 'queued', message: `已提交，上游任务 ID：${taskId}，等待开始处理` })
   logTaskProgress('SysTask', 'poll-start', { id, taskId })
+}
+
+/**
+ * 提交阶段的异常 → 落库文案。Node fetch 断网 / 证书 / DNS 出错时 message 只有「fetch failed」，
+ * 真正原因在 cause 里（ECONNRESET、ENOTFOUND、证书错误等），一起写上才能排查
+ */
+export function describeSubmitError(err: any, baseUrl?: string): string {
+  const message = String(err?.message || err || '未知错误')
+  if (err?.name === 'TimeoutError' || /aborted due to timeout/i.test(message)) return `请求 ${hostOf(baseUrl)} 超时，没有拿到响应（${message}）`
+  const cause = err?.cause
+  const causeText = cause ? [cause.code, cause.message].filter(Boolean).join(' ') : ''
+  if (/^fetch failed$/i.test(message.trim())) {
+    return `连接 ${hostOf(baseUrl)} 失败（${causeText || message}），请检查网络 / 代理，或服务地址是否可以访问`
+  }
+  return causeText && !message.includes(causeText) ? `${message}（${causeText}）` : message
+}
+function hostOf(baseUrl?: string): string {
+  try { return new URL(String(baseUrl || '')).host || '服务' } catch { return '服务' }
 }
 
 /** 任务完成时写进备注（error_msg）的说明：时长 / 提示词被按上限调整、显存不足降分辨率等 */

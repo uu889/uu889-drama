@@ -78,7 +78,20 @@ export function mapError(err: unknown, opts?: { fallback?: string }): string {
 
   if (/^\d{3}$/.test(msg)) return t('errors.requestFailed', { status: msg })
 
+  // 认不出的错误：带上原文（截断），否则只剩「操作失败，请重试」，用户和我们都无从排查
+  const detail = errorDetail(msg, 160)
+  if (detail) return t('errors.failedWithDetail', { action: opts?.fallback ? t(opts.fallback) : t('errors.failed'), detail })
   return opts?.fallback ? t(opts.fallback) : t('errors.unknown')
+}
+
+/**
+ * 原始报错的可读部分：去掉 HTML 错误页、压缩空白、截断；给失败列表在友好文案下面显示「原始报错」。
+ * 没有可显示的内容返回空串
+ */
+export function errorDetail(err: unknown, max = 300): string {
+  const raw = messageOf(err).trim()
+  if (!raw || /^\s*<(!doctype|html)/i.test(raw)) return ''
+  return clip(raw.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(), max)
 }
 
 /** 统一错误 toast（默认 5s，比成功提示长） */

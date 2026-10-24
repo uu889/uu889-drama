@@ -1352,7 +1352,10 @@
     "requestFailed": "リクエストに失敗しました（{status}）",
     "unknown": "操作に失敗しました。再試行してください",
     "modelFailed": "モデルの呼び出しに失敗しました（HTTP {status}）：{detail}",
-    "modelFailedPlain": "モデルの呼び出しに失敗しました：{detail}"
+    "modelFailedPlain": "モデルの呼び出しに失敗しました：{detail}",
+    "failed": "操作に失敗しました",
+    "failedWithDetail": "{action}：{detail}",
+    "rawDetail": "元のエラー：{detail}"
   },
   "tour": {
     "next": "次へ",

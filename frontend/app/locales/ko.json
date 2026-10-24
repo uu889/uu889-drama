@@ -1352,7 +1352,10 @@
     "requestFailed": "요청 실패（{status}）",
     "unknown": "작업에 실패했습니다. 다시 시도하세요",
     "modelFailed": "모델 호출 실패 (HTTP {status}): {detail}",
-    "modelFailedPlain": "모델 호출 실패: {detail}"
+    "modelFailedPlain": "모델 호출 실패: {detail}",
+    "failed": "작업 실패",
+    "failedWithDetail": "{action}: {detail}",
+    "rawDetail": "원본 오류: {detail}"
   },
   "tour": {
     "next": "다음",

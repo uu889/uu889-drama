@@ -1352,7 +1352,10 @@
     "requestFailed": "Request failed ({status})",
     "unknown": "Operation failed. Please try again.",
     "modelFailed": "Model request failed (HTTP {status}): {detail}",
-    "modelFailedPlain": "Model request failed: {detail}"
+    "modelFailedPlain": "Model request failed: {detail}",
+    "failed": "Operation failed",
+    "failedWithDetail": "{action}: {detail}",
+    "rawDetail": "Original error: {detail}"
   },
   "tour": {
     "next": "Next",

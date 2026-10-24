@@ -1352,7 +1352,10 @@
     "requestFailed": "Échec de la requête ({status})",
     "unknown": "L'opération a échoué. Veuillez réessayer.",
     "modelFailed": "Échec de la requête au modèle (HTTP {status}) : {detail}",
-    "modelFailedPlain": "Échec de la requête au modèle : {detail}"
+    "modelFailedPlain": "Échec de la requête au modèle : {detail}",
+    "failed": "L'opération a échoué",
+    "failedWithDetail": "{action} : {detail}",
+    "rawDetail": "Erreur d'origine : {detail}"
   },
   "tour": {
     "next": "Suivant",
