@@ -95,7 +95,7 @@ test('directives: blocking and continuity with the previous shot', () => {
     description: '', duration: 5, characters: [], prompt: '中文', previous: { number: 1 }, previousFrame: { mode: 'first_frame' }, options: { dialogueLock: false, appearanceLock: false },
   })
   assert.match(first, /视频从给定的首帧（上一镜结尾画面）直接开始/)
-  const off = buildShotDirectives({ description: ZH, duration: 8, characters: [], prompt: '中文', previous: { number: 1 }, options: { dialogueLock: false, appearanceLock: false, continuity: false, physicsLock: false } })
+  const off = buildShotDirectives({ description: ZH, duration: 8, characters: [], prompt: '中文', previous: { number: 1 }, options: { dialogueLock: false, appearanceLock: false, continuity: false, physicsLock: false, qualityLock: false } })
   assert.equal(off, '')
 })
 
@@ -103,4 +103,19 @@ test('ref tokens follow the resolved @图片N names in the prompt', () => {
   assert.deepEqual(collectRefTokens('@图片2小明 看着 @图片3小红，@咖啡厅', ['小明', '小红', '咖啡厅', '路人']), {
     小明: '@图片2小明', 小红: '@图片3小红', 咖啡厅: '@咖啡厅',
   })
+})
+
+test('quality directive is its own block: always appended (also in compact mode) and never dropped when fitting', async () => {
+  const { fitPromptBytes } = await import('../src/services/video-limits')
+  const base = { description: '【镜头1】小明喝水（无人说话）', duration: 5, characters: [{ name: '小明', appearance: '短发' }], sceneName: '客厅', prompt: '小明喝水。', options: {} }
+  for (const compact of [false, true]) {
+    const d = buildShotDirectives({ ...base, compact })
+    assert.match(d, /【画质】画面清晰锐利、细节丰富/)
+    assert.doesNotMatch(d.split('\n').find((l) => l.startsWith('【画风一致】')) || '', /清晰/)
+    const prompt = `小明喝水。\n\n${d}`
+    const fit = fitPromptBytes(prompt, 420)
+    assert.match(fit.prompt, /【画质】/)
+    assert.ok(!fit.removed.includes('画质'))
+  }
+  assert.doesNotMatch(buildShotDirectives({ ...base, options: { qualityLock: false } }), /【画质】/)
 })

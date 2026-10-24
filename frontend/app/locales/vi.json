@@ -1214,6 +1214,8 @@
       "chainBatch": "Đã bật nối cảnh: {n} nhóm cảnh cùng bối cảnh sẽ được tạo lần lượt, mỗi cảnh nối từ khung hình cuối của cảnh trước.",
       "chainPaused": "Cảnh trước #{n} chưa tạo được. Cảnh này nối tiếp khung hình cuối của nó nên đã tạm dừng, chưa gửi. Khi #{n} có video, bấm «Thử lại mục lỗi» để tiếp tục theo thứ tự.",
       "chainPausedToast": "#{n} chưa tạo được. {count} cảnh cùng bối cảnh nối tiếp sau nó đã tạm dừng, chưa gửi, để không tốn tín dụng cho hình ảnh không khớp.",
+      "qualityLock": "Hình ảnh sắc nét",
+      "qualityLockTip": "Thêm [Quality]: hình ảnh sắc nét, rõ đường nét khuôn mặt, tóc và chất liệu vải; không mờ, không nhòe, không bóng nhựa. Không bao giờ bị bỏ khi rút gọn prompt dài.",
       "physicsLock": "Vật lý thật",
       "physicsLockTip": "Thêm chỉ dẫn [Physics]: trọng lực, chân chạm đất, cầm nắm thật, không xuyên vật hay biến dạng, tốc độ tự nhiên. Mô hình mở chạy local (như MiniMax H3 VRAM thấp) dễ sai nhất."
     },

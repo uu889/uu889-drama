@@ -7,7 +7,7 @@
  *
  * 提示词超长时 fitPromptBytes 按重要性精简，而不是直接截断丢掉结尾（routes/tasks.ts 超限时先换精简版导演指令）：
  * 先压缩空白；再在句子边界截短正文结尾（正文至少留上限的 55%，正文本来就短时最多截掉 20%）；还超才依次去掉附加的导演指令块
- * （画风 → 物理 → 场景 → 站位 → 系统音 → 人物外观 → 接上一镜）；【台词控制】最后才动（防止模型自己编台词）。
+ * （画风 → 物理 → 场景 → 站位 → 系统音 → 人物外观 → 接上一镜）；【台词控制】【画质】不去掉（防止模型自己编台词、画面变糊）。
  */
 
 /** 0 = 不限制 */
@@ -74,7 +74,7 @@ const DROP_ORDER: Array<{ re: RegExp; label: string }> = [
 ]
 /** 截短正文时至少留给正文的比例：再少就先去掉附加指令 */
 const BODY_FLOOR_RATIO = 0.55
-const BLOCK_START = /^(【[^】]{2,8}】|\[(Dialogue control|System voice|Character lock|Scene lock|Style lock|Blocking|Continuity|Physics)\])/
+const BLOCK_START = /^(【[^】]{2,8}】|\[(Dialogue control|Quality|System voice|Character lock|Scene lock|Style lock|Blocking|Continuity|Physics)\])/
 
 export interface FitResult {
   prompt: string
@@ -102,7 +102,7 @@ export function fitPromptBytes(prompt: string, maxBytes: number): FitResult {
   // 2. 拆出正文和后面的指令块（指令块从行首的【xx】/ [Xxx] 开始，直到下一个块）
   const lines = text.split('\n')
   // 正文里也可能有【镜头1】之类：只从第一个能识别的导演指令开始算指令块
-  const firstBlock = lines.findIndex((l) => /^(【(台词控制|系统音|人物外观锁定|场景一致|画风一致|人物站位|接上一镜|物理真实)】|\[(Dialogue control|System voice|Character lock|Scene lock|Style lock|Blocking|Continuity|Physics)\])/.test(l))
+  const firstBlock = lines.findIndex((l) => /^(【(台词控制|画质|系统音|人物外观锁定|场景一致|画风一致|人物站位|接上一镜|物理真实)】|\[(Dialogue control|Quality|System voice|Character lock|Scene lock|Style lock|Blocking|Continuity|Physics)\])/.test(l))
   const body = (firstBlock < 0 ? lines : lines.slice(0, firstBlock)).join('\n').trim()
   const blocks: string[] = []
   if (firstBlock >= 0) {

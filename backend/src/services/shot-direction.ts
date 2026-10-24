@@ -4,7 +4,8 @@
  * 1. 台词计时：从分镜 description 里解析台词 / 旁白，按语速估算说话时长；
  *    生成视频时附加【台词控制】——只许说这几句、逐字一致、说完闭嘴，空余时间明确写成「无人说话」，
  *    不让视频模型自己补台词；拆分镜时按台词时长校正段落时长。
- * 2. 一致性锁定：附加【人物外观锁定】（参考图 + 外观 / 服装文字）、【场景一致】、【画风一致】。
+ * 2. 一致性锁定：附加【人物外观锁定】（参考图 + 外观 / 服装文字）、【场景一致】、【画风一致】；
+ *    【画质】（清晰度 / 细节 / 质感）总是附加，精简提示词时也不去掉。
  * 3. 接戏：附加【人物站位】（分镜 blocking 字段）与【接上一镜】（同场景上一镜的结尾状态 / 结尾画面，
  *    遵守 180 度轴线，人物左右位置不变）。
  *
@@ -251,7 +252,7 @@ export interface ShotDirectionInput {
   /** 已经解析好 @图片N 的视频提示词（用来沿用引用标记、判断语言） */
   prompt: string
   hasStylePreset?: boolean
-  options: { dialogueLock?: boolean; appearanceLock?: boolean; continuity?: boolean; physicsLock?: boolean }
+  options: { dialogueLock?: boolean; appearanceLock?: boolean; continuity?: boolean; physicsLock?: boolean; qualityLock?: boolean }
   /**
    * 精简版：视频接口限制了提示词长度（如 Grok 4096 字节）时用，同样的约束写得更短（约一半），
    * 免得提交时为了凑长度整块去掉【接上一镜】【画风一致】等
@@ -283,6 +284,8 @@ function endState(blocking: string | null | undefined): string {
 
 export const PHYSICS_ZH = '【物理真实】动作符合真实物理：重力向下，脚踩实地面、重心稳定，走路不滑步、不漂浮；手接触物体时真实抓握、受力，物体不穿过身体或彼此穿插，不凭空出现、消失或变形；人物肢体数量和比例始终正常，手指完整；动作速度自然连贯，不瞬移、不倒放、不突然加速；头发、衣摆、液体随动作和重力自然摆动。'
 export const PHYSICS_EN = '[Physics] Motion obeys real physics: gravity pulls down, feet stay planted with stable balance, no sliding or floating while walking; hands really grip and push objects, nothing passes through bodies or other objects, nothing appears, vanishes or morphs; limbs and fingers stay complete and correctly proportioned; movement is smooth at natural speed, no teleporting, reversing or sudden speed-ups; hair, clothing and liquids move naturally with motion and gravity.'
+export const QUALITY_ZH = '【画质】画面清晰锐利、细节丰富：人物五官、发丝与服装面料纹理清楚，材质质感真实，光影有层次；不要虚焦、涂抹感、磨皮或塑料感。'
+export const QUALITY_EN = '[Quality] Sharp, richly detailed image: clear facial features, hair strands and fabric texture, true-to-life materials, layered lighting; no soft-focus blur, smeared detail, airbrushed or plastic look.'
 export const PHYSICS_ZH_COMPACT = '【物理真实】符合重力与受力：脚踩实地，不漂浮、不滑步；手真实抓握，物体不穿模、不凭空出现或变形；肢体手指完整，动作速度自然。'
 export const PHYSICS_EN_COMPACT = '[Physics] Real gravity and contact: feet planted, no floating or sliding; hands really grip; nothing clips through, appears from nowhere or morphs; limbs and fingers intact; natural speed.'
 
@@ -393,12 +396,15 @@ export function buildShotDirectives(input: ShotDirectionInput): string {
     }
     if (compact) {
       blocks.push(zh
-        ? '【画风一致】画风、色调与参考图一致，不换画风；画面清晰、细节丰富。'
-        : '[Style lock] Same style and colors as the references, no style switch; sharp and detailed.')
+        ? '【画风一致】画风、色调与参考图一致，全片不换画风。'
+        : '[Style lock] Same style and colors as the references; no style switch.')
     } else blocks.push(zh
-      ? `【画风一致】${input.hasStylePreset ? '严格保持开头指定的画风，' : ''}画风、色调、光影质感与参考图一致，全片不得切换成其他画风（如写实 / 动漫 / 3D 互换）；画面清晰锐利、细节丰富，人物五官、发丝与服装面料纹理清楚，不要虚焦、涂抹感、磨皮或塑料感。`
-      : `[Style lock] ${input.hasStylePreset ? 'Keep the style given at the start. ' : ''}Art style, color grading and lighting match the reference images; never switch styles (e.g. realistic ↔ anime ↔ 3D). Keep the image sharp and richly detailed — clear facial features, hair strands and fabric texture; no soft-focus blur, smeared detail, airbrushed or plastic look.`)
+      ? `【画风一致】${input.hasStylePreset ? '严格保持开头指定的画风，' : ''}画风、色调、光影质感与参考图一致，全片不得切换成其他画风（如写实 / 动漫 / 3D 互换）。`
+      : `[Style lock] ${input.hasStylePreset ? 'Keep the style given at the start. ' : ''}Art style, color grading and lighting match the reference images; never switch styles (e.g. realistic ↔ anime ↔ 3D).`)
   }
+
+  // ── 画质：精细度全靠这一句，任何时候都完整附加，精简提示词时也不去掉 ──
+  if (input.options.qualityLock !== false) blocks.push(zh ? QUALITY_ZH : QUALITY_EN)
 
   // ── 站位与接戏 ──
   if (input.options.continuity !== false) {

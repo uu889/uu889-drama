@@ -27,12 +27,13 @@ const REPO_ROOT = path.resolve(DESKTOP_ROOT, '..')
 const BACKEND_BUNDLE = path.join(DESKTOP_ROOT, 'build', 'backend.mjs')
 
 /** workspace 模板版本：内置模板更新时递增，触发向用户目录补缺失文件 */
-const TEMPLATE_VERSION = '7'
+const TEMPLATE_VERSION = '8'
 /**
  * 更新过的内置 skill 目录：升级时用新版覆盖（用户改过的旧文件先备份成 *.bak-v<旧版本>）。
  * v5：分镜拆解按台词定时长 / 站位接戏，视频提示词无台词段标「无人说话」
  * v6：角色 / 场景 / 道具最终提示词补清晰度与质感要求（出图不虚、不假）
  * v7：分镜拆解 / 视频提示词补「动作符合物理」写法（防穿模、漂浮、变形）
+ * v8：视频提示词写明生成时自动附加的导演指令（含【画质】），篇幅留给本镜画面
  */
 const UPDATED_SKILL_DIRS = [
   'storyboard-breaker',

@@ -54,7 +54,7 @@ Organize each segment's content in this order (items with no content may be omit
 - **Use only the lines in the description**, word for word; when the lines are much shorter than the segment, fill the extra time with reactions, looks and action marked "(no one speaks)"
 - Shoot conversations as shot / reverse shot: the speaker is on camera, the next segment shows the listener reacting; keep left/right positions from blocking (180-degree rule)
 - The first segment matches blocking's opening positions; the last segment lands on blocking's end state so the next shot can cut in
-- At generation time the system also appends dialogue-control, character-lock, scene-lock, style-lock and continuity directives — do not repeat them in the prompt
+- At generation time the system appends dialogue-control, character-lock, scene-lock, style-lock, quality, blocking, continuity and physics directives after the prompt (they live in the app's code, not in this file, and can be toggled in the video panel's shot direction) — do not repeat them; spend the prompt on this shot's concrete picture and action
 
 ## Reference Rules
 

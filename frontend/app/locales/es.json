@@ -1214,6 +1214,8 @@
       "chainBatch": "Raccord activado: {n} grupo(s) de planos del mismo escenario se generarán en orden, cada uno desde el último fotograma del anterior.",
       "chainPaused": "La toma anterior #{n} no se generó. Esta toma continúa desde su último fotograma, así que se pausó y no se envió. Cuando #{n} tenga vídeo, pulsa «Reintentar fallidos» para seguir en orden.",
       "chainPausedToast": "#{n} no se generó. Las {count} toma(s) de la misma escena que continúan desde ella se pausaron y no se enviaron, para no gastar créditos en imágenes que no encajan.",
+      "qualityLock": "Imagen nítida",
+      "qualityLockTip": "Añade [Quality]: imagen nítida con rasgos, cabello y textura de tela claros; sin desenfoque, manchas ni aspecto plástico. Nunca se quita al acortar un prompt largo.",
       "physicsLock": "Física real",
       "physicsLockTip": "Añade una instrucción [Physics]: gravedad, pies apoyados, agarre real, sin atravesar ni deformar objetos, velocidad natural. Los modelos abiertos locales (p. ej. MiniMax H3 con poca VRAM) fallan más en esto."
     },

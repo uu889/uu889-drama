@@ -1214,6 +1214,8 @@
       "chainBatch": "Anschluss ist an: {n} Gruppe(n) von Shots derselben Szene werden nacheinander erzeugt, jeweils ab dem letzten Bild des vorigen.",
       "chainPaused": "Vorherige Einstellung #{n} wurde nicht erzeugt. Diese Einstellung schließt an ihr letztes Bild an und wurde daher pausiert, nicht gesendet. Sobald #{n} ein Video hat, mit „Fehlgeschlagene wiederholen“ der Reihe nach fortsetzen.",
       "chainPausedToast": "#{n} wurde nicht erzeugt. Die {count} Einstellung(en) derselben Szene, die daran anschließen, wurden pausiert und nicht gesendet – so werden keine Credits für unpassendes Material verbraucht.",
+      "qualityLock": "Scharfe Bildqualität",
+      "qualityLockTip": "Fügt [Quality] an: scharfes Bild mit klaren Gesichtszügen, Haaren und Stoffstrukturen; keine Unschärfe, kein Verschmieren, kein Plastik-Look. Wird beim Kürzen langer Prompts nie entfernt.",
       "physicsLock": "Echte Physik",
       "physicsLockTip": "Fügt eine [Physics]-Anweisung hinzu: Schwerkraft, fester Stand, echtes Greifen, kein Durchdringen oder Verformen, natürliches Tempo. Lokale offene Modelle (z. B. MiniMax H3 mit wenig VRAM) brechen Physik am häufigsten."
     },

@@ -1214,6 +1214,8 @@
       "chainBatch": "Continuity is on: {n} group(s) of same-scene shots will be generated in order, each continuing from the previous last frame.",
       "chainPaused": "Previous shot #{n} did not generate, and this shot continues from its last frame, so it was paused and not submitted. Once #{n} has a video, click Retry failed to continue in order.",
       "chainPausedToast": "#{n} did not generate. The {count} same-scene shot(s) that continue from it were paused and not submitted, so no credits are spent on mismatched footage.",
+      "qualityLock": "Sharp quality",
+      "qualityLockTip": "Appends [Quality]: sharp image with clear facial features, hair and fabric texture; no blur, smearing or plastic look. Never removed when a long prompt is shortened.",
       "physicsLock": "Real physics",
       "physicsLockTip": "Adds a [Physics] directive: gravity, planted feet, real grip, no clipping or morphing, natural speed. Local open models (e.g. small-VRAM MiniMax H3 tiers) break physics most often."
     },

@@ -1214,6 +1214,8 @@
       "chainBatch": "Continuidade ativada: {n} grupo(s) de planos do mesmo cenário serão gerados em ordem, cada um a partir do último quadro do anterior.",
       "chainPaused": "A tomada anterior #{n} não foi gerada. Esta tomada continua a partir do último quadro dela, então foi pausada e não enviada. Quando #{n} tiver vídeo, clique em \"Repetir falhas\" para continuar em ordem.",
       "chainPausedToast": "#{n} não foi gerada. As {count} tomada(s) da mesma cena que continuam a partir dela foram pausadas e não enviadas, para não gastar créditos com imagens que não combinam.",
+      "qualityLock": "Imagem nítida",
+      "qualityLockTip": "Acrescenta [Quality]: imagem nítida, com traços, cabelo e textura dos tecidos claros; sem desfoque, borrões ou aspecto de plástico. Nunca é removido ao encurtar um prompt longo.",
       "physicsLock": "Física real",
       "physicsLockTip": "Adiciona uma instrução [Physics]: gravidade, pés firmes, pegada real, sem atravessar nem deformar objetos, velocidade natural. Modelos abertos locais (ex.: MiniMax H3 com pouca VRAM) erram mais nisso."
     },

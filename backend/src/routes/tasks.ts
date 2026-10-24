@@ -60,6 +60,7 @@ async function buildStoryboardDirectives(
       appearanceLock: direction.appearance_lock !== false,
       continuity: direction.continuity !== false,
       physicsLock: direction.physics_lock !== false,
+      qualityLock: direction.quality_lock !== false,
     },
   })
 }
