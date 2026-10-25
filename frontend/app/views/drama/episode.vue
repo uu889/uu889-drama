@@ -1755,6 +1755,14 @@
             <div class="batch-video-row"><span>{{ t('episode.vid.confirmTotal') }}</span><strong>{{ t('episode.vid.confirmApprox', { n: batchVideoTotalDuration }) }}</strong></div>
             <div class="batch-video-row"><span>{{ t('episode.vid.confirmModel') }}</span><strong>{{ effectiveVideoModelLabel || t('episode.vid.defaultModel') }}</strong></div>
             <div class="batch-video-row"><span>{{ t('episode.vid.confirmResolution') }}</span><strong>{{ episodeResolutionLabel }}</strong></div>
+            <div class="batch-video-mode" role="radiogroup" :aria-label="t('episode.vid.batchMode')">
+              <span class="batch-video-mode-label">{{ t('episode.vid.batchMode') }}</span>
+              <label v-for="m in ['sequential', 'parallel']" :key="m" :class="['batch-video-mode-opt', { on: batchVideoMode === m }]">
+                <input v-model="batchVideoMode" type="radio" class="sr-only" :value="m">
+                <strong>{{ t('episode.vid.batchMode_' + m) }}</strong>
+                <span>{{ t('episode.vid.batchModeHint_' + m) }}</span>
+              </label>
+            </div>
             <p class="batch-video-note">{{ t('episode.vid.confirmNote') }}</p>
           </div>
           <footer class="dialog-foot">
@@ -2763,49 +2771,62 @@ async function confirmUpscale() {
     upscaleDialog.submitting = false
   }
 }
+// 批量生成方式：sequential = 按镜头顺序一个出片再交下一个，某镜失败后面全部暂停；parallel = 同时提交（接戏镜头仍按场景串链）
+const BATCH_MODE_KEY = 'uu889:batch-video-mode'
+const batchVideoMode = ref((() => { try { return localStorage.getItem(BATCH_MODE_KEY) === 'parallel' ? 'parallel' : 'sequential' } catch { return 'sequential' } })())
+watch(batchVideoMode, v => { try { localStorage.setItem(BATCH_MODE_KEY, v) } catch { /* 静默 */ } })
+
+/** 按顺序生成一串镜头：上一镜出片才提交下一镜，没出片（失败 / 取消 / 超时）就暂停后面的 */
+function runShotChain(chain, { sequential = false } = {}) {
+  // 排队中的镜头先显示为生成中
+  chain.slice(1).forEach(sb => {
+    chainQueuedIds.add(sb.id)
+    if (!isPendingVideo(sb.id)) pendingVideoIds.value.push(sb.id)
+  })
+  ;(async () => {
+    // 链头的上一镜不在这批里但正在生成（如刚单独重出）：先等它结束，失败就不提交
+    const head = previousShotInScene(chain[0])
+    if (head && isPendingVideo(head.id) && !await waitShotSettled(head.id)) {
+      pauseChain(chain, head, sequential)
+      return
+    }
+    for (let i = 0; i < chain.length; i++) {
+      // 排队时被手动取消：这一镜不提交，后面的镜头也暂停
+      if (chainCancelledIds.delete(chain[i].id)) {
+        pauseChain(chain.slice(i + 1), chain[i], sequential)
+        return
+      }
+      let status = await genVid(chain[i], { silent: true, wait: true })
+      if (status === 'unknown') status = await waitShotSettled(chain[i].id) ? 'completed' : 'failed'
+      // 这一镜没出片（重试后仍审核不过 / 出错 / 超时）：后面的镜头先暂停，不浪费额度（接戏时也不会接到错的画面）
+      if (status !== 'completed') {
+        pauseChain(chain.slice(i + 1), chain[i], sequential)
+        return
+      }
+    }
+  })()
+}
+
 function confirmBatchVideos() {
   const targets = [...batchVideoConfirm.value.targets]
   batchVideoConfirm.value = { open: false, targets: [] }
   if (!targets.length) return
   const ids = targets.map(s => s.id)
-  if (videoDirection.continuity && videoDirection.chain_previous) {
+  const ordered = [...targets].sort((a, b) => sbNumber(a) - sbNumber(b))
+  if (batchVideoMode.value === 'sequential') {
+    // 按顺序：整批串成一条，某镜失败后面全部暂停，「重试失败」从失败那镜接着按顺序生成
+    runShotChain(ordered, { sequential: true })
+    toast.info(t('episode.vid.batchSequentialStarted', { n: ordered.length }))
+  } else if (videoDirection.continuity && videoDirection.chain_previous) {
     // 接戏：同场景且编号相邻的镜头串成一条链，链内按顺序生成（等上一镜出片、取到结尾帧再生成下一镜），不同链并行
     const chains = []
-    for (const sb of [...targets].sort((a, b) => sbNumber(a) - sbNumber(b))) {
+    for (const sb of ordered) {
       const last = chains[chains.length - 1]
       const prev = previousShotInScene(sb)
       if (last && prev && last[last.length - 1].id === prev.id) last.push(sb)
       else chains.push([sb])
     }
-    for (const chain of chains) {
-      // 排队中的镜头先显示为生成中
-      chain.slice(1).forEach(sb => {
-        chainQueuedIds.add(sb.id)
-        if (!isPendingVideo(sb.id)) pendingVideoIds.value.push(sb.id)
-      })
-      ;(async () => {
-        // 链头的上一镜不在这批里但正在生成（如刚单独重出）：先等它结束，失败就不提交
-        const head = previousShotInScene(chain[0])
-        if (head && isPendingVideo(head.id) && !await waitShotSettled(head.id)) {
-          pauseChain(chain, head)
-          return
-        }
-        for (let i = 0; i < chain.length; i++) {
-          // 排队时被手动取消：这一镜不提交，后面接它的镜头也暂停
-          if (chainCancelledIds.delete(chain[i].id)) {
-            pauseChain(chain.slice(i + 1), chain[i])
-            return
-          }
-          let status = await genVid(chain[i], { silent: true, wait: true })
-          if (status === 'unknown') status = await waitShotSettled(chain[i].id) ? 'completed' : 'failed'
-          // 这一镜没出片（重试后仍审核不过 / 出错 / 超时）：后面接它结尾帧的镜头先暂停，不浪费额度生成错的画面
-          if (status !== 'completed') {
-            pauseChain(chain.slice(i + 1), chain[i])
-            return
-          }
-        }
-      })()
-    }
+    for (const chain of chains) runShotChain(chain)
     if (chains.some(c => c.length > 1)) toast.info(t('episode.direction.chainBatch', { n: chains.filter(c => c.length > 1).length }))
   } else {
     targets.forEach(sb => genVid(sb, { silent: true }))
@@ -4305,17 +4326,17 @@ const chainQueuedIds = new Set()
 /** 前一镜失败而暂停、没有提交的接戏镜头：分镜 id → 说明（显示为失败，「重试失败」会按顺序接着生成） */
 const chainPausedMessages = {}
 /** 前一镜没出片：链里后面的镜头不提交，标成暂停 */
-function pauseChain(rest, failedSb) {
+function pauseChain(rest, failedSb, sequential = false) {
   if (!rest.length) return
   const n = String(sbNumber(failedSb)).padStart(2, '0')
-  const msg = t('episode.direction.chainPaused', { n })
+  const msg = t(sequential ? 'episode.vid.sequentialPaused' : 'episode.direction.chainPaused', { n })
   const ids = new Set(rest.map(sb => sb.id))
   rest.forEach(sb => { chainQueuedIds.delete(sb.id); chainPausedMessages[sb.id] = msg })
   pendingVideoIds.value = pendingVideoIds.value.filter(id => !ids.has(id))
   const failed = { ...failedVideoMessages.value }
   rest.forEach(sb => { if (!hasVid(sb)) failed[sb.id] = msg })
   failedVideoMessages.value = failed
-  toast.warning(t('episode.direction.chainPausedToast', { n, count: rest.length }))
+  toast.warning(t(sequential ? 'episode.vid.sequentialPausedToast' : 'episode.direction.chainPausedToast', { n, count: rest.length }))
 }
 /** 等某个分镜正在生成的视频结束：出片返回 true，失败 / 超时返回 false */
 async function waitShotSettled(sbId, maxMs = 6 * 3600_000) {
@@ -6181,6 +6202,12 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
   background: var(--bg-input);
 }
 .batch-video-row strong { color: var(--text-0); font-weight: 600; }
+.batch-video-mode { display: flex; flex-direction: column; gap: 6px; padding: 8px 12px; }
+.batch-video-mode-label { font-size: 13px; color: var(--text-2); }
+.batch-video-mode-opt { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; }
+.batch-video-mode-opt strong { font-size: 13px; color: var(--text-0); font-weight: 600; }
+.batch-video-mode-opt span { font-size: 11px; color: var(--text-3); line-height: 1.5; }
+.batch-video-mode-opt.on { border-color: var(--accent); background: var(--accent-soft, rgba(255,122,26,0.08)); }
 .batch-video-note { margin: 4px 0 0; font-size: 11px; color: var(--text-3); line-height: 1.6; }
 .video-task-row {
   display: grid;

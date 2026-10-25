@@ -1070,7 +1070,15 @@
       "deleteHistoryBatchCurrent": "Inclui o vídeo principal deste plano; será usado o vídeo restante mais recente ou, se não houver, o plano volta a \"não gerado\".",
       "deleteHistoryFiles": "Os arquivos de vídeo locais (incluindo capa, quadro final e versão legendada) também são excluídos e não podem ser recuperados.",
       "historyBatchDeleted": "{n} vídeos excluídos, {size} liberados",
-      "historyDeletedFreed": "Vídeo excluído, {size} liberados"
+      "historyDeletedFreed": "Vídeo excluído, {size} liberados",
+      "batchMode": "Ordem de geração",
+      "batchMode_sequential": "Um de cada vez",
+      "batchModeHint_sequential": "Os planos são enviados em ordem, cada um após o anterior terminar; se um falhar, o restante é pausado e não enviado",
+      "batchMode_parallel": "Todos ao mesmo tempo (paralelo)",
+      "batchModeHint_parallel": "Tudo é enviado junto; com \"começar do último quadro do plano anterior\" ativo, planos da mesma cena continuam em ordem",
+      "batchSequentialStarted": "Gerando {n} planos um de cada vez: cada um é enviado após o anterior",
+      "sequentialPaused": "#{n} falhou, então a geração em ordem foi pausada e este plano não foi enviado. Corrija #{n} e \"Tentar falhos novamente\" continua em ordem.",
+      "sequentialPausedToast": "#{n} falhou; os próximos {count} planos foram pausados e não enviados."
     },
     "inspector": {
       "videoPromptPlaceholder": "Referencie recursos com {'@'}personagem / {'@'}cenário — mapeados automaticamente para imagens de referência na geração; depois descreva movimento e câmera por trecho de tempo…",

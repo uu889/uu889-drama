@@ -1070,7 +1070,15 @@
       "deleteHistoryBatchCurrent": "This includes the shot's main video; the newest remaining video is used instead, or the shot goes back to \"not generated\" if none is left.",
       "deleteHistoryFiles": "The local video files (including cover, end frame and subtitled copy) are deleted as well and cannot be recovered.",
       "historyBatchDeleted": "Deleted {n} videos, freed {size}",
-      "historyDeletedFreed": "Video deleted, freed {size}"
+      "historyDeletedFreed": "Video deleted, freed {size}",
+      "batchMode": "Generation order",
+      "batchMode_sequential": "One by one",
+      "batchModeHint_sequential": "Shots are submitted in order, each after the previous one finishes; if one fails, the rest are paused and not submitted",
+      "batchMode_parallel": "All at once (parallel)",
+      "batchModeHint_parallel": "Everything is submitted together; with \"start from previous shot's last frame\" on, shots in the same scene still go in order",
+      "batchSequentialStarted": "Generating {n} shots one by one: each is submitted after the previous finishes",
+      "sequentialPaused": "#{n} before it failed, so one-by-one generation paused and this shot was not submitted. Fix #{n}, then \"Retry failed\" continues in order.",
+      "sequentialPausedToast": "#{n} failed; the next {count} shots were paused and not submitted."
     },
     "inspector": {
       "videoPromptPlaceholder": "Reference assets with {'@'}character / {'@'}scene — auto-mapped to reference images on generation; then describe motion and camera per time segment…",

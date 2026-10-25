@@ -1070,7 +1070,15 @@
       "deleteHistoryBatchCurrent": "Trong đó có video chính của cảnh này; sau khi xóa sẽ dùng video mới nhất còn lại, nếu không còn thì cảnh trở về \"chưa tạo\".",
       "deleteHistoryFiles": "Tệp video trên máy (gồm ảnh bìa, khung cuối và bản phụ đề) cũng bị xóa và không thể khôi phục.",
       "historyBatchDeleted": "Đã xóa {n} video, giải phóng {size}",
-      "historyDeletedFreed": "Đã xóa video, giải phóng {size}"
+      "historyDeletedFreed": "Đã xóa video, giải phóng {size}",
+      "batchMode": "Cách tạo",
+      "batchMode_sequential": "Lần lượt theo thứ tự",
+      "batchModeHint_sequential": "Gửi theo số cảnh, cảnh trước xong mới gửi cảnh sau; nếu một cảnh lỗi, các cảnh sau tạm dừng, không gửi",
+      "batchMode_parallel": "Tạo đồng thời (song song)",
+      "batchModeHint_parallel": "Gửi tất cả cùng lúc; khi bật \"mở đầu bằng khung cuối cảnh trước\", các cảnh cùng bối cảnh vẫn chạy theo thứ tự",
+      "batchSequentialStarted": "Đang tạo lần lượt {n} cảnh: cảnh trước xong mới gửi cảnh sau",
+      "sequentialPaused": "#{n} phía trước bị lỗi nên tạo theo thứ tự đã tạm dừng, cảnh này chưa được gửi. Xử lý #{n} rồi bấm \"Thử lại cảnh lỗi\" để tiếp tục theo thứ tự.",
+      "sequentialPausedToast": "#{n} bị lỗi; {count} cảnh tiếp theo đã tạm dừng, chưa gửi."
     },
     "inspector": {
       "videoPromptPlaceholder": "Tham chiếu tài nguyên bằng {'@'}nhân vật / {'@'}cảnh — tự ánh xạ thành ảnh tham chiếu khi tạo; sau đó mô tả chuyển động và máy quay theo từng khoảng thời gian…",

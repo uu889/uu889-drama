@@ -1070,7 +1070,15 @@
       "deleteHistoryBatchCurrent": "이 컷의 메인 영상이 포함되어 있습니다. 삭제 후 가장 최근의 다른 영상을 사용하고, 없으면 '미생성'으로 돌아갑니다.",
       "deleteHistoryFiles": "로컬 영상 파일(커버, 마지막 프레임, 자막본 포함)도 함께 삭제되며 복구할 수 없습니다.",
       "historyBatchDeleted": "영상 {n}개 삭제, {size} 확보",
-      "historyDeletedFreed": "영상 삭제, {size} 확보"
+      "historyDeletedFreed": "영상 삭제, {size} 확보",
+      "batchMode": "생성 방식",
+      "batchMode_sequential": "순서대로 생성",
+      "batchModeHint_sequential": "컷 번호 순서로 앞 컷이 완성된 뒤 다음을 제출합니다. 실패하면 나머지는 일시 정지되어 제출되지 않습니다",
+      "batchMode_parallel": "동시 생성(분산)",
+      "batchModeHint_parallel": "모두 한 번에 제출합니다. '이전 컷 마지막 장면으로 시작'이 켜져 있으면 같은 장면은 순서대로 진행됩니다",
+      "batchSequentialStarted": "{n}개 컷을 순서대로 생성: 앞 컷이 끝나야 다음을 제출",
+      "sequentialPaused": "앞의 #{n} 생성에 실패해 순서 생성을 일시 정지했고 이 컷은 제출하지 않았습니다. #{n}을 해결한 뒤 '실패 재시도'를 누르면 순서대로 이어집니다.",
+      "sequentialPausedToast": "#{n} 생성 실패로 뒤의 {count}개 컷을 일시 정지했습니다(미제출)."
     },
     "inspector": {
       "videoPromptPlaceholder": "{'@'}캐릭터명 / {'@'}장멸명 으로 참조 소재를 지정(생성 시 참조 이미지로 자동 매핑). 시간대별로 화면의 움직임과 침라를 기술…",

@@ -1070,7 +1070,15 @@
       "deleteHistoryBatchCurrent": "Darunter ist das Hauptvideo dieser Einstellung; danach wird das neueste verbleibende Video verwendet, ohne weiteres Video gilt die Einstellung als „nicht generiert“.",
       "deleteHistoryFiles": "Die lokalen Videodateien (inkl. Cover, Endbild und Untertitelversion) werden ebenfalls gelöscht und können nicht wiederhergestellt werden.",
       "historyBatchDeleted": "{n} Videos gelöscht, {size} freigegeben",
-      "historyDeletedFreed": "Video gelöscht, {size} freigegeben"
+      "historyDeletedFreed": "Video gelöscht, {size} freigegeben",
+      "batchMode": "Reihenfolge",
+      "batchMode_sequential": "Nacheinander",
+      "batchModeHint_sequential": "Einstellungen werden der Reihe nach gesendet, jede erst nach der vorherigen; schlägt eine fehl, werden die übrigen pausiert",
+      "batchMode_parallel": "Alle gleichzeitig (parallel)",
+      "batchModeHint_parallel": "Alles wird zusammen gesendet; mit „vom letzten Bild der vorigen Einstellung starten“ laufen Einstellungen derselben Szene weiter nacheinander",
+      "batchSequentialStarted": "{n} Einstellungen nacheinander: jede wird nach der vorherigen gesendet",
+      "sequentialPaused": "#{n} davor ist fehlgeschlagen, deshalb ist die Reihenfolge pausiert und diese Einstellung wurde nicht gesendet. Nach dem Beheben von #{n} setzt „Fehlgeschlagene wiederholen“ der Reihe nach fort.",
+      "sequentialPausedToast": "#{n} ist fehlgeschlagen; die nächsten {count} Einstellungen wurden pausiert und nicht gesendet."
     },
     "inspector": {
       "videoPromptPlaceholder": "Assets mit {'@'}Figur / {'@'}Szene referenzieren — wird beim Generieren automatisch auf Referenzbilder abgebildet; danach Bewegung und Kamera pro Zeitabschnitt beschreiben…",

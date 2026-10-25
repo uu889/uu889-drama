@@ -1070,7 +1070,15 @@
       "deleteHistoryBatchCurrent": "このカットのメイン動画が含まれています。削除後は最新の別の動画を使い、なければ「未生成」に戻ります。",
       "deleteHistoryFiles": "ローカルの動画ファイル（カバー、最終フレーム、字幕版を含む）も削除され、元に戻せません。",
       "historyBatchDeleted": "{n} 件の動画を削除し、{size} を解放しました",
-      "historyDeletedFreed": "動画を削除し、{size} を解放しました"
+      "historyDeletedFreed": "動画を削除し、{size} を解放しました",
+      "batchMode": "生成方法",
+      "batchMode_sequential": "順番に生成",
+      "batchModeHint_sequential": "カット番号順に、前のカットが完成してから次を送信。失敗したら残りは一時停止して送信しません",
+      "batchMode_parallel": "同時に生成（分散）",
+      "batchModeHint_parallel": "すべて同時に送信。「前カットの最終フレームから開始」がオンなら同じシーンは順番どおり",
+      "batchSequentialStarted": "{n} カットを順番に生成：前のカットが完成してから次を送信",
+      "sequentialPaused": "前の #{n} が失敗したため順番生成を一時停止し、このカットは送信していません。#{n} を直してから「失敗を再試行」で順番に続行します。",
+      "sequentialPausedToast": "#{n} が失敗したため、後の {count} カットを一時停止しました（未送信）。"
     },
     "inspector": {
       "videoPromptPlaceholder": "{'@'}キャラクター名 / {'@'}シーン名 で参照素材を指定（生成時に参照画像へ自動マッピング）。時間帯ごとに画面の動きとカメラを記述…",

@@ -1070,7 +1070,15 @@
       "deleteHistoryBatchCurrent": "Elle inclut la vidéo principale de ce plan ; la vidéo restante la plus récente sera utilisée, ou le plan repasse à « non généré » s'il n'en reste aucune.",
       "deleteHistoryFiles": "Les fichiers vidéo locaux (couverture, image finale et version sous-titrée comprises) sont aussi supprimés et ne peuvent pas être récupérés.",
       "historyBatchDeleted": "{n} vidéos supprimées, {size} libérés",
-      "historyDeletedFreed": "Vidéo supprimée, {size} libérés"
+      "historyDeletedFreed": "Vidéo supprimée, {size} libérés",
+      "batchMode": "Ordre de génération",
+      "batchMode_sequential": "Un par un",
+      "batchModeHint_sequential": "Les plans sont envoyés dans l'ordre, chacun après la fin du précédent ; si l'un échoue, les suivants sont mis en pause",
+      "batchMode_parallel": "Tous en même temps (parallèle)",
+      "batchModeHint_parallel": "Tout est envoyé ensemble ; avec « démarrer depuis la dernière image du plan précédent », les plans d'une même scène restent dans l'ordre",
+      "batchSequentialStarted": "Génération de {n} plans un par un : chacun est envoyé après le précédent",
+      "sequentialPaused": "#{n} a échoué, la génération dans l'ordre est en pause et ce plan n'a pas été envoyé. Corrigez #{n}, puis « Relancer les échecs » reprend dans l'ordre.",
+      "sequentialPausedToast": "#{n} a échoué ; les {count} plans suivants sont en pause et n'ont pas été envoyés."
     },
     "inspector": {
       "videoPromptPlaceholder": "Référencez les ressources avec {'@'}personnage / {'@'}scène — elles sont automatiquement associées aux images de référence lors de la génération ; décrivez ensuite le mouvement et la caméra par segment temporel…",

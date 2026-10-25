@@ -1070,7 +1070,15 @@
       "deleteHistoryBatchCurrent": "其中包含本分镜正在使用的主视频，删除后改用最新的另一条；没有其他视频时本分镜变回「未生成」。",
       "deleteHistoryFiles": "本地的视频文件（含封面、结尾帧、字幕版）会一起删除，无法恢复。",
       "historyBatchDeleted": "已删除 {n} 条历史视频，释放 {size}",
-      "historyDeletedFreed": "已删除该历史视频，释放 {size}"
+      "historyDeletedFreed": "已删除该历史视频，释放 {size}",
+      "batchMode": "生成方式",
+      "batchMode_sequential": "按顺序生成",
+      "batchModeHint_sequential": "按镜头编号一个出片再提交下一个；某一镜失败，后面的全部暂停不提交，避免浪费额度",
+      "batchMode_parallel": "同时生成（分布式）",
+      "batchModeHint_parallel": "全部同时提交，谁先好谁先出；开了「用上一镜结尾画面开场」时同场景镜头仍按顺序",
+      "batchSequentialStarted": "按顺序生成 {n} 个镜头：上一个出片后才提交下一个",
+      "sequentialPaused": "前面的 #{n} 没有生成成功，按顺序生成已暂停，这一镜没有提交。处理好 #{n} 后点「重试失败」会按顺序接着生成。",
+      "sequentialPausedToast": "#{n} 没有生成成功，后面 {count} 个镜头已暂停、没有提交。"
     },
     "inspector": {
       "videoPromptPlaceholder": "用 {'@'}角色名 / {'@'}场景名 引用参考素材，生成时自动映射为参考图片；再按时间段描述画面运动与镜头…",
