@@ -1383,7 +1383,24 @@
       "titleLabel": "Título da abertura (vazio = padrão)",
       "showDrama": "Mostrar o nome da série acima do título",
       "duration": "Duração da abertura",
-      "uploadFailed": "Falha ao enviar a capa"
+      "uploadFailed": "Falha ao enviar a capa",
+      "font": "Fonte",
+      "fontDefault": "Fonte padrão",
+      "fontUploaded": "enviada",
+      "fontUpload": "Enviar fonte",
+      "fontUploadTip": "Envie um arquivo .ttf / .otf / .ttc (atenção à licença para uso comercial)",
+      "fontDelete": "Excluir esta fonte enviada",
+      "fontUploadFailed": "Falha ao enviar a fonte",
+      "size": "Tamanho",
+      "color": "Cor",
+      "colorCustom": "Cor personalizada",
+      "box": "Faixa semitransparente atrás do texto",
+      "position": "Posição",
+      "posTop": "Topo",
+      "posMiddle": "Centro",
+      "posLow": "Abaixo do centro",
+      "posBottom": "Base",
+      "resetStyle": "Restaurar estilo"
     }
   },
   "errors": {

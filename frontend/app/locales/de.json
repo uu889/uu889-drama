@@ -1383,7 +1383,24 @@
       "titleLabel": "Intro-Titel (leer = Standard)",
       "showDrama": "Serienname über dem Titel anzeigen",
       "duration": "Intro-Länge",
-      "uploadFailed": "Cover-Upload fehlgeschlagen"
+      "uploadFailed": "Cover-Upload fehlgeschlagen",
+      "font": "Schrift",
+      "fontDefault": "Standardschrift",
+      "fontUploaded": "hochgeladen",
+      "fontUpload": "Schrift hochladen",
+      "fontUploadTip": ".ttf / .otf / .ttc hochladen (Lizenz für kommerzielle Nutzung beachten)",
+      "fontDelete": "Hochgeladene Schrift löschen",
+      "fontUploadFailed": "Schrift-Upload fehlgeschlagen",
+      "size": "Größe",
+      "color": "Farbe",
+      "colorCustom": "Eigene Farbe",
+      "box": "Halbtransparenter Balken hinter dem Text",
+      "position": "Position",
+      "posTop": "Oben",
+      "posMiddle": "Mitte",
+      "posLow": "Unten-Mitte",
+      "posBottom": "Unten",
+      "resetStyle": "Stil zurücksetzen"
     }
   },
   "errors": {

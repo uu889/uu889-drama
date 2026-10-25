@@ -5,6 +5,7 @@ import { success, badRequest } from '../utils/response.js'
 import { mergeEpisodeVideos } from '../services/ffmpeg-merge.js'
 import { deleteBgm, listBgm, normalizeBgmOptions, saveBgm } from '../services/bgm.js'
 import { normalizeIntroOptions } from '../services/episode-intro.js'
+import { deleteIntroFont, listIntroFonts, saveIntroFont } from '../services/intro-fonts.js'
 import { toSnakeCase } from '../utils/transform.js'
 import { logTaskError, logTaskStart, logTaskSuccess } from '../utils/task-logger.js'
 
@@ -32,7 +33,7 @@ app.post('/episodes/:id/merge', async (c) => {
 
   try {
     logTaskStart('MergeAPI', 'episode-merge', { episodeId, dramaId: ep.dramaId, storyboardIds })
-    // intro: { enabled, duration (1~5 秒), image (static/... 统一封面，空 = 第一个镜头画面), title, subtitle }
+    // intro: { enabled, duration (1~5 秒), image (static/... 统一封面，空 = 第一个镜头画面), title, subtitle, font, size, color, box, y }
     const mergeId = await mergeEpisodeVideos(episodeId, ep.dramaId, storyboardIds, bgm, normalizeIntroOptions(introRaw))
     logTaskSuccess('MergeAPI', 'episode-merge', { episodeId, mergeId })
     return success(c, { merge_id: mergeId, status: 'processing' })
@@ -83,6 +84,27 @@ app.post('/bgm', async (c) => {
 app.delete('/bgm', async (c) => {
   const p = c.req.query('path') || ''
   if (!deleteBgm(p)) return badRequest(c, '音乐文件不存在')
+  return success(c)
+})
+
+// GET /merge/fonts — 片头文字可选字体（本机已有的中文字体 + 上传的字体）
+app.get('/fonts', (c) => success(c, listIntroFonts()))
+
+// POST /merge/fonts — 上传字体（multipart file，.ttf / .otf / .ttc）
+app.post('/fonts', async (c) => {
+  const body = await c.req.parseBody()
+  const file = body['file']
+  if (!file || !(file instanceof File)) return badRequest(c, '文件必填')
+  try {
+    return success(c, await saveIntroFont(await file.arrayBuffer(), file.name))
+  } catch (err: any) {
+    return badRequest(c, err.message)
+  }
+})
+
+// DELETE /merge/fonts?id=static/fonts/xxx.ttf — 删除上传的字体
+app.delete('/fonts', (c) => {
+  if (!deleteIntroFont(c.req.query('id') || '')) return badRequest(c, '字体不存在')
   return success(c)
 })
 

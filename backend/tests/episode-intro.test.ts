@@ -28,7 +28,7 @@ before(() => initDb())
 test('options: off when disabled, duration clamped, image must be a local static image', () => {
   assert.equal(intro.normalizeIntroOptions(null), null)
   assert.equal(intro.normalizeIntroOptions({ enabled: false, title: 'x' }), null)
-  assert.deepEqual(intro.normalizeIntroOptions({ enabled: true }), { duration: 2, image: null, title: '', subtitle: '' })
+  assert.deepEqual(intro.normalizeIntroOptions({ enabled: true }), { duration: 2, image: null, title: '', subtitle: '', font: null, size: 1, color: '#FFFFFF', box: true, y: 0.7 })
   const o = intro.normalizeIntroOptions({ enabled: true, duration: 9, image: '/static/images/cover.png', title: '  第 3 集   重逢 ', subtitle: '我的剧' })!
   assert.equal(o.duration, 5)
   assert.equal(o.image, 'static/images/cover.png')
@@ -38,8 +38,61 @@ test('options: off when disabled, duration clamped, image must be a local static
   assert.equal(intro.normalizeIntroOptions({ image: 'https://x.com/a.png' })!.image, null)
 })
 
+test('style options: size / position clamped, color must be hex, font must be a known id', () => {
+  const s = intro.normalizeIntroOptions({ size: 5, y: 0, color: 'ff8800', box: false, font: 'sys:simhei' })!
+  assert.equal(s.size, 2)
+  assert.equal(s.y, 0.1)
+  assert.equal(s.color, '#FF8800')
+  assert.equal(s.box, false)
+  assert.equal(s.font, 'sys:simhei')
+  const bad = intro.normalizeIntroOptions({ color: 'red;x', font: '/etc/passwd', size: 'x' })!
+  assert.equal(bad.color, '#FFFFFF')
+  assert.equal(bad.font, null)
+  assert.equal(bad.size, 1)
+  assert.equal(intro.normalizeIntroOptions({ font: 'static/fonts/../x.ttf' })!.font, null)
+  assert.equal(intro.normalizeIntroOptions({ font: 'static/fonts/a1b2c3-my.ttf' })!.font, 'static/fonts/a1b2c3-my.ttf')
+})
+
+test('style filter: color, size, band only around the text, position follows y', () => {
+  const base = intro.normalizeIntroOptions({ title: '第 1 集', subtitle: '剧名' })!
+  const t = { width: 1280, height: 720, fps: 24 }
+  const files = { fontfile: '/f.ttf', titleFile: '/t.txt', subtitleFile: '/s.txt' }
+  const def = intro.buildIntroFilter(base, t, files)
+  const band = /drawbox=x=0:y=(\d+):w=1280:h=(\d+)/.exec(def)!
+  assert.ok(Number(band[1]) > 300 && Number(band[1]) + Number(band[2]) < 720, '背景条只盖住文字那一块')
+  assert.match(def, /fontcolor=0xFFFFFF/)
+  const big = intro.buildIntroFilter({ ...base, size: 2, color: '#FFCC00' }, t, files)
+  assert.match(big, /fontcolor=0xFFCC00/)
+  const size = (f: string) => Math.max(...[...f.matchAll(/fontsize=(\d+)/g)].map((m) => Number(m[1])))
+  assert.ok(size(big) > size(def) * 1.8)
+  assert.doesNotMatch(intro.buildIntroFilter({ ...base, box: false }, t, files), /drawbox/)
+  const titleY = (f: string) => Number([...f.matchAll(/:y=(\d+)/g)].pop()![1])
+  const top = intro.buildIntroFilter({ ...base, y: 0.2 }, t, files)
+  assert.ok(titleY(top) < 200 && titleY(def) > 400)
+  // 放到最底部也不出画面
+  const bottom = intro.buildIntroFilter({ ...base, y: 0.9, size: 2 }, t, files)
+  assert.ok(titleY(bottom) + size(bottom) <= 720)
+})
+
+test('fonts: lists only fonts present here, uploaded fonts can be saved / resolved / deleted', async () => {
+  const fonts = await import('../src/services/intro-fonts')
+  const before = fonts.listIntroFonts()
+  for (const f of before) assert.ok(f.family || f.url)
+  await assert.rejects(fonts.saveIntroFont(new ArrayBuffer(2048), 'x.exe'), /ttf/)
+  const sys = before.find((f) => !f.uploaded)
+  const src = sys ? fonts.resolveIntroFont(sys.id)! : null
+  const data = src ? fs.readFileSync(src) : Buffer.alloc(4096, 1)
+  const up = await fonts.saveIntroFont(data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer, '我的 字体.ttf')
+  assert.match(up.id, /^static\/fonts\/[0-9a-z]+-我的_字体\.ttf$/)
+  assert.ok(fonts.listIntroFonts().some((f) => f.id === up.id && f.uploaded))
+  assert.ok(fonts.resolveIntroFont(up.id)!.endsWith('.ttf'))
+  assert.equal(fonts.deleteIntroFont('static/../uu889.sqlite3'), false)
+  assert.equal(fonts.deleteIntroFont(up.id), true)
+  assert.ok(!fonts.listIntroFonts().some((f) => f.id === up.id))
+})
+
 test('filter: covers the frame, text only with a font, fades in and out', () => {
-  const opts = { duration: 2, image: null, title: '第 1 集', subtitle: '剧名' }
+  const opts = intro.normalizeIntroOptions({ duration: 2, title: '第 1 集', subtitle: '剧名' })!
   const withText = intro.buildIntroFilter(opts, { width: 1280, height: 720, fps: 24 }, { fontfile: '/f.ttf', titleFile: '/t.txt', subtitleFile: '/s.txt' })
   assert.match(withText, /force_original_aspect_ratio=increase/)
   assert.match(withText, /crop=1280:720/)
@@ -74,7 +127,7 @@ test('merge with intro: 2s intro is prepended at the clip size, cover image opti
     throw new Error('merge timeout')
   }
   for (const image of [null, 'static/images/cover.png']) {
-    const id = await mergeEpisodeVideos(7, 1, undefined, null, { duration: 2, image, title: '第 7 集 · 重逢', subtitle: '测试剧' })
+    const id = await mergeEpisodeVideos(7, 1, undefined, null, intro.normalizeIntroOptions({ duration: 2, image, title: '第 7 集 · 重逢', subtitle: '测试剧', color: '#FFD000', y: 0.4 })!)
     const m = await wait(id)
     assert.equal(m.status, 'completed', String(m.errorMsg))
     const info = await probeVideo(path.join(DATA, m.mergedUrl!))

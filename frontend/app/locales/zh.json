@@ -1383,7 +1383,24 @@
       "titleLabel": "片头标题（不填用默认）",
       "showDrama": "标题上方显示剧名",
       "duration": "片头时长",
-      "uploadFailed": "封面图上传失败"
+      "uploadFailed": "封面图上传失败",
+      "font": "字体",
+      "fontDefault": "默认字体",
+      "fontUploaded": "上传",
+      "fontUpload": "上传字体",
+      "fontUploadTip": "上传 .ttf / .otf / .ttc 字体文件（注意字体版权，商用请用可商用字体）",
+      "fontDelete": "删除这个上传的字体",
+      "fontUploadFailed": "字体上传失败",
+      "size": "字号",
+      "color": "颜色",
+      "colorCustom": "自定义颜色",
+      "box": "文字后面加半透明背景条",
+      "position": "位置",
+      "posTop": "顶部",
+      "posMiddle": "居中",
+      "posLow": "偏下",
+      "posBottom": "底部",
+      "resetStyle": "恢复默认样式"
     }
   },
   "errors": {

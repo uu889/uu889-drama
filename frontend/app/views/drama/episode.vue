@@ -1224,10 +1224,11 @@
                 <div class="export-intro-preview" :class="{ vertical: isVerticalDrama }">
                   <img v-if="introPreviewImage" :src="introPreviewImage" alt="" />
                   <div v-else class="export-intro-empty">{{ t('episode.intro.noCover') }}</div>
-                  <div v-if="mergeIntro.showTitle && (introSubtitleText || introTitleText)" class="export-intro-text">
-                    <span v-if="introSubtitleText" class="export-intro-sub">{{ introSubtitleText }}</span>
-                    <strong v-if="introTitleText">{{ introTitleText }}</strong>
-                  </div>
+                  <template v-if="mergeIntro.showTitle && introPreviewLayout">
+                    <div v-if="mergeIntro.box" class="export-intro-band" :style="introPreviewLayout.band" />
+                    <span v-if="introSubtitleText" class="export-intro-line export-intro-sub" :style="introPreviewLayout.sub">{{ introSubtitleText }}</span>
+                    <strong v-if="introTitleText" class="export-intro-line" :style="introPreviewLayout.title">{{ introTitleText }}</strong>
+                  </template>
                 </div>
                 <div class="export-intro-fields">
                   <div class="export-bgm-row">
@@ -1251,6 +1252,47 @@
                       <input v-model="mergeIntro.showDrama" type="checkbox" />
                       <span>{{ t('episode.intro.showDrama') }}</span>
                     </label>
+                    <div class="export-intro-style">
+                      <div class="export-intro-row">
+                        <span class="export-intro-label">{{ t('episode.intro.font') }}</span>
+                        <select v-model="mergeIntro.font" class="input input-sm export-intro-font" :aria-label="t('episode.intro.font')">
+                          <option value="">{{ t('episode.intro.fontDefault') }}</option>
+                          <option v-for="f in introFonts" :key="f.id" :value="f.id">{{ f.name }}{{ f.uploaded ? ` (${t('episode.intro.fontUploaded')})` : '' }}</option>
+                        </select>
+                        <button class="btn btn-sm btn-ghost" type="button" :disabled="introFontUploading" :title="t('episode.intro.fontUploadTip')" @click="introFontInput?.click()">
+                          <Loader2 v-if="introFontUploading" :size="12" class="animate-spin" />
+                          <Upload v-else :size="12" />
+                          {{ t('episode.intro.fontUpload') }}
+                        </button>
+                        <input ref="introFontInput" type="file" accept=".ttf,.otf,.ttc" hidden @change="onIntroFontFile" />
+                        <button v-if="introFontSelected?.uploaded" class="btn btn-sm btn-ghost" type="button" :title="t('episode.intro.fontDelete')" @click="removeIntroFont(introFontSelected)">
+                          <Trash2 :size="12" />
+                        </button>
+                      </div>
+                      <label class="export-bgm-vol">
+                        <span>{{ t('episode.intro.size') }}</span>
+                        <input v-model.number="mergeIntro.size" type="range" min="0.5" max="2" step="0.1" />
+                        <span class="mono">{{ Math.round(mergeIntro.size * 100) }}%</span>
+                      </label>
+                      <div class="export-intro-row">
+                        <span class="export-intro-label">{{ t('episode.intro.color') }}</span>
+                        <button v-for="c in INTRO_COLORS" :key="c" type="button" :class="['export-intro-swatch', { on: mergeIntro.color.toUpperCase() === c }]" :style="{ background: c }" :title="c" @click="mergeIntro.color = c" />
+                        <input v-model="mergeIntro.color" type="color" class="export-intro-color" :aria-label="t('episode.intro.colorCustom')" :title="t('episode.intro.colorCustom')" />
+                      </div>
+                      <label class="video-direction-toggle">
+                        <input v-model="mergeIntro.box" type="checkbox" />
+                        <span>{{ t('episode.intro.box') }}</span>
+                      </label>
+                      <label class="export-bgm-vol">
+                        <span>{{ t('episode.intro.position') }}</span>
+                        <input v-model.number="mergeIntro.y" type="range" min="0.1" max="0.9" step="0.05" />
+                        <span class="dim">{{ introPositionLabel }}</span>
+                      </label>
+                      <div class="export-intro-row">
+                        <button v-for="p in INTRO_POSITIONS" :key="p.y" type="button" :class="['btn', 'btn-sm', 'btn-ghost', { active: Math.abs(mergeIntro.y - p.y) < 0.01 }]" @click="mergeIntro.y = p.y">{{ t(p.label) }}</button>
+                        <button class="btn btn-sm btn-ghost" type="button" @click="resetIntroStyle">{{ t('episode.intro.resetStyle') }}</button>
+                      </div>
+                    </div>
                   </template>
                   <label class="export-bgm-vol">
                     <span>{{ t('episode.intro.duration') }}</span>
@@ -1994,6 +2036,7 @@ async function loadExportMerges() {
   if (!epId.value) return
   try { exportMerges.value = await mergeAPI.list(epId.value) || [] } catch { /* 静默 */ }
   loadBgmLibrary()
+  loadIntroFonts()
 }
 
 // ===== 拼接导出的背景音乐（曲库在后端 static/bgm，选择与音量等记在本机）=====
@@ -2017,7 +2060,11 @@ function readBgmPrefs() {
 }
 // ===== 片头 / 封面（每个项目一套：封面图统一，标题默认用「第 N 集 · 集标题」）=====
 const INTRO_STORE_KEY = `uu889:merge-intro:${dramaId}`
-const INTRO_DEFAULTS = { enabled: false, image: '', showTitle: true, showDrama: true, duration: 2 }
+const INTRO_STYLE_DEFAULTS = { font: '', size: 1, color: '#FFFFFF', box: true, y: 0.7 }
+const INTRO_DEFAULTS = { enabled: false, image: '', showTitle: true, showDrama: true, duration: 2, ...INTRO_STYLE_DEFAULTS }
+const INTRO_COLORS = ['#FFFFFF', '#FFD84D', '#FF5A4E', '#7FD3FF', '#111111']
+const INTRO_POSITIONS = [{ y: 0.2, label: 'episode.intro.posTop' }, { y: 0.5, label: 'episode.intro.posMiddle' }, { y: 0.7, label: 'episode.intro.posLow' }, { y: 0.85, label: 'episode.intro.posBottom' }]
+const clampNum = (v, min, max, def) => { const n = Number(v); return v === undefined || v === null || v === '' || !Number.isFinite(n) ? def : Math.min(max, Math.max(min, n)) }
 function readIntroPrefs() {
   try {
     const v = JSON.parse(localStorage.getItem(INTRO_STORE_KEY) || 'null')
@@ -2029,6 +2076,11 @@ function readIntroPrefs() {
         showTitle: v.showTitle !== false,
         showDrama: v.showDrama !== false,
         duration: Number.isFinite(d) ? Math.min(5, Math.max(1, d)) : 2,
+        font: typeof v.font === 'string' ? v.font : '',
+        size: clampNum(v.size, 0.5, 2, 1),
+        color: typeof v.color === 'string' && /^#[0-9a-f]{6}$/i.test(v.color) ? v.color : '#FFFFFF',
+        box: v.box !== false,
+        y: clampNum(v.y, 0.1, 0.9, 0.7),
       }
     }
   } catch { /* 静默 */ }
@@ -2072,6 +2124,90 @@ async function onIntroFile(e) {
     introUploading.value = false
   }
 }
+function resetIntroStyle() {
+  Object.assign(mergeIntro, { ...INTRO_STYLE_DEFAULTS, font: mergeIntro.font })
+}
+const introPositionLabel = computed(() => {
+  const y = mergeIntro.y
+  return t(y < 0.35 ? 'episode.intro.posTop' : y < 0.6 ? 'episode.intro.posMiddle' : y < 0.8 ? 'episode.intro.posLow' : 'episode.intro.posBottom')
+})
+
+// 片头字体：本机中文字体 + 上传的字体（上传的用 FontFace 加载，预览才能看到）
+const introFonts = ref([])
+const introFontInput = ref(null)
+const introFontUploading = ref(false)
+const introFontSelected = computed(() => introFonts.value.find(f => f.id === mergeIntro.font) || null)
+const loadedFontFaces = new Set()
+function introFontFamily(f) {
+  if (!f) return ''
+  if (f.url) {
+    const name = `uu889-intro-${f.id.replace(/[^a-z0-9]/gi, '')}`
+    if (!loadedFontFaces.has(name) && typeof FontFace !== 'undefined') {
+      loadedFontFaces.add(name)
+      new FontFace(name, `url("${f.url}")`).load().then(face => document.fonts.add(face)).catch(() => {})
+    }
+    return `"${name}"`
+  }
+  return `"${f.family}"`
+}
+async function loadIntroFonts() {
+  try {
+    introFonts.value = await mergeAPI.fonts() || []
+    if (mergeIntro.font && !introFonts.value.some(f => f.id === mergeIntro.font)) mergeIntro.font = ''
+  } catch { /* 静默 */ }
+}
+async function onIntroFontFile(e) {
+  const file = e.target.files?.[0]
+  e.target.value = ''
+  if (!file) return
+  introFontUploading.value = true
+  try {
+    const font = await mergeAPI.fontUpload(file)
+    await loadIntroFonts()
+    if (font?.id) mergeIntro.font = font.id
+  } catch (err) {
+    toastError(err, { fallback: 'episode.intro.fontUploadFailed' })
+  } finally {
+    introFontUploading.value = false
+  }
+}
+async function removeIntroFont(f) {
+  try {
+    await mergeAPI.fontDelete(f.id)
+    mergeIntro.font = ''
+    await loadIntroFonts()
+  } catch (err) {
+    toastError(err)
+  }
+}
+
+/** 预览里的文字排版：和后端 buildIntroFilter 同一套比例（字号按短边、位置按标题中心、背景条只盖文字） */
+const introPreviewLayout = computed(() => {
+  const hasTitle = !!introTitleText.value
+  const hasSub = !!introSubtitleText.value
+  if (!hasTitle && !hasSub) return null
+  const vertical = isVerticalDrama.value
+  const W = vertical ? 120 : 240
+  const H = vertical ? W * 16 / 9 : W * 9 / 16
+  const titleSize = Math.min(W, H) * (vertical ? 0.075 : 0.085) * mergeIntro.size
+  const subSize = titleSize * 0.5
+  const gap = subSize * 0.9
+  const blockH = (hasTitle ? titleSize : 0) + (hasSub ? subSize : 0) + (hasTitle && hasSub ? gap : 0)
+  const pad = Math.max(titleSize, subSize) * 0.6
+  const center = H * mergeIntro.y
+  let top = hasTitle ? center - titleSize / 2 - (hasSub ? subSize + gap : 0) : center - subSize / 2
+  top = Math.min(H - pad - blockH, Math.max(pad, top))
+  const family = introFontFamily(introFontSelected.value)
+  const weight = introFontSelected.value?.weight || (mergeIntro.font ? 400 : 700)
+  const line = (size, y) => ({ top: `${(y / H) * 100}%`, fontSize: `${size}px`, lineHeight: `${size}px`, color: mergeIntro.color, fontFamily: family || undefined, fontWeight: weight })
+  const bandTop = Math.max(0, top - pad)
+  return {
+    band: { top: `${(bandTop / H) * 100}%`, height: `${(Math.min(H - bandTop, blockH + pad * 2) / H) * 100}%` },
+    sub: { ...line(subSize, top), opacity: 0.85 },
+    title: line(titleSize, top + (hasSub ? subSize + gap : 0)),
+  }
+})
+
 function introPayload() {
   if (!mergeIntro.enabled) return undefined
   return {
@@ -2080,6 +2216,11 @@ function introPayload() {
     image: mergeIntro.image || undefined,
     title: mergeIntro.showTitle ? introTitleText.value : '',
     subtitle: mergeIntro.showTitle ? introSubtitleText.value : '',
+    font: mergeIntro.font || null,
+    size: mergeIntro.size,
+    color: mergeIntro.color,
+    box: mergeIntro.box,
+    y: mergeIntro.y,
   }
 }
 
@@ -7033,13 +7174,19 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
 .export-bgm-audio { width: 100%; max-width: 520px; height: 32px; }
 .export-bgm-opts { gap: 16px; }
 .export-intro-body { flex-direction: row; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
-.export-intro-preview { position: relative; width: 200px; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; background: #111; flex: none; }
-.export-intro-preview.vertical { width: 110px; aspect-ratio: 9 / 16; }
+.export-intro-preview { position: relative; width: 240px; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; background: #111; flex: none; }
+.export-intro-preview.vertical { width: 120px; aspect-ratio: 9 / 16; }
 .export-intro-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .export-intro-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #aaa; font-size: 11px; padding: 8px; text-align: center; }
-.export-intro-text { position: absolute; left: 0; right: 0; bottom: 0; top: 55%; background: rgba(0,0,0,0.45); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #fff; text-align: center; padding: 0 6px; }
-.export-intro-text strong { font-size: 13px; line-height: 1.2; text-shadow: 0 1px 2px rgba(0,0,0,0.7); }
-.export-intro-sub { font-size: 9px; opacity: 0.85; }
+.export-intro-band { position: absolute; left: 0; right: 0; background: rgba(0,0,0,0.45); }
+.export-intro-line { position: absolute; left: 4px; right: 4px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; -webkit-text-stroke: 0; text-shadow: 0 0 2px rgba(0,0,0,0.75), 0 1px 2px rgba(0,0,0,0.7); }
+.export-intro-style { display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 8px; background: var(--bg-2, rgba(127,127,127,0.06)); }
+.export-intro-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.export-intro-row .btn.active { background: var(--accent-soft, rgba(99,102,241,0.15)); color: var(--accent, inherit); }
+.export-intro-font { flex: 1 1 140px; min-width: 0; max-width: 220px; }
+.export-intro-swatch { width: 20px; height: 20px; border-radius: 50%; border: 2px solid rgba(127,127,127,0.35); padding: 0; cursor: pointer; }
+.export-intro-swatch.on { border-color: var(--accent, #6366f1); box-shadow: 0 0 0 2px rgba(99,102,241,0.25); }
+.export-intro-color { width: 28px; height: 22px; padding: 0; border: none; background: none; cursor: pointer; }
 .export-intro-fields { flex: 1 1 240px; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
 .export-intro-label { font-size: 12px; color: var(--text-1); }
 .export-intro-tip { margin: -4px 0 0; font-size: 11px; line-height: 1.5; }

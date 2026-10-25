@@ -1383,7 +1383,24 @@
       "titleLabel": "오프닝 제목(비우면 기본값)",
       "showDrama": "제목 위에 작품명 표시",
       "duration": "오프닝 길이",
-      "uploadFailed": "표지 업로드 실패"
+      "uploadFailed": "표지 업로드 실패",
+      "font": "글꼴",
+      "fontDefault": "기본 글꼴",
+      "fontUploaded": "업로드",
+      "fontUpload": "글꼴 업로드",
+      "fontUploadTip": ".ttf / .otf / .ttc 글꼴 업로드 (상업적 사용 시 라이선스 확인)",
+      "fontDelete": "업로드한 글꼴 삭제",
+      "fontUploadFailed": "글꼴 업로드 실패",
+      "size": "글자 크기",
+      "color": "색상",
+      "colorCustom": "사용자 지정 색상",
+      "box": "글자 뒤 반투명 배경 띠",
+      "position": "위치",
+      "posTop": "위",
+      "posMiddle": "가운데",
+      "posLow": "약간 아래",
+      "posBottom": "아래",
+      "resetStyle": "기본 스타일로"
     }
   },
   "errors": {

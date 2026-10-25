@@ -1383,7 +1383,24 @@
       "titleLabel": "Tiêu đề mở đầu (để trống dùng mặc định)",
       "showDrama": "Hiện tên phim phía trên tiêu đề",
       "duration": "Độ dài mở đầu",
-      "uploadFailed": "Tải ảnh bìa thất bại"
+      "uploadFailed": "Tải ảnh bìa thất bại",
+      "font": "Phông chữ",
+      "fontDefault": "Phông mặc định",
+      "fontUploaded": "đã tải lên",
+      "fontUpload": "Tải phông lên",
+      "fontUploadTip": "Tải tệp .ttf / .otf / .ttc (lưu ý bản quyền khi dùng thương mại)",
+      "fontDelete": "Xóa phông đã tải lên",
+      "fontUploadFailed": "Tải phông thất bại",
+      "size": "Cỡ chữ",
+      "color": "Màu",
+      "colorCustom": "Màu tùy chọn",
+      "box": "Dải nền bán trong suốt sau chữ",
+      "position": "Vị trí",
+      "posTop": "Trên",
+      "posMiddle": "Giữa",
+      "posLow": "Hơi thấp",
+      "posBottom": "Dưới",
+      "resetStyle": "Khôi phục kiểu mặc định"
     }
   },
   "errors": {

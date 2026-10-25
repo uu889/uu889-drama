@@ -1383,7 +1383,24 @@
       "titleLabel": "Intro title (leave empty for default)",
       "showDrama": "Show series name above the title",
       "duration": "Intro length",
-      "uploadFailed": "Cover upload failed"
+      "uploadFailed": "Cover upload failed",
+      "font": "Font",
+      "fontDefault": "Default font",
+      "fontUploaded": "uploaded",
+      "fontUpload": "Upload font",
+      "fontUploadTip": "Upload a .ttf / .otf / .ttc font file (mind the font license for commercial use)",
+      "fontDelete": "Delete this uploaded font",
+      "fontUploadFailed": "Font upload failed",
+      "size": "Size",
+      "color": "Color",
+      "colorCustom": "Custom color",
+      "box": "Semi-transparent band behind the text",
+      "position": "Position",
+      "posTop": "Top",
+      "posMiddle": "Middle",
+      "posLow": "Lower",
+      "posBottom": "Bottom",
+      "resetStyle": "Reset style"
     }
   },
   "errors": {

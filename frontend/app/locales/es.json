@@ -1383,7 +1383,24 @@
       "titleLabel": "Título de la intro (vacío = predeterminado)",
       "showDrama": "Mostrar el nombre de la serie sobre el título",
       "duration": "Duración de la intro",
-      "uploadFailed": "Error al subir la portada"
+      "uploadFailed": "Error al subir la portada",
+      "font": "Fuente",
+      "fontDefault": "Fuente predeterminada",
+      "fontUploaded": "subida",
+      "fontUpload": "Subir fuente",
+      "fontUploadTip": "Sube un archivo .ttf / .otf / .ttc (revisa la licencia para uso comercial)",
+      "fontDelete": "Eliminar esta fuente subida",
+      "fontUploadFailed": "Error al subir la fuente",
+      "size": "Tamaño",
+      "color": "Color",
+      "colorCustom": "Color personalizado",
+      "box": "Franja semitransparente tras el texto",
+      "position": "Posición",
+      "posTop": "Arriba",
+      "posMiddle": "Centro",
+      "posLow": "Abajo-centro",
+      "posBottom": "Abajo",
+      "resetStyle": "Restablecer estilo"
     }
   },
   "errors": {

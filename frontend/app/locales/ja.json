@@ -1383,7 +1383,24 @@
       "titleLabel": "オープニングのタイトル（空欄でデフォルト）",
       "showDrama": "タイトルの上に作品名を表示",
       "duration": "オープニングの長さ",
-      "uploadFailed": "表紙のアップロードに失敗しました"
+      "uploadFailed": "表紙のアップロードに失敗しました",
+      "font": "フォント",
+      "fontDefault": "既定のフォント",
+      "fontUploaded": "アップロード",
+      "fontUpload": "フォントをアップロード",
+      "fontUploadTip": ".ttf / .otf / .ttc フォントをアップロード（商用時はライセンスに注意）",
+      "fontDelete": "このフォントを削除",
+      "fontUploadFailed": "フォントのアップロードに失敗しました",
+      "size": "文字サイズ",
+      "color": "色",
+      "colorCustom": "カスタム色",
+      "box": "文字の後ろに半透明の帯",
+      "position": "位置",
+      "posTop": "上",
+      "posMiddle": "中央",
+      "posLow": "やや下",
+      "posBottom": "下",
+      "resetStyle": "既定に戻す"
     }
   },
   "errors": {

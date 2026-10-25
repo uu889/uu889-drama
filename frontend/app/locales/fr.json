@@ -1383,7 +1383,24 @@
       "titleLabel": "Titre de l'intro (vide = par défaut)",
       "showDrama": "Afficher le nom de la série au-dessus du titre",
       "duration": "Durée de l'intro",
-      "uploadFailed": "Échec de l'import de la couverture"
+      "uploadFailed": "Échec de l'import de la couverture",
+      "font": "Police",
+      "fontDefault": "Police par défaut",
+      "fontUploaded": "importée",
+      "fontUpload": "Importer une police",
+      "fontUploadTip": "Importer un fichier .ttf / .otf / .ttc (attention à la licence en usage commercial)",
+      "fontDelete": "Supprimer cette police importée",
+      "fontUploadFailed": "Échec de l’import de la police",
+      "size": "Taille",
+      "color": "Couleur",
+      "colorCustom": "Couleur personnalisée",
+      "box": "Bandeau semi-transparent derrière le texte",
+      "position": "Position",
+      "posTop": "Haut",
+      "posMiddle": "Centre",
+      "posLow": "Bas-centre",
+      "posBottom": "Bas",
+      "resetStyle": "Style par défaut"
     }
   },
   "errors": {
