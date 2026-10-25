@@ -1367,6 +1367,23 @@
       "uploaded": "Đã tải {n} tệp, đang trích văn bản",
       "tooMany": "Tối đa {max} tệp mỗi tập; còn thêm được {n}",
       "tooBig": "{name} vượt {mb}MB, hãy chia nhỏ hoặc nén lại"
+    },
+    "intro": {
+      "title": "Mở đầu / ảnh bìa",
+      "hintOff": "Không có mở đầu, video bắt đầu từ cảnh đầu tiên",
+      "hintOn": "Thêm đoạn mở đầu {n} giây ở đầu video",
+      "noCover": "Chưa có hình để dùng",
+      "cover": "Ảnh bìa",
+      "uploadCover": "Tải ảnh bìa",
+      "changeCover": "Đổi ảnh bìa",
+      "useFirstFrame": "Dùng hình cảnh đầu tiên",
+      "coverShared": "Ảnh bìa này dùng cho mọi tập của dự án",
+      "coverFirstFrame": "Không có ảnh bìa thì dùng khung đầu của cảnh đầu tiên",
+      "showTitle": "Hiện tiêu đề tập ở đoạn mở đầu",
+      "titleLabel": "Tiêu đề mở đầu (để trống dùng mặc định)",
+      "showDrama": "Hiện tên phim phía trên tiêu đề",
+      "duration": "Độ dài mở đầu",
+      "uploadFailed": "Tải ảnh bìa thất bại"
     }
   },
   "errors": {

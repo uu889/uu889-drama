@@ -12,6 +12,7 @@ import { extractVideoPoster } from '../utils/video-poster.js'
 import { ffmpeg, checkFfmpegSuite } from '../utils/ffmpeg.js'
 import { DATA_ROOT, STORAGE_ROOT } from '../utils/paths.js'
 import { mixBackgroundMusic, type BgmOptions } from './bgm.js'
+import { renderIntroClip, type IntroOptions } from './episode-intro.js'
 import { probeVideo } from './video-upscale.js'
 import { getAbsolutePath } from '../utils/storage.js'
 
@@ -24,9 +25,9 @@ function toAbsPath(relativePath: string): string {
 /**
  * 拼接一集的镜头视频。
  * 优先使用视频生成产物，兼容历史的 composedVideoUrl 数据。
- * 传入 storyboardIds 时只拼接所选镜头（仍按镜号顺序）；传入 bgm 时拼接后混入背景音乐。
+ * 传入 storyboardIds 时只拼接所选镜头（仍按镜号顺序）；传入 bgm 时拼接后混入背景音乐；传入 intro 时最前面加片头（封面 + 标题）。
  */
-export async function mergeEpisodeVideos(episodeId: number, dramaId: number, storyboardIds?: number[], bgm?: BgmOptions | null): Promise<number> {
+export async function mergeEpisodeVideos(episodeId: number, dramaId: number, storyboardIds?: number[], bgm?: BgmOptions | null, intro?: IntroOptions | null): Promise<number> {
   let storyboards = await db.select().from(schema.storyboards)
     .where(eq(schema.storyboards.episodeId, episodeId))
     .orderBy(schema.storyboards.storyboardNumber)
@@ -64,7 +65,11 @@ export async function mergeEpisodeVideos(episodeId: number, dramaId: number, sto
     throw new Error('背景音乐文件不存在（可能已从曲库删除），请重新选择')
   }
 
-  logTaskStart('MergeTask', 'episode-merge', { episodeId, dramaId, clips: videos.length, bgm: bgm?.path })
+  if (intro?.image && !fs.existsSync(getAbsolutePath(intro.image))) {
+    throw new Error('片头封面图不存在（可能已被删除），请重新上传，或不选封面图改用第一个镜头的画面')
+  }
+
+  logTaskStart('MergeTask', 'episode-merge', { episodeId, dramaId, clips: videos.length, bgm: bgm?.path, intro: intro ? { duration: intro.duration, image: intro.image, title: intro.title } : null })
 
   // 创建 merge 记录
   const ts = now()
@@ -73,7 +78,7 @@ export async function mergeEpisodeVideos(episodeId: number, dramaId: number, sto
     dramaId,
     title: bgm ? `Episode ${episodeId} Merge · BGM ${path.basename(bgm.path).replace(/^[0-9a-z]{6,}-/, '')}` : `Episode ${episodeId} Merge`,
     provider: 'ffmpeg',
-    model: bgm ? 'ffmpeg-concat-h264-aac+bgm' : 'ffmpeg-concat-h264-aac',
+    model: `ffmpeg-concat-h264-aac${intro ? '+intro' : ''}${bgm ? '+bgm' : ''}`,
     status: 'processing',
     scenes: JSON.stringify(videos),
     createdAt: ts,
@@ -81,7 +86,7 @@ export async function mergeEpisodeVideos(episodeId: number, dramaId: number, sto
   const mergeId = getInsertId(res)
 
   // 异步执行
-  doMerge(mergeId, episodeId, videos, bgm || null).catch(async err => {
+  doMerge(mergeId, episodeId, videos, bgm || null, intro || null).catch(async err => {
     logTaskError('MergeTask', 'episode-merge', { mergeId, episodeId, error: err.message })
     console.error(`[Merge] Failed:`, err)
     await db.update(schema.videoMerges)
@@ -92,7 +97,7 @@ export async function mergeEpisodeVideos(episodeId: number, dramaId: number, sto
   return mergeId
 }
 
-async function doMerge(mergeId: number, episodeId: number, videos: string[], bgm: BgmOptions | null) {
+async function doMerge(mergeId: number, episodeId: number, videos: string[], bgm: BgmOptions | null, intro: IntroOptions | null) {
   // 生成 concat 列表文件
   const listDir = path.join(STORAGE_ROOT, 'temp')
   fs.mkdirSync(listDir, { recursive: true })
@@ -113,13 +118,24 @@ async function doMerge(mergeId: number, episodeId: number, videos: string[], bgm
 
   // 镜头分辨率 / 帧率 / 有无声音不一致（部分镜头高清化到 1080p、Wan 16fps 和 H3 24fps 混用、Wan 没有音轨）时，
   // concat 分离器会把时长和画面拼乱：改用 concat 滤镜，逐段统一尺寸 / 帧率，没声音的段补静音
-  const plan = await planConcat(videos.map(toAbsPath))
+  let files = videos.map(toAbsPath)
+  // 片头：按成片尺寸 / 帧率生成，放在最前面（编码参数和镜头不同，一律走 concat 滤镜）
+  let introFile = ''
+  let introWarning = ''
+  if (intro) {
+    const target = await introTarget(files)
+    const r = await renderIntroClip(intro, target, files[0])
+    introFile = r.file
+    introWarning = r.warning
+    files = [introFile, ...files]
+  }
+  const plan = await planConcat(files, { force: !!intro })
   const encode = ['-c:v', 'libx264', '-preset', 'medium', '-crf', '23', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-ar', '48000', '-b:a', '192k', '-movflags', '+faststart']
 
   await new Promise<void>((resolve, reject) => {
     const cmd: any = ffmpeg()
     if (plan) {
-      for (const f of videos.map(toAbsPath)) cmd.input(f)
+      for (const f of files) cmd.input(f)
       cmd.complexFilter(plan.filter).outputOptions(['-map', '[v]', ...(plan.audio ? ['-map', '[a]'] : []), ...encode])
     } else {
       cmd.input(listPath).inputOptions(['-f', 'concat', '-safe', '0']).outputOptions(['-fflags', '+genpts', ...encode])
@@ -133,6 +149,7 @@ async function doMerge(mergeId: number, episodeId: number, videos: string[], bgm
 
   // 清理临时文件
   fs.unlinkSync(listPath)
+  if (introFile) fs.rmSync(introFile, { force: true })
 
   let bgmError = ''
   if (bgm) {
@@ -158,7 +175,11 @@ async function doMerge(mergeId: number, episodeId: number, videos: string[], bgm
 
   // 更新 merge 记录
   await db.update(schema.videoMerges)
-    .set({ status: 'completed', mergedUrl: mergedRelative, duration, completedAt: now(), ...(bgmError ? { errorMsg: `成片已生成，但没有混入背景音乐：${bgmError}`, model: 'ffmpeg-concat-h264-aac' } : {}) })
+    .set({
+      status: 'completed', mergedUrl: mergedRelative, duration, completedAt: now(),
+      ...(bgmError || introWarning ? { errorMsg: [bgmError ? `成片已生成，但没有混入背景音乐：${bgmError}` : '', introWarning].filter(Boolean).join('；') } : {}),
+      ...(bgmError ? { model: `ffmpeg-concat-h264-aac${intro ? '+intro' : ''}` } : {}),
+    })
     .where(eq(schema.videoMerges.id, mergeId))
 
   // 更新 episode
@@ -172,13 +193,13 @@ async function doMerge(mergeId: number, episodeId: number, videos: string[], bgm
 /**
  * 各镜头不一致时的 concat 滤镜图（输入 i 为第 i 个镜头）；尺寸、帧率、有无声音都一致时返回 null（走更快的 concat 分离器）
  */
-export async function planConcat(files: string[]): Promise<{ filter: string; audio: boolean } | null> {
+export async function planConcat(files: string[], opts: { force?: boolean } = {}): Promise<{ filter: string; audio: boolean } | null> {
   const infos = await Promise.all(files.map((f) => probeVideo(f).catch(() => null)))
   if (files.length < 2 || infos.some((i) => !i)) return null
   const list = infos as Awaited<ReturnType<typeof probeVideo>>[]
   const vf = await uniformVideoFilters(files, list)
   const audioMixed = new Set(list.map((i) => i.hasAudio)).size > 1
-  if (!vf.length && !audioMixed) return null
+  if (!vf.length && !audioMixed && !opts.force) return null
   const big = list.reduce((a, b) => (b.width * b.height > a.width * a.height ? b : a))
   const w = Math.round(big.width / 2) * 2
   const h = Math.round(big.height / 2) * 2
@@ -197,6 +218,18 @@ export async function planConcat(files: string[]): Promise<{ filter: string; aud
   })
   parts.push(`${pairs.join('')}concat=n=${list.length}:v=1:a=${audio ? 1 : 0}[v]${audio ? '[a]' : ''}`)
   return { filter: parts.join(';'), audio }
+}
+
+/** 片头画面尺寸 / 帧率：跟拼接后的成片一致（最大的那个镜头尺寸、最高帧率） */
+async function introTarget(files: string[]) {
+  const infos = (await Promise.all(files.map((f) => probeVideo(f).catch(() => null)))).filter(Boolean) as Awaited<ReturnType<typeof probeVideo>>[]
+  if (!infos.length) return { width: 1280, height: 720, fps: 24 }
+  const big = infos.reduce((a, b) => (b.width * b.height > a.width * a.height ? b : a))
+  return {
+    width: Math.round(big.width / 2) * 2,
+    height: Math.round(big.height / 2) * 2,
+    fps: Math.max(...infos.map((i) => Math.round(i.fps * 100) / 100).filter((f) => f > 0), 24),
+  }
 }
 
 /** 各镜头尺寸 / 帧率不一致时的统一滤镜（一致时返回 []） */

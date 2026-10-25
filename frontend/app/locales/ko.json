@@ -1367,6 +1367,23 @@
       "uploaded": "파일 {n}개 업로드, 텍스트 추출 중",
       "tooMany": "회차당 최대 {max}개, 이번에 {n}개 더 추가할 수 있습니다",
       "tooBig": "{name}이(가) {mb}MB를 넘습니다. 나누거나 압축하세요"
+    },
+    "intro": {
+      "title": "오프닝 표지",
+      "hintOff": "오프닝 없음, 첫 컷부터 시작",
+      "hintOn": "맨 앞에 {n}초 오프닝 추가",
+      "noCover": "아직 사용할 화면이 없습니다",
+      "cover": "표지 이미지",
+      "uploadCover": "표지 업로드",
+      "changeCover": "표지 변경",
+      "useFirstFrame": "첫 컷 화면 사용",
+      "coverShared": "이 표지는 프로젝트의 모든 회차에 사용됩니다(공통 표지)",
+      "coverFirstFrame": "표지가 없으면 첫 컷의 첫 프레임을 배경으로 사용합니다",
+      "showTitle": "오프닝에 회차 제목 표시",
+      "titleLabel": "오프닝 제목(비우면 기본값)",
+      "showDrama": "제목 위에 작품명 표시",
+      "duration": "오프닝 길이",
+      "uploadFailed": "표지 업로드 실패"
     }
   },
   "errors": {

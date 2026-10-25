@@ -1367,6 +1367,23 @@
       "uploaded": "{n} arquivo(s) enviado(s), extraindo texto",
       "tooMany": "Máximo de {max} anexos por episódio; dá para adicionar mais {n}",
       "tooBig": "{name} passa de {mb} MB: divida ou comprima"
+    },
+    "intro": {
+      "title": "Abertura / capa",
+      "hintOff": "Sem abertura; o vídeo começa no primeiro plano",
+      "hintOn": "Adiciona uma abertura de {n} s no início",
+      "noCover": "Ainda não há imagem disponível",
+      "cover": "Imagem de capa",
+      "uploadCover": "Enviar capa",
+      "changeCover": "Trocar capa",
+      "useFirstFrame": "Usar o primeiro plano",
+      "coverShared": "Esta capa é usada em todos os episódios do projeto",
+      "coverFirstFrame": "Sem capa, usa o primeiro quadro do primeiro plano",
+      "showTitle": "Mostrar o título do episódio na abertura",
+      "titleLabel": "Título da abertura (vazio = padrão)",
+      "showDrama": "Mostrar o nome da série acima do título",
+      "duration": "Duração da abertura",
+      "uploadFailed": "Falha ao enviar a capa"
     }
   },
   "errors": {

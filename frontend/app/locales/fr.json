@@ -1367,6 +1367,23 @@
       "uploaded": "{n} fichier(s) importé(s), extraction du texte",
       "tooMany": "{max} pièces jointes max par épisode ; encore {n} possibles",
       "tooBig": "{name} dépasse {mb} Mo : découpez-le ou compressez-le"
+    },
+    "intro": {
+      "title": "Intro / couverture",
+      "hintOff": "Pas d'intro, la vidéo commence au premier plan",
+      "hintOn": "Ajoute une intro de {n} s au début",
+      "noCover": "Aucune image disponible pour l'instant",
+      "cover": "Image de couverture",
+      "uploadCover": "Importer une couverture",
+      "changeCover": "Changer la couverture",
+      "useFirstFrame": "Utiliser le premier plan",
+      "coverShared": "Cette couverture sert pour tous les épisodes du projet",
+      "coverFirstFrame": "Sans couverture, la première image du premier plan est utilisée",
+      "showTitle": "Afficher le titre de l'épisode sur l'intro",
+      "titleLabel": "Titre de l'intro (vide = par défaut)",
+      "showDrama": "Afficher le nom de la série au-dessus du titre",
+      "duration": "Durée de l'intro",
+      "uploadFailed": "Échec de l'import de la couverture"
     }
   },
   "errors": {

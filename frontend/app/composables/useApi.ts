@@ -150,8 +150,8 @@ export const uploadAPI = {
   audio: (f: File) => uploadReq<{ url: string; path: string }>('/upload/audio', f),
 }
 export const mergeAPI = {
-  merge: (epId: number, storyboardIds?: number[], bgm?: { path: string; volume: number; duck: boolean; fade: boolean }) =>
-    api.post(`/merge/episodes/${epId}/merge`, { ...(storyboardIds?.length ? { storyboard_ids: storyboardIds } : {}), ...(bgm ? { bgm } : {}) }),
+  merge: (epId: number, storyboardIds?: number[], bgm?: { path: string; volume: number; duck: boolean; fade: boolean }, intro?: { enabled: boolean; duration: number; image?: string; title: string; subtitle: string }) =>
+    api.post(`/merge/episodes/${epId}/merge`, { ...(storyboardIds?.length ? { storyboard_ids: storyboardIds } : {}), ...(bgm ? { bgm } : {}), ...(intro ? { intro } : {}) }),
   /** 背景音乐曲库 */
   bgmList: () => api.get<any[]>('/merge/bgm'),
   bgmUpload: (f: File) => uploadReq<{ path: string; name: string; duration: number }>('/merge/bgm', f),

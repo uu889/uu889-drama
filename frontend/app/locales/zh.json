@@ -1367,6 +1367,23 @@
       "uploaded": "已上传 {n} 个文件，正在提取文字",
       "tooMany": "每集最多 {max} 个附件，这次最多还能传 {n} 个",
       "tooBig": "{name} 超过 {mb}MB，请拆小或压缩后再传"
+    },
+    "intro": {
+      "title": "片头封面",
+      "hintOff": "不加片头，成片直接从第一个镜头开始",
+      "hintOn": "成片最前面加 {n} 秒片头",
+      "noCover": "还没有可用的画面",
+      "cover": "封面图",
+      "uploadCover": "上传封面图",
+      "changeCover": "更换封面图",
+      "useFirstFrame": "改用第一个镜头画面",
+      "coverShared": "这张封面图本项目每一集都会用（统一封面）",
+      "coverFirstFrame": "没传封面图时，用第一个镜头的第一帧当背景",
+      "showTitle": "片头上显示集标题",
+      "titleLabel": "片头标题（不填用默认）",
+      "showDrama": "标题上方显示剧名",
+      "duration": "片头时长",
+      "uploadFailed": "封面图上传失败"
     }
   },
   "errors": {

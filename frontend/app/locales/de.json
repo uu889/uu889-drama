@@ -1367,6 +1367,23 @@
       "uploaded": "{n} Datei(en) hochgeladen, Text wird extrahiert",
       "tooMany": "Höchstens {max} Anhänge pro Folge; noch {n} möglich",
       "tooBig": "{name} ist größer als {mb} MB – bitte teilen oder komprimieren"
+    },
+    "intro": {
+      "title": "Intro / Cover",
+      "hintOff": "Kein Intro, das Video beginnt mit der ersten Einstellung",
+      "hintOn": "Fügt am Anfang ein {n}-s-Intro hinzu",
+      "noCover": "Noch kein Bild verfügbar",
+      "cover": "Coverbild",
+      "uploadCover": "Cover hochladen",
+      "changeCover": "Cover ändern",
+      "useFirstFrame": "Erste Einstellung verwenden",
+      "coverShared": "Dieses Cover wird für alle Folgen des Projekts verwendet",
+      "coverFirstFrame": "Ohne Coverbild wird das erste Bild der ersten Einstellung verwendet",
+      "showTitle": "Folgentitel im Intro anzeigen",
+      "titleLabel": "Intro-Titel (leer = Standard)",
+      "showDrama": "Serienname über dem Titel anzeigen",
+      "duration": "Intro-Länge",
+      "uploadFailed": "Cover-Upload fehlgeschlagen"
     }
   },
   "errors": {

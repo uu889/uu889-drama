@@ -1367,6 +1367,23 @@
       "uploaded": "{n} archivo(s) subidos, extrayendo texto",
       "tooMany": "Máximo {max} adjuntos por episodio; puedes añadir {n} más",
       "tooBig": "{name} supera {mb} MB: divídelo o comprímelo"
+    },
+    "intro": {
+      "title": "Intro / portada",
+      "hintOff": "Sin intro; el vídeo empieza con el primer plano",
+      "hintOn": "Añade una intro de {n} s al principio",
+      "noCover": "Aún no hay imagen disponible",
+      "cover": "Imagen de portada",
+      "uploadCover": "Subir portada",
+      "changeCover": "Cambiar portada",
+      "useFirstFrame": "Usar el primer plano",
+      "coverShared": "Esta portada se usa en todos los episodios del proyecto",
+      "coverFirstFrame": "Sin portada, se usa el primer fotograma del primer plano",
+      "showTitle": "Mostrar el título del episodio en la intro",
+      "titleLabel": "Título de la intro (vacío = predeterminado)",
+      "showDrama": "Mostrar el nombre de la serie sobre el título",
+      "duration": "Duración de la intro",
+      "uploadFailed": "Error al subir la portada"
     }
   },
   "errors": {

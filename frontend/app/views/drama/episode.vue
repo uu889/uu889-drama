@@ -1210,6 +1210,57 @@
               <div v-else class="export-merge-empty">{{ t('episode.export.empty') }}</div>
             </div>
 
+            <!-- 片头 / 封面：拼接时放在成片最前面（可选） -->
+            <div :class="['export-section', 'export-bgm', 'export-intro', { on: mergeIntro.enabled }]">
+              <div class="export-section-head export-bgm-head">
+                <label class="export-bgm-switch">
+                  <input v-model="mergeIntro.enabled" type="checkbox" />
+                  <ImageIcon :size="13" />
+                  <span class="export-section-title">{{ t('episode.intro.title') }}</span>
+                </label>
+                <span class="dim export-bgm-hint">{{ mergeIntro.enabled ? t('episode.intro.hintOn', { n: mergeIntro.duration }) : t('episode.intro.hintOff') }}</span>
+              </div>
+              <div v-if="mergeIntro.enabled" class="export-bgm-body export-intro-body">
+                <div class="export-intro-preview" :class="{ vertical: isVerticalDrama }">
+                  <img v-if="introPreviewImage" :src="introPreviewImage" alt="" />
+                  <div v-else class="export-intro-empty">{{ t('episode.intro.noCover') }}</div>
+                  <div v-if="mergeIntro.showTitle && (introSubtitleText || introTitleText)" class="export-intro-text">
+                    <span v-if="introSubtitleText" class="export-intro-sub">{{ introSubtitleText }}</span>
+                    <strong v-if="introTitleText">{{ introTitleText }}</strong>
+                  </div>
+                </div>
+                <div class="export-intro-fields">
+                  <div class="export-bgm-row">
+                    <span class="export-intro-label">{{ t('episode.intro.cover') }}</span>
+                    <button class="btn btn-sm" type="button" :disabled="introUploading" @click="introFileInput?.click()">
+                      <Loader2 v-if="introUploading" :size="12" class="animate-spin" />
+                      <Upload v-else :size="12" />
+                      {{ mergeIntro.image ? t('episode.intro.changeCover') : t('episode.intro.uploadCover') }}
+                    </button>
+                    <input ref="introFileInput" type="file" accept="image/png,image/jpeg,image/webp" hidden @change="onIntroFile" />
+                    <button v-if="mergeIntro.image" class="btn btn-sm btn-ghost" type="button" @click="mergeIntro.image = ''">{{ t('episode.intro.useFirstFrame') }}</button>
+                  </div>
+                  <p class="dim export-intro-tip">{{ mergeIntro.image ? t('episode.intro.coverShared') : t('episode.intro.coverFirstFrame') }}</p>
+                  <label class="video-direction-toggle">
+                    <input v-model="mergeIntro.showTitle" type="checkbox" />
+                    <span>{{ t('episode.intro.showTitle') }}</span>
+                  </label>
+                  <template v-if="mergeIntro.showTitle">
+                    <input v-model="introTitleDraft" class="input input-sm" maxlength="40" :placeholder="defaultIntroTitle" :aria-label="t('episode.intro.titleLabel')" />
+                    <label class="video-direction-toggle">
+                      <input v-model="mergeIntro.showDrama" type="checkbox" />
+                      <span>{{ t('episode.intro.showDrama') }}</span>
+                    </label>
+                  </template>
+                  <label class="export-bgm-vol">
+                    <span>{{ t('episode.intro.duration') }}</span>
+                    <input v-model.number="mergeIntro.duration" type="range" min="1" max="5" step="0.5" />
+                    <span class="mono">{{ mergeIntro.duration }}s</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
             <!-- 背景音乐：拼接时混入（可选） -->
             <div :class="['export-section', 'export-bgm', { on: mergeBgm.enabled }]">
               <div class="export-section-head export-bgm-head">
@@ -1837,7 +1888,7 @@ import { toast } from 'vue-sonner'
 import { useI18n } from 'vue-i18n'
 import {
   Users, FileText, FolderKanban, Clapperboard, Download, Loader2,
-  Plus, X, ListTodo, CircleHelp, Trash2, Music, Upload, Bot, Sparkles,
+  Plus, X, ListTodo, CircleHelp, Trash2, Music, Upload, Bot, Sparkles, Image as ImageIcon,
 } from 'lucide-vue-next'
 import { api, dramaAPI, episodeAPI, storyboardAPI, characterAPI, sceneAPI, propAPI, taskAPI, mergeAPI, aiConfigAPI, uploadAPI } from '~/composables/useApi'
 import { startTour, autoTour } from '~/composables/useTour'
@@ -1964,6 +2015,74 @@ function readBgmPrefs() {
   } catch { /* 静默 */ }
   return { ...BGM_DEFAULTS }
 }
+// ===== 片头 / 封面（每个项目一套：封面图统一，标题默认用「第 N 集 · 集标题」）=====
+const INTRO_STORE_KEY = `uu889:merge-intro:${dramaId}`
+const INTRO_DEFAULTS = { enabled: false, image: '', showTitle: true, showDrama: true, duration: 2 }
+function readIntroPrefs() {
+  try {
+    const v = JSON.parse(localStorage.getItem(INTRO_STORE_KEY) || 'null')
+    if (v && typeof v === 'object') {
+      const d = Number(v.duration)
+      return {
+        enabled: v.enabled === true,
+        image: typeof v.image === 'string' ? v.image : '',
+        showTitle: v.showTitle !== false,
+        showDrama: v.showDrama !== false,
+        duration: Number.isFinite(d) ? Math.min(5, Math.max(1, d)) : 2,
+      }
+    }
+  } catch { /* 静默 */ }
+  return { ...INTRO_DEFAULTS }
+}
+const mergeIntro = reactive(readIntroPrefs())
+watch(mergeIntro, v => { try { localStorage.setItem(INTRO_STORE_KEY, JSON.stringify(v)) } catch { /* 静默 */ } }, { deep: true })
+/** 本集自定义标题（不填用默认） */
+const introTitleDraft = ref('')
+const introFileInput = ref(null)
+const introUploading = ref(false)
+const defaultIntroTitle = computed(() => {
+  const title = String(episode.value?.title || '').trim()
+  const n = t('episode.topbar.episodeN', { n: episodeNumber })
+  // 集标题本身就是「第 N 集」时不重复
+  if (!title) return n
+  if (/^(第\s*[0-9一二三四五六七八九十百零〇两]+\s*[集话話回]|ep(isode)?\s*\d+)$/i.test(title)) return n
+  return title.includes(String(episodeNumber)) ? title : `${n} · ${title}`
+})
+const introTitleText = computed(() => (introTitleDraft.value.trim() || defaultIntroTitle.value))
+const introSubtitleText = computed(() => (mergeIntro.showDrama ? String(drama.value?.title || '').trim() : ''))
+const isVerticalDrama = computed(() => /^9:16|3:4/.test(String(dramaAspectRatio.value || '')))
+const introPreviewImage = computed(() => {
+  if (mergeIntro.image) return '/' + mergeIntro.image
+  const first = sbs.value.find(s => hasVid(s))
+  return first ? posterOf('/' + getVideoUrl(first)) : ''
+})
+async function onIntroFile(e) {
+  const file = e.target.files?.[0]
+  e.target.value = ''
+  if (!file) return
+  introUploading.value = true
+  try {
+    const res = await uploadAPI.image(file)
+    const p = String(res?.path || res?.url || '').replace(/^\/+/, '')
+    if (!p.startsWith('static/')) throw new Error(t('episode.intro.uploadFailed'))
+    mergeIntro.image = p
+  } catch (err) {
+    toastError(err, { fallback: 'episode.intro.uploadFailed' })
+  } finally {
+    introUploading.value = false
+  }
+}
+function introPayload() {
+  if (!mergeIntro.enabled) return undefined
+  return {
+    enabled: true,
+    duration: mergeIntro.duration,
+    image: mergeIntro.image || undefined,
+    title: mergeIntro.showTitle ? introTitleText.value : '',
+    subtitle: mergeIntro.showTitle ? introSubtitleText.value : '',
+  }
+}
+
 const mergeBgm = reactive(readBgmPrefs())
 watch(mergeBgm, v => { try { localStorage.setItem(BGM_STORE_KEY, JSON.stringify(v)) } catch { /* 静默 */ } }, { deep: true })
 const bgmLibrary = ref([])
@@ -4513,7 +4632,7 @@ async function doMerge(ids) {
     bgm = { path: mergeBgm.path, volume: mergeBgm.volume / 100, duck: mergeBgm.duck, fade: mergeBgm.fade }
   }
   try {
-    await mergeAPI.merge(epId.value, storyboardIds, bgm)
+    await mergeAPI.merge(epId.value, storyboardIds, bgm, introPayload())
     toast.success(t('episode.export.mergingToast'))
   } catch (e) {
     toastError(e, { fallback: 'episode.export.mergeFailed' })
@@ -6913,6 +7032,17 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
 .export-bgm-select { flex: 1 1 220px; min-width: 0; max-width: 420px; }
 .export-bgm-audio { width: 100%; max-width: 520px; height: 32px; }
 .export-bgm-opts { gap: 16px; }
+.export-intro-body { flex-direction: row; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
+.export-intro-preview { position: relative; width: 200px; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; background: #111; flex: none; }
+.export-intro-preview.vertical { width: 110px; aspect-ratio: 9 / 16; }
+.export-intro-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.export-intro-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #aaa; font-size: 11px; padding: 8px; text-align: center; }
+.export-intro-text { position: absolute; left: 0; right: 0; bottom: 0; top: 55%; background: rgba(0,0,0,0.45); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #fff; text-align: center; padding: 0 6px; }
+.export-intro-text strong { font-size: 13px; line-height: 1.2; text-shadow: 0 1px 2px rgba(0,0,0,0.7); }
+.export-intro-sub { font-size: 9px; opacity: 0.85; }
+.export-intro-fields { flex: 1 1 240px; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.export-intro-label { font-size: 12px; color: var(--text-1); }
+.export-intro-tip { margin: -4px 0 0; font-size: 11px; line-height: 1.5; }
 .export-bgm-vol { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-1); }
 .export-bgm-vol input { width: 140px; accent-color: var(--accent); }
 .export-bgm-vol .mono { min-width: 34px; color: var(--text-2); }

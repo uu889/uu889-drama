@@ -1367,6 +1367,23 @@
       "uploaded": "Uploaded {n} file(s), extracting text",
       "tooMany": "Up to {max} attachments per episode; you can add {n} more",
       "tooBig": "{name} is over {mb}MB — split or compress it first"
+    },
+    "intro": {
+      "title": "Intro / cover",
+      "hintOff": "No intro; the video starts with the first shot",
+      "hintOn": "Adds a {n}s intro at the start",
+      "noCover": "No picture available yet",
+      "cover": "Cover image",
+      "uploadCover": "Upload cover",
+      "changeCover": "Change cover",
+      "useFirstFrame": "Use first shot instead",
+      "coverShared": "This cover is used for every episode of the project",
+      "coverFirstFrame": "Without a cover image, the first frame of the first shot is used",
+      "showTitle": "Show episode title on the intro",
+      "titleLabel": "Intro title (leave empty for default)",
+      "showDrama": "Show series name above the title",
+      "duration": "Intro length",
+      "uploadFailed": "Cover upload failed"
     }
   },
   "errors": {

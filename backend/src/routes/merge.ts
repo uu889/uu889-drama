@@ -4,6 +4,7 @@ import { db, schema } from '../db/index.js'
 import { success, badRequest } from '../utils/response.js'
 import { mergeEpisodeVideos } from '../services/ffmpeg-merge.js'
 import { deleteBgm, listBgm, normalizeBgmOptions, saveBgm } from '../services/bgm.js'
+import { normalizeIntroOptions } from '../services/episode-intro.js'
 import { toSnakeCase } from '../utils/transform.js'
 import { logTaskError, logTaskStart, logTaskSuccess } from '../utils/task-logger.js'
 
@@ -17,19 +18,22 @@ app.post('/episodes/:id/merge', async (c) => {
 
   let storyboardIds: number[] | undefined
   let bgmRaw: unknown = null
+  let introRaw: unknown = null
   try {
     const body = await c.req.json()
     if (Array.isArray(body?.storyboard_ids)) {
       storyboardIds = body.storyboard_ids.map(Number).filter(Boolean)
     }
     bgmRaw = body?.bgm
+    introRaw = body?.intro
   } catch { /* 无 body 时拼接全部 */ }
   const bgm = normalizeBgmOptions(bgmRaw)
   if (bgmRaw && typeof bgmRaw === 'object' && (bgmRaw as any).path && !bgm) return badRequest(c, '背景音乐无效，请从曲库重新选择')
 
   try {
     logTaskStart('MergeAPI', 'episode-merge', { episodeId, dramaId: ep.dramaId, storyboardIds })
-    const mergeId = await mergeEpisodeVideos(episodeId, ep.dramaId, storyboardIds, bgm)
+    // intro: { enabled, duration (1~5 秒), image (static/... 统一封面，空 = 第一个镜头画面), title, subtitle }
+    const mergeId = await mergeEpisodeVideos(episodeId, ep.dramaId, storyboardIds, bgm, normalizeIntroOptions(introRaw))
     logTaskSuccess('MergeAPI', 'episode-merge', { episodeId, mergeId })
     return success(c, { merge_id: mergeId, status: 'processing' })
   } catch (err: any) {
