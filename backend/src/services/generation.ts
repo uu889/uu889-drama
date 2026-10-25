@@ -17,6 +17,7 @@ import { maybeTranslatePrompt, needsTranslation, shouldTranslatePrompt } from '.
 import { getDramaStyleKey } from './style-preset.js'
 import { burnSubtitles, normalizeSubtitleOptions, storyboardDialogue } from './subtitles.js'
 import { getEpisodeSystemVoice } from './system-voice.js'
+import { assertNotCancelled, cancelRunningTask, clearTaskCancel, isTaskCancelled, onTaskCancel, taskAbortSignal, TaskCancelledError, TASK_CANCELLED_MESSAGE } from './task-cancel.js'
 import { acquireGpuLane, cloudLaneKey, cloudLaneLimit, gpuLaneKey, laneLimit, laneNeedsFree, laneVideosSinceRestart, releaseGpuLane } from './gpu-queue.js'
 import { isBusyMessage, isModerationFailure, isTransientFailure, isUpstreamBusy, moderationRetries, retryAfterMs } from './upstream-busy.js'
 import { clampDuration, describeFit, fitPromptBytes, videoLimits } from './video-limits.js'
@@ -279,6 +280,24 @@ async function enterGpuLane(id: number, config: AIConfig, type: TaskType, model:
   setTaskProgress(id, { stage: 'queued', message: `显存已释放${freed ? `（空出 ${(freed / 1073741824).toFixed(1)} GB）` : ''}${leftover ? `，但 ${leftover}` : ''}，提交任务` })
 }
 
+/**
+ * 手动取消（生成任务列表「取消」按钮）：排队中 / 提交中 / 已提交轮询中的任务都可以取消，
+ * 已提交的同时取消上游任务（适配器有 cancel 时）。返回 false 表示任务已经结束
+ */
+export async function cancelTask(id: number): Promise<{ ok: boolean; status: string | null }> {
+  const [row] = await db.select().from(schema.sysTask).where(eq(schema.sysTask.id, id))
+  if (!row) return { ok: false, status: null }
+  const ok = await cancelRunningTask(id, row.status, async () => {
+    taskNotes.delete(id)
+    setTaskProgress(id, { stage: 'failed', message: TASK_CANCELLED_MESSAGE })
+    logTaskWarn(taskLabel(row.type as TaskType), 'cancelled', { id, taskId: row.taskId })
+    await db.update(schema.sysTask)
+      .set({ status: 'failed', errorMsg: TASK_CANCELLED_MESSAGE, updatedAt: now() })
+      .where(eq(schema.sysTask.id, id))
+  })
+  return { ok, status: ok ? 'failed' : row.status }
+}
+
 async function processTask(id: number, config: AIConfig) {
   // 交给 pollTask 之后由它负责释放排队名额
   let handedToPoll = false
@@ -337,7 +356,9 @@ async function processTask(id: number, config: AIConfig) {
       }
     }
 
+    assertNotCancelled(id)
     await enterGpuLane(id, config, type, record.model)
+    assertNotCancelled(id)
 
     if (type === 'image') {
       const adapter = getImageAdapter(config.provider)
@@ -424,11 +445,12 @@ async function processTask(id: number, config: AIConfig) {
       let fallbacks = 0
       let moderationResubmits = 0
       for (let attempt = 0; ; attempt++) {
+        assertNotCancelled(id)
         resp = await fetch(url, {
           method,
           headers,
           body: isMultipart ? (body as FormData) : JSON.stringify(body),
-          signal: AbortSignal.timeout(600_000),
+          signal: taskAbortSignal(id, 600_000),
         })
         if (resp.ok) {
           if (moderationResubmits) addTaskNote(id, `提交时审核未通过，自动原样重新提交 ${moderationResubmits} 次后通过`)
@@ -522,9 +544,14 @@ async function processTask(id: number, config: AIConfig) {
     handedToPoll = true
     pollTask(record, config, taskId!, request)
   } catch (err: any) {
+    // 手动取消：状态已经落库，不再改写
+    if (isTaskCancelled(id)) return
     await failTask(id, describeSubmitError(err, config.baseUrl))
   } finally {
-    if (!handedToPoll) releaseGpuLane(id)
+    if (!handedToPoll) {
+      releaseGpuLane(id)
+      clearTaskCancel(id)
+    }
   }
 }
 
@@ -560,6 +587,7 @@ function addTaskNote(id: number, note: string) {
   taskNotes.set(id, [...(taskNotes.get(id) || []), note])
 }
 async function flushTaskNotes(id: number) {
+  if (isTaskCancelled(id)) { taskNotes.delete(id); return }
   const notes = taskNotes.get(id)
   taskNotes.delete(id)
   if (!notes?.length) return
@@ -568,6 +596,8 @@ async function flushTaskNotes(id: number) {
 
 async function failTask(id: number, message: string) {
   taskNotes.delete(id)
+  // 已手动取消的任务保持「已取消」，后续步骤的报错不覆盖
+  if (isTaskCancelled(id)) return
   setTaskProgress(id, { stage: 'failed', message })
   logTaskError('SysTask', 'failed', { id, error: message })
   await db.update(schema.sysTask)
@@ -611,6 +641,7 @@ async function withRetry<T>(fn: () => Promise<T>, attempts = 3, delayMs = 3000):
       return await fn()
     } catch (err) {
       lastErr = err
+      if (err instanceof TaskCancelledError) break
       if (i < attempts - 1) await new Promise(r => setTimeout(r, delayMs * (i + 1)))
     }
   }
@@ -761,11 +792,14 @@ async function pollTask(record: SysTaskRecord, config: AIConfig, initialTaskId: 
     await failTask(record.id, message)
   }
 
+  // 手动取消时取消上游任务（taskId 可能因自动重交变了，取最新的）
+  onTaskCancel(record.id, () => hooks.cancel?.(config, taskId))
   try {
     await pollLoop()
   } finally {
     hooks.onFinished?.(config, taskId)
     releaseGpuLane(record.id)
+    clearTaskCancel(record.id)
   }
 
   async function pollLoop() {
@@ -776,6 +810,7 @@ async function pollTask(record: SysTaskRecord, config: AIConfig, initialTaskId: 
       return
     }
     await new Promise(r => setTimeout(r, profile.intervalMs))
+    if (isTaskCancelled(record.id)) return
 
     let result: any
     /** 复查后得到的状态（跳过本次解析） */
@@ -926,6 +961,7 @@ async function pollTask(record: SysTaskRecord, config: AIConfig, initialTaskId: 
 }
 
 async function handleImageComplete(record: SysTaskRecord, config: AIConfig, imageUrl: string) {
+  assertNotCancelled(record.id)
   // 结果图地址可能需要补全或鉴权（如 ComfyUI /view），由适配器给出下载方式
   const download = getImageAdapter(config.provider).resolveDownload?.(config, imageUrl) ?? { url: imageUrl }
   const localPath = await downloadFile(download.url, 'images', {
@@ -948,6 +984,7 @@ async function handleImageComplete(record: SysTaskRecord, config: AIConfig, imag
 }
 
 async function handleImageCompleteBase64(record: SysTaskRecord, base64Data: string, mimeType: string) {
+  assertNotCancelled(record.id)
   setTaskProgress(record.id, {
     stage: 'saving',
     message: `收到图片数据（${formatBytes(Math.round(base64Data.length * 0.75))}），保存并生成缩略图`,
@@ -987,6 +1024,7 @@ async function writeBackImageAssets(record: SysTaskRecord, localPath: string) {
 }
 
 async function handleVideoComplete(record: SysTaskRecord, config: AIConfig, videoUrl: string, duration: number | null | undefined) {
+  assertNotCancelled(record.id)
   // 成片地址可能需要鉴权或补全（aiask /v1/videos/{id}/content、ComfyUI /view），由适配器给出下载方式
   const adapter = getVideoAdapter(config.provider)
   const download = adapter.resolveDownload?.(config, videoUrl) ?? { url: videoUrl }
@@ -1003,6 +1041,8 @@ async function handleVideoComplete(record: SysTaskRecord, config: AIConfig, vide
   // 字幕：把分镜台词烧进视频（原视频保留；接戏结尾帧取自原视频，下一镜不会带上字幕）
   const sub = await maybeBurnSubtitles(record, localPath)
   const finalPath = sub?.video || localPath
+  // 下载期间被取消：不写回分镜（已下载的文件留着，删除任务记录时一起清掉）
+  assertNotCancelled(record.id)
   await db.update(schema.sysTask)
     .set({ resultUrl: videoUrl, localPath: finalPath, status: 'completed', completedAt: now(), updatedAt: now() })
     .where(eq(schema.sysTask.id, record.id))

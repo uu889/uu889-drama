@@ -175,8 +175,8 @@
                   <div class="config-sub mono truncate">{{ c.base_url || t('settings.ai.noBaseUrl') }}</div>
                 </div>
                 <button v-if="st.type === 'text' || ['aiask', 'xai', 'veo', 'runway', 'comfyui', 'sdwebui', 'fooocus'].includes(c.provider)" class="btn btn-ghost btn-sm" @click="testExistingCfg(c)">{{ t('settings.ai.test') }}</button>
-                <label class="config-switch">
-                  <input type="checkbox" class="sr-only" :checked="c.is_active" @change="toggleCfg(c)">
+                <label class="config-switch" :class="{ busy: togglingCfgIds.includes(c.id) }" @click.prevent="toggleCfg(c)">
+                  <input type="checkbox" class="sr-only" :checked="!!c.is_active" tabindex="0" @keydown.space.prevent="toggleCfg(c)" @keydown.enter.prevent="toggleCfg(c)">
                   <span class="switch" :class="{ on: c.is_active }"></span>
                 </label>
                 <button class="btn btn-ghost btn-icon btn-sm" @click="startEditCfg(c)"><Pencil :size="13" /></button>
@@ -1438,7 +1438,23 @@ async function setDefaultModel(type, c, m) {
     defaultSaving.value = false
   }
 }
-async function toggleCfg(c) { await aiConfigAPI.update(c.id, { is_active: !c.is_active }); loadCfgs() }
+// 启用 / 停用：先在界面上切换（开关立即有反应），失败时还原并提示；同一个配置正在保存时忽略连点
+const togglingCfgIds = ref([])
+async function toggleCfg(c) {
+  if (!c || togglingCfgIds.value.includes(c.id)) return
+  const next = !c.is_active
+  togglingCfgIds.value = [...togglingCfgIds.value, c.id]
+  c.is_active = next
+  try {
+    await aiConfigAPI.update(c.id, { is_active: next })
+  } catch (e) {
+    c.is_active = !next
+    toastError(e)
+  } finally {
+    togglingCfgIds.value = togglingCfgIds.value.filter(id => id !== c.id)
+    await loadCfgs()
+  }
+}
 async function delCfg(id) { await aiConfigAPI.del(id); toast.success(t('index.deleted')); loadCfgs() }
 async function applyAiaskQuickConfig() {
   const apiKey = aiaskApiKey.value.trim()
@@ -2411,7 +2427,8 @@ onBeforeUnmount(stopUsagePoll)
 }
 .cfg-model-star { fill: currentColor; }
 .config-empty { font-size: 12px; color: var(--text-3); padding: 14px 20px; }
-.config-switch { display: inline-flex; flex-shrink: 0; cursor: pointer; }
+.config-switch { position: relative; display: inline-flex; flex-shrink: 0; cursor: pointer; }
+.config-switch.busy { opacity: 0.6; pointer-events: none; }
 .config-switch input:focus-visible + .switch { box-shadow: 0 0 0 3.5px var(--button-focus); }
 .btn-icon.btn-sm { width: 30px; min-width: 30px; height: 30px; min-height: 30px; }
 

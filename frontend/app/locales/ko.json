@@ -1058,7 +1058,19 @@
       "deletePicked": "선택 삭제",
       "deleteHistoryTitle": "기록 영상 삭제",
       "deleteHistoryMessage": "{time}에 생성한 영상을 삭제할까요?",
-      "deleteHistoryCurrent": "이 컷에서 사용 중인 메인 영상입니다. 삭제하면 가장 최근의 다른 영상으로 바뀌고, 다른 영상이 없으면 \"미생성\"으로 돌아갑니다."
+      "deleteHistoryCurrent": "이 컷에서 사용 중인 메인 영상입니다. 삭제하면 가장 최근의 다른 영상으로 바뀌고, 다른 영상이 없으면 \"미생성\"으로 돌아갑니다.",
+      "historyChecked": "{n}개 선택됨",
+      "historyCheckAll": "전체 선택",
+      "historyCheckNone": "선택 해제",
+      "deleteChecked": "선택 삭제 ({n})",
+      "historyBatchDone": "완료",
+      "historyBatch": "일괄 삭제",
+      "historyBatchHint": "여러 영상을 선택해 한 번에 삭제 (로컬 영상 파일도 삭제해 디스크 공간 확보)",
+      "deleteHistoryBatchMessage": "선택한 {n}개 영상을 삭제할까요?",
+      "deleteHistoryBatchCurrent": "이 컷의 메인 영상이 포함되어 있습니다. 삭제 후 가장 최근의 다른 영상을 사용하고, 없으면 '미생성'으로 돌아갑니다.",
+      "deleteHistoryFiles": "로컬 영상 파일(커버, 마지막 프레임, 자막본 포함)도 함께 삭제되며 복구할 수 없습니다.",
+      "historyBatchDeleted": "영상 {n}개 삭제, {size} 확보",
+      "historyDeletedFreed": "영상 삭제, {size} 확보"
     },
     "inspector": {
       "videoPromptPlaceholder": "{'@'}캐릭터명 / {'@'}장멸명 으로 참조 소재를 지정(생성 시 참조 이미지로 자동 매핑). 시간대별로 화면의 움직임과 침라를 기술…",
@@ -1088,7 +1100,12 @@
       "sbN": "스토리보드 #{n}",
       "generic": "일반",
       "fullMerge": "화 전체 병합",
-      "mergeKind": "병합"
+      "mergeKind": "병합",
+      "cancel": "취소",
+      "cancelDone": "작업을 취소했습니다",
+      "cancelEnded": "작업이 이미 끝났습니다",
+      "cancelFailed": "취소 실패",
+      "cancelNotFound": "이 컷의 작업 기록이 아직 없습니다. 몇 초 후 다시 시도하세요"
     },
     "export": {
       "notReadyDesc": "먼저 스토리보드와 제작 단계를 완료하세요",
@@ -1148,7 +1165,8 @@
       "done": "완료",
       "generating": "생성 중",
       "failed": "실패",
-      "todo": "미생성"
+      "todo": "미생성",
+      "cancelled": "취소됨"
     },
     "resolution": {
       "smooth": "표준",
@@ -1357,7 +1375,12 @@
     "modelFailedPlain": "모델 호출 실패: {detail}",
     "failed": "작업 실패",
     "failedWithDetail": "{action}: {detail}",
-    "rawDetail": "원본 오류: {detail}"
+    "rawDetail": "원본 오류: {detail}",
+    "cancelled": "수동으로 취소함",
+    "uiError": "화면 오류: {detail}",
+    "pageCrashed": "페이지에서 오류가 발생했습니다",
+    "reloadPage": "새로 고침",
+    "backHome": "홈으로"
   },
   "tour": {
     "next": "다음",

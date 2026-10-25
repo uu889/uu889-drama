@@ -1058,7 +1058,19 @@
       "deletePicked": "Auswahl löschen",
       "deleteHistoryTitle": "Video löschen",
       "deleteHistoryMessage": "Das um {time} erzeugte Video löschen?",
-      "deleteHistoryCurrent": "Das ist das Hauptvideo dieser Einstellung. Danach wird das neueste andere Video verwendet; gibt es keins, gilt die Einstellung wieder als „nicht erzeugt“."
+      "deleteHistoryCurrent": "Das ist das Hauptvideo dieser Einstellung. Danach wird das neueste andere Video verwendet; gibt es keins, gilt die Einstellung wieder als „nicht erzeugt“.",
+      "historyChecked": "{n} ausgewählt",
+      "historyCheckAll": "Alle auswählen",
+      "historyCheckNone": "Keine auswählen",
+      "deleteChecked": "Auswahl löschen ({n})",
+      "historyBatchDone": "Fertig",
+      "historyBatch": "Mehrere löschen",
+      "historyBatchHint": "Mehrere Videos auswählen und gemeinsam löschen (lokale Videodateien werden mitgelöscht und Speicher freigegeben)",
+      "deleteHistoryBatchMessage": "Die {n} ausgewählten Videos löschen?",
+      "deleteHistoryBatchCurrent": "Darunter ist das Hauptvideo dieser Einstellung; danach wird das neueste verbleibende Video verwendet, ohne weiteres Video gilt die Einstellung als „nicht generiert“.",
+      "deleteHistoryFiles": "Die lokalen Videodateien (inkl. Cover, Endbild und Untertitelversion) werden ebenfalls gelöscht und können nicht wiederhergestellt werden.",
+      "historyBatchDeleted": "{n} Videos gelöscht, {size} freigegeben",
+      "historyDeletedFreed": "Video gelöscht, {size} freigegeben"
     },
     "inspector": {
       "videoPromptPlaceholder": "Assets mit {'@'}Figur / {'@'}Szene referenzieren — wird beim Generieren automatisch auf Referenzbilder abgebildet; danach Bewegung und Kamera pro Zeitabschnitt beschreiben…",
@@ -1088,7 +1100,12 @@
       "sbN": "Shot #{n}",
       "generic": "Allgemein",
       "fullMerge": "Zusammenschnitt der ganzen Folge",
-      "mergeKind": "Zusammenfügen"
+      "mergeKind": "Zusammenfügen",
+      "cancel": "Abbrechen",
+      "cancelDone": "Aufgabe abgebrochen",
+      "cancelEnded": "Die Aufgabe ist bereits beendet",
+      "cancelFailed": "Abbrechen fehlgeschlagen",
+      "cancelNotFound": "Die Aufgabe dieser Einstellung ist noch nicht da; bitte einige Sekunden warten und erneut versuchen"
     },
     "export": {
       "notReadyDesc": "Bitte zuerst Storyboard und Produktion abschließen",
@@ -1148,7 +1165,8 @@
       "done": "Fertig",
       "generating": "Wird generiert",
       "failed": "Fehlgeschlagen",
-      "todo": "Ausstehend"
+      "todo": "Ausstehend",
+      "cancelled": "Abgebrochen"
     },
     "resolution": {
       "smooth": "Flüssig",
@@ -1357,7 +1375,12 @@
     "modelFailedPlain": "Modellanfrage fehlgeschlagen: {detail}",
     "failed": "Vorgang fehlgeschlagen",
     "failedWithDetail": "{action}: {detail}",
-    "rawDetail": "Ursprünglicher Fehler: {detail}"
+    "rawDetail": "Ursprünglicher Fehler: {detail}",
+    "cancelled": "Manuell abgebrochen",
+    "uiError": "Oberflächenfehler: {detail}",
+    "pageCrashed": "Auf dieser Seite ist ein Fehler aufgetreten",
+    "reloadPage": "Neu laden",
+    "backHome": "Zur Startseite"
   },
   "tour": {
     "next": "Weiter",

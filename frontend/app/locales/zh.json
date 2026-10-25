@@ -1058,7 +1058,19 @@
       "deletePicked": "删除所选",
       "deleteHistoryTitle": "删除历史视频",
       "deleteHistoryMessage": "删除 {time} 生成的这条视频记录？",
-      "deleteHistoryCurrent": "这是本分镜正在使用的主视频。删除后改用最新的另一条历史视频；没有其他视频时，本分镜变回「未生成」。"
+      "deleteHistoryCurrent": "这是本分镜正在使用的主视频。删除后改用最新的另一条历史视频；没有其他视频时，本分镜变回「未生成」。",
+      "historyChecked": "已选 {n} 条",
+      "historyCheckAll": "全选",
+      "historyCheckNone": "全不选",
+      "deleteChecked": "删除所选（{n}）",
+      "historyBatchDone": "完成",
+      "historyBatch": "批量删除",
+      "historyBatchHint": "多选历史视频一起删除（同时删除本地视频文件，释放硬盘空间）",
+      "deleteHistoryBatchMessage": "删除选中的 {n} 条历史视频？",
+      "deleteHistoryBatchCurrent": "其中包含本分镜正在使用的主视频，删除后改用最新的另一条；没有其他视频时本分镜变回「未生成」。",
+      "deleteHistoryFiles": "本地的视频文件（含封面、结尾帧、字幕版）会一起删除，无法恢复。",
+      "historyBatchDeleted": "已删除 {n} 条历史视频，释放 {size}",
+      "historyDeletedFreed": "已删除该历史视频，释放 {size}"
     },
     "inspector": {
       "videoPromptPlaceholder": "用 {'@'}角色名 / {'@'}场景名 引用参考素材，生成时自动映射为参考图片；再按时间段描述画面运动与镜头…",
@@ -1088,7 +1100,12 @@
       "sbN": "分镜 #{n}",
       "generic": "通用",
       "fullMerge": "整集拼接",
-      "mergeKind": "合并"
+      "mergeKind": "合并",
+      "cancel": "取消",
+      "cancelDone": "已取消任务",
+      "cancelEnded": "任务已经结束，无需取消",
+      "cancelFailed": "取消失败",
+      "cancelNotFound": "还没查到这个镜头的任务记录，请稍等几秒再点取消"
     },
     "export": {
       "notReadyDesc": "请先完成分镜和制作流程",
@@ -1148,7 +1165,8 @@
       "done": "已完成",
       "generating": "生成中",
       "failed": "失败",
-      "todo": "待生成"
+      "todo": "待生成",
+      "cancelled": "已取消"
     },
     "resolution": {
       "smooth": "流畅",
@@ -1357,7 +1375,12 @@
     "modelFailedPlain": "模型调用失败：{detail}",
     "failed": "操作失败",
     "failedWithDetail": "{action}：{detail}",
-    "rawDetail": "原始报错：{detail}"
+    "rawDetail": "原始报错：{detail}",
+    "cancelled": "已手动取消",
+    "uiError": "界面出错：{detail}",
+    "pageCrashed": "页面出错了",
+    "reloadPage": "重新加载",
+    "backHome": "回到首页"
   },
   "tour": {
     "next": "下一步",

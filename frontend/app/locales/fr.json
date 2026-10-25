@@ -1058,7 +1058,19 @@
       "deletePicked": "Supprimer la sélection",
       "deleteHistoryTitle": "Supprimer la vidéo",
       "deleteHistoryMessage": "Supprimer la vidéo générée à {time} ?",
-      "deleteHistoryCurrent": "C’est la vidéo principale de ce plan. Après suppression, la vidéo la plus récente restante est utilisée ; s’il n’y en a pas, le plan redevient « non généré »."
+      "deleteHistoryCurrent": "C’est la vidéo principale de ce plan. Après suppression, la vidéo la plus récente restante est utilisée ; s’il n’y en a pas, le plan redevient « non généré ».",
+      "historyChecked": "{n} sélectionnées",
+      "historyCheckAll": "Tout sélectionner",
+      "historyCheckNone": "Tout désélectionner",
+      "deleteChecked": "Supprimer la sélection ({n})",
+      "historyBatchDone": "Terminé",
+      "historyBatch": "Suppression multiple",
+      "historyBatchHint": "Sélectionnez plusieurs vidéos et supprimez-les ensemble (les fichiers vidéo locaux sont aussi supprimés pour libérer de l'espace)",
+      "deleteHistoryBatchMessage": "Supprimer les {n} vidéos sélectionnées ?",
+      "deleteHistoryBatchCurrent": "Elle inclut la vidéo principale de ce plan ; la vidéo restante la plus récente sera utilisée, ou le plan repasse à « non généré » s'il n'en reste aucune.",
+      "deleteHistoryFiles": "Les fichiers vidéo locaux (couverture, image finale et version sous-titrée comprises) sont aussi supprimés et ne peuvent pas être récupérés.",
+      "historyBatchDeleted": "{n} vidéos supprimées, {size} libérés",
+      "historyDeletedFreed": "Vidéo supprimée, {size} libérés"
     },
     "inspector": {
       "videoPromptPlaceholder": "Référencez les ressources avec {'@'}personnage / {'@'}scène — elles sont automatiquement associées aux images de référence lors de la génération ; décrivez ensuite le mouvement et la caméra par segment temporel…",
@@ -1088,7 +1100,12 @@
       "sbN": "Plan #{n}",
       "generic": "Général",
       "fullMerge": "Assemblage de l'épisode complet",
-      "mergeKind": "Assemblage"
+      "mergeKind": "Assemblage",
+      "cancel": "Annuler",
+      "cancelDone": "Tâche annulée",
+      "cancelEnded": "La tâche est déjà terminée",
+      "cancelFailed": "Échec de l'annulation",
+      "cancelNotFound": "La tâche de ce plan n'apparaît pas encore ; patientez quelques secondes puis réessayez"
     },
     "export": {
       "notReadyDesc": "Veuillez d'abord terminer les étapes de storyboard et de production",
@@ -1148,7 +1165,8 @@
       "done": "Terminé",
       "generating": "Génération",
       "failed": "Échec",
-      "todo": "En attente"
+      "todo": "En attente",
+      "cancelled": "Annulée"
     },
     "resolution": {
       "smooth": "Fluide",
@@ -1357,7 +1375,12 @@
     "modelFailedPlain": "Échec de la requête au modèle : {detail}",
     "failed": "L'opération a échoué",
     "failedWithDetail": "{action} : {detail}",
-    "rawDetail": "Erreur d'origine : {detail}"
+    "rawDetail": "Erreur d'origine : {detail}",
+    "cancelled": "Annulée manuellement",
+    "uiError": "Erreur d'interface : {detail}",
+    "pageCrashed": "Une erreur s'est produite sur cette page",
+    "reloadPage": "Recharger",
+    "backHome": "Retour à l'accueil"
   },
   "tour": {
     "next": "Suivant",

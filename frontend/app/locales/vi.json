@@ -1058,7 +1058,19 @@
       "deletePicked": "Xóa mục đã chọn",
       "deleteHistoryTitle": "Xóa video",
       "deleteHistoryMessage": "Xóa video tạo lúc {time}?",
-      "deleteHistoryCurrent": "Đây là video chính của cảnh này. Sau khi xóa sẽ dùng video khác mới nhất; nếu không còn video nào, cảnh trở về \"chưa tạo\"."
+      "deleteHistoryCurrent": "Đây là video chính của cảnh này. Sau khi xóa sẽ dùng video khác mới nhất; nếu không còn video nào, cảnh trở về \"chưa tạo\".",
+      "historyChecked": "Đã chọn {n}",
+      "historyCheckAll": "Chọn tất cả",
+      "historyCheckNone": "Bỏ chọn",
+      "deleteChecked": "Xóa mục đã chọn ({n})",
+      "historyBatchDone": "Xong",
+      "historyBatch": "Xóa hàng loạt",
+      "historyBatchHint": "Chọn nhiều video để xóa cùng lúc (xóa luôn tệp video trên máy, giải phóng dung lượng)",
+      "deleteHistoryBatchMessage": "Xóa {n} video đã chọn?",
+      "deleteHistoryBatchCurrent": "Trong đó có video chính của cảnh này; sau khi xóa sẽ dùng video mới nhất còn lại, nếu không còn thì cảnh trở về \"chưa tạo\".",
+      "deleteHistoryFiles": "Tệp video trên máy (gồm ảnh bìa, khung cuối và bản phụ đề) cũng bị xóa và không thể khôi phục.",
+      "historyBatchDeleted": "Đã xóa {n} video, giải phóng {size}",
+      "historyDeletedFreed": "Đã xóa video, giải phóng {size}"
     },
     "inspector": {
       "videoPromptPlaceholder": "Tham chiếu tài nguyên bằng {'@'}nhân vật / {'@'}cảnh — tự ánh xạ thành ảnh tham chiếu khi tạo; sau đó mô tả chuyển động và máy quay theo từng khoảng thời gian…",
@@ -1088,7 +1100,12 @@
       "sbN": "Cảnh quay #{n}",
       "generic": "Chung",
       "fullMerge": "Ghép toàn tập",
-      "mergeKind": "Ghép"
+      "mergeKind": "Ghép",
+      "cancel": "Hủy",
+      "cancelDone": "Đã hủy tác vụ",
+      "cancelEnded": "Tác vụ đã kết thúc",
+      "cancelFailed": "Hủy thất bại",
+      "cancelNotFound": "Chưa thấy tác vụ của cảnh này; đợi vài giây rồi thử lại"
     },
     "export": {
       "notReadyDesc": "Vui lòng hoàn thành bước phân cảnh và sản xuất trước",
@@ -1148,7 +1165,8 @@
       "done": "Hoàn tất",
       "generating": "Đang tạo",
       "failed": "Thất bại",
-      "todo": "Chờ tạo"
+      "todo": "Chờ tạo",
+      "cancelled": "Đã hủy"
     },
     "resolution": {
       "smooth": "Mượt",
@@ -1357,7 +1375,12 @@
     "modelFailedPlain": "Yêu cầu mô hình thất bại: {detail}",
     "failed": "Thao tác thất bại",
     "failedWithDetail": "{action}: {detail}",
-    "rawDetail": "Lỗi gốc: {detail}"
+    "rawDetail": "Lỗi gốc: {detail}",
+    "cancelled": "Đã hủy thủ công",
+    "uiError": "Lỗi giao diện: {detail}",
+    "pageCrashed": "Trang này gặp lỗi",
+    "reloadPage": "Tải lại",
+    "backHome": "Về trang chủ"
   },
   "tour": {
     "next": "Tiếp",

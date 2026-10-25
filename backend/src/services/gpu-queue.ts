@@ -14,6 +14,7 @@ export const LOCAL_GPU_PROVIDERS = new Set(['comfyui', 'sdwebui', 'fooocus'])
 interface Waiter {
   taskId: number
   resolve: () => void
+  reject: (err: Error) => void
   onPosition?: (position: number) => void
 }
 
@@ -25,6 +26,14 @@ interface Lane {
   dirty: boolean
   /** 上次重启 ComfyUI 以来交过几个视频（小显存定期重启用） */
   videosSinceRestart: number
+}
+
+/** 还在排队就被结束（手动取消 / 删除）时，acquireGpuLane 以这个错误结束，调用方不会再提交 */
+export class GpuLaneLeftError extends Error {
+  constructor(taskId: number) {
+    super(`任务 ${taskId} 已离开排队`)
+    this.name = 'GpuLaneLeftError'
+  }
 }
 
 const lanes = new Map<string, Lane>()
@@ -112,8 +121,8 @@ export async function acquireGpuLane(
     l.active.add(taskId)
     return false
   }
-  await new Promise<void>((resolve) => {
-    l.waiters.push({ taskId, resolve, onPosition: (p) => opts.onPosition?.(p, l.active.size) })
+  await new Promise<void>((resolve, reject) => {
+    l.waiters.push({ taskId, resolve, reject, onPosition: (p) => opts.onPosition?.(p, l.active.size) })
     notifyPositions(l)
   })
   return true
@@ -130,7 +139,7 @@ export function releaseGpuLane(taskId: number) {
   if (wasActive && h.kind === 'video') l.dirty = true
   // 还没轮到就结束了（如被删除）：从等待队列里移除
   const i = l.waiters.findIndex((w) => w.taskId === taskId)
-  if (i >= 0) l.waiters.splice(i, 1)
+  if (i >= 0) l.waiters.splice(i, 1)[0].reject(new GpuLaneLeftError(taskId))
   pump(l)
 }
 

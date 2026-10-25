@@ -5,7 +5,8 @@ import { withTaskProgress } from '../services/task-progress.js'
 import { eq } from 'drizzle-orm'
 import { db, schema } from '../db/index.js'
 import { success, created, badRequest } from '../utils/response.js'
-import { generateImage, generateVideo } from '../services/generation.js'
+import { cancelTask, generateImage, generateVideo } from '../services/generation.js'
+import { deleteTaskWithFiles } from '../services/task-files.js'
 import { getActiveConfig, getConfigById } from '../services/ai.js'
 import { getDramaStylePrompt } from '../services/style-preset.js'
 import { clampDuration, truncateBytes, videoLimits } from '../services/video-limits.js'
@@ -313,11 +314,41 @@ app.get('/', async (c) => {
   return success(c, rows.map(withTaskProgress))
 })
 
-// DELETE /tasks/:id
+// POST /tasks/:id/cancel — 手动取消排队中 / 生成中的任务（已提交的同时取消上游任务）
+app.post('/:id/cancel', async (c) => {
+  const id = Number(c.req.param('id'))
+  const r = await cancelTask(id)
+  if (!r.ok && r.status == null) return badRequest(c, '任务不存在')
+  return success(c, { id, cancelled: r.ok, status: r.status })
+})
+
+/** 删除前：还在生成的先取消，免得结果回来又写回分镜 */
+async function deleteTask(id: number, withFiles: boolean) {
+  await cancelTask(id).catch(() => null)
+  return deleteTaskWithFiles(id, withFiles)
+}
+
+// POST /tasks/batch-delete — { ids: number[], delete_files?: boolean（默认 true，连本地视频 / 封面 / 字幕一起删） }
+app.post('/batch-delete', async (c) => {
+  const body = await c.req.json().catch(() => ({}))
+  const ids = [...new Set((Array.isArray(body?.ids) ? body.ids : []).map(Number).filter((n: number) => Number.isInteger(n) && n > 0))] as number[]
+  if (!ids.length) return badRequest(c, 'ids 不能为空')
+  const withFiles = body?.delete_files !== false
+  const results = []
+  for (const id of ids) results.push(await deleteTask(id, withFiles))
+  return success(c, {
+    deleted: results.filter(r => r.deleted).length,
+    files: results.reduce((n, r) => n + r.files, 0),
+    bytes: results.reduce((n, r) => n + r.bytes, 0),
+    results,
+  })
+})
+
+// DELETE /tasks/:id[?keep_files=1] — 默认连本地文件一起删
 app.delete('/:id', async (c) => {
   const id = Number(c.req.param('id'))
-  await db.delete(schema.sysTask).where(eq(schema.sysTask.id, id))
-  return success(c)
+  const r = await deleteTask(id, c.req.query('keep_files') !== '1')
+  return success(c, r)
 })
 
 export default app

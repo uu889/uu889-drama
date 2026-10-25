@@ -22,6 +22,7 @@ import { getAbsolutePath } from '../utils/storage.js'
 import { extractVideoEndFrame, extractVideoPoster } from '../utils/video-poster.js'
 import { parseConfigSettings, type AIConfig } from './ai.js'
 import { setTaskProgress } from './task-progress.js'
+import { assertNotCancelled, isTaskCancelled } from './task-cancel.js'
 import { acquireGpuLane, gpuLaneKey, laneLimit, releaseGpuLane } from './gpu-queue.js'
 import { comfyAuthHeaders, comfyUrl, findComfyOutput, comfyViewPath, readComfyHistory, summarizeComfyNodeErrors, waitComfyAlive } from './adapters/comfyui-common.js'
 import { logTaskError, logTaskStart, logTaskSuccess, logTaskWarn } from '../utils/task-logger.js'
@@ -348,7 +349,7 @@ async function runUpscale(
         const model = await upscaleWithComfy(comfy, id, sourceAbs, outAbs, info, dims, report)
         method = `AI 超分（${model}）`
       } catch (err: any) {
-        if (opts.engine === 'ai') throw err
+        if (opts.engine === 'ai' || isTaskCancelled(id)) throw err
         // 自动模式：AI 超分用不了或中途失败，都退回快速放大，结果里说明原因
         note = `AI 超分没有完成（${String(err?.message || err).slice(0, 160)}），已改用快速放大。`
         logTaskWarn('UpscaleTask', 'fallback-fast', { id, reason: err.message })
@@ -357,6 +358,7 @@ async function runUpscale(
         usedLane = null
       }
     }
+    assertNotCancelled(id)
     if (!method) {
       // FFmpeg 也排队（同时只编一个，避免 CPU 被几个 4K 编码挤满）
       await acquireGpuLane('cpu:ffmpeg', id, { kind: 'upscale', onPosition: (p) => setTaskProgress(id, { stage: 'queued', message: `${note}排队中：前面还有 ${p} 个高清化任务` }) })
@@ -369,6 +371,7 @@ async function runUpscale(
     setTaskProgress(id, { stage: 'saving', message: '生成封面和接戏用的结尾帧' })
     await extractVideoPoster(outRel)
     await extractVideoEndFrame(outRel)
+    assertNotCancelled(id)
     const ts = now()
     await db.update(schema.sysTask)
       .set({ status: 'completed', localPath: outRel, model: method, errorMsg: note || null, completedAt: ts, updatedAt: ts })
@@ -380,6 +383,9 @@ async function runUpscale(
     setTaskProgress(id, { stage: 'completed', percent: 100, message: `高清化完成：${dims.width}×${dims.height}，${method}` })
     logTaskSuccess('UpscaleTask', 'done', { id, output: outRel, method, ...dims })
   } catch (err: any) {
+    fs.rmSync(`${outAbs}.part.mp4`, { force: true })
+    // 手动取消：状态已经落库
+    if (isTaskCancelled(id)) return
     const message = `高清化失败：${err?.message || err}`
     setTaskProgress(id, { stage: 'failed', message })
     logTaskError('UpscaleTask', 'failed', { id, error: err?.message })

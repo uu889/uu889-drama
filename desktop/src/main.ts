@@ -264,6 +264,21 @@ function createWindow() {
     e.preventDefault()
     if (/^https?:\/\//i.test(url)) void shell.openExternal(url)
   })
+  // 渲染进程崩溃 / 被系统回收时窗口会整片变白：记录原因后自动重新加载当前页面
+  let lastCrashReload = 0
+  mainWindow.webContents.on('render-process-gone', (_e, details) => {
+    console.error(`[main] renderer gone: ${details.reason} (exit ${details.exitCode})`)
+    if (details.reason === 'clean-exit' || !mainWindow || mainWindow.isDestroyed()) return
+    // 1 分钟内连续崩溃不再自动重载，避免死循环
+    if (Date.now() - lastCrashReload < 60_000) {
+      dialog.showErrorBox('UU889-Drama', `界面进程异常退出（${details.reason}），请重新打开应用。`)
+      return
+    }
+    lastCrashReload = Date.now()
+    const url = mainWindow.webContents.getURL()
+    void mainWindow.loadURL(isAppUrl(url) ? url : `http://127.0.0.1:${backendPort}`)
+  })
+  mainWindow.webContents.on('unresponsive', () => console.warn('[main] renderer unresponsive'))
   return mainWindow.loadURL(`http://127.0.0.1:${backendPort}`)
 }
 

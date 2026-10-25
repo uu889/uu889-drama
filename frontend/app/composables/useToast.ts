@@ -15,6 +15,12 @@ const t = (key: string, params?: Record<string, unknown>) => i18n.global.t(key, 
 /** 内容审核特征（从 episode.vue 的 videoModerationHint 上移，全站复用） */
 export const MODERATION_RE = /sensitive|moderation|真人|人脸|real[\s_-]?person|审核|内容.*(违规|不合规|未通过)|content[\s_-]?policy|risk[\s_-]?control|violation|blocked/i
 
+/** 后端 task-cancel.ts TASK_CANCELLED_MESSAGE：手动取消的任务 */
+export const TASK_CANCELLED_MESSAGE = '已手动取消'
+export function isCancelledMessage(err: unknown): boolean {
+  return messageOf(err).trim() === TASK_CANCELLED_MESSAGE
+}
+
 const NETWORK_RE = /failed to fetch|network ?error|load failed|network request failed|fetch failed/i
 const NONJSON_RE = /unexpected token|not valid json|failed to parse/i
 const SERVER5XX_RE = /(^|\D)5\d{2}(\D|$)|internal server error|服务器内部错误/i
@@ -60,6 +66,7 @@ export function mapError(err: unknown, opts?: { fallback?: string }): string {
   const msg = messageOf(err).trim()
   if (!msg) return opts?.fallback ? t(opts.fallback) : t('errors.unknown')
 
+  if (msg === TASK_CANCELLED_MESSAGE) return t('errors.cancelled')
   if (err instanceof TypeError && NETWORK_RE.test(msg)) return t('errors.network')
   // 后端整理过的模型调用错误 / ComfyUI 提示：展示具体原因，否则会被下面的技术特征判定
   // 吞成"操作失败，请重试"，用户无从排查

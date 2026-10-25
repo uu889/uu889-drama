@@ -1058,7 +1058,19 @@
       "deletePicked": "選択を削除",
       "deleteHistoryTitle": "履歴動画を削除",
       "deleteHistoryMessage": "{time} に生成した動画を削除しますか？",
-      "deleteHistoryCurrent": "このカットで使用中のメイン動画です。削除すると最新の別の動画に切り替わり、ほかに動画がなければ「未生成」に戻ります。"
+      "deleteHistoryCurrent": "このカットで使用中のメイン動画です。削除すると最新の別の動画に切り替わり、ほかに動画がなければ「未生成」に戻ります。",
+      "historyChecked": "{n} 件選択中",
+      "historyCheckAll": "すべて選択",
+      "historyCheckNone": "選択解除",
+      "deleteChecked": "選択を削除（{n}）",
+      "historyBatchDone": "完了",
+      "historyBatch": "一括削除",
+      "historyBatchHint": "複数の動画を選んでまとめて削除（ローカルの動画ファイルも削除し、ディスク容量を空けます）",
+      "deleteHistoryBatchMessage": "選択した {n} 件の動画を削除しますか？",
+      "deleteHistoryBatchCurrent": "このカットのメイン動画が含まれています。削除後は最新の別の動画を使い、なければ「未生成」に戻ります。",
+      "deleteHistoryFiles": "ローカルの動画ファイル（カバー、最終フレーム、字幕版を含む）も削除され、元に戻せません。",
+      "historyBatchDeleted": "{n} 件の動画を削除し、{size} を解放しました",
+      "historyDeletedFreed": "動画を削除し、{size} を解放しました"
     },
     "inspector": {
       "videoPromptPlaceholder": "{'@'}キャラクター名 / {'@'}シーン名 で参照素材を指定（生成時に参照画像へ自動マッピング）。時間帯ごとに画面の動きとカメラを記述…",
@@ -1088,7 +1100,12 @@
       "sbN": "分镜 #{n}",
       "generic": "汎用",
       "fullMerge": "話全体の結合",
-      "mergeKind": "結合"
+      "mergeKind": "結合",
+      "cancel": "キャンセル",
+      "cancelDone": "タスクをキャンセルしました",
+      "cancelEnded": "タスクはすでに終了しています",
+      "cancelFailed": "キャンセルに失敗しました",
+      "cancelNotFound": "このカットのタスクがまだ見つかりません。数秒待ってからもう一度お試しください"
     },
     "export": {
       "notReadyDesc": "先に分镜と制作の工程を完了してください",
@@ -1148,7 +1165,8 @@
       "done": "完了",
       "generating": "生成中",
       "failed": "失敗",
-      "todo": "未生成"
+      "todo": "未生成",
+      "cancelled": "キャンセル済み"
     },
     "resolution": {
       "smooth": "標準",
@@ -1357,7 +1375,12 @@
     "modelFailedPlain": "モデルの呼び出しに失敗しました：{detail}",
     "failed": "操作に失敗しました",
     "failedWithDetail": "{action}：{detail}",
-    "rawDetail": "元のエラー：{detail}"
+    "rawDetail": "元のエラー：{detail}",
+    "cancelled": "手動でキャンセルしました",
+    "uiError": "画面エラー：{detail}",
+    "pageCrashed": "ページでエラーが発生しました",
+    "reloadPage": "再読み込み",
+    "backHome": "ホームに戻る"
   },
   "tour": {
     "next": "次へ",

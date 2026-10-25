@@ -688,9 +688,18 @@
                     </div>
                   </div>
                   <button
+                    v-if="videoTaskState(task.storyboard) === 'pending'"
+                    class="btn btn-icon btn-sm video-task-action video-task-cancel"
+                    :title="t('episode.tasks.cancel')"
+                    :disabled="cancellingShots.includes(task.storyboard.id)"
+                    @click.stop="cancelShotVideo(task.storyboard)"
+                  >
+                    <X :size="12" />
+                  </button>
+                  <button
+                    v-else
                     class="btn btn-icon btn-sm video-task-action"
                     :title="videoTaskActionLabel(task.storyboard)"
-                    :disabled="videoTaskState(task.storyboard) === 'pending'"
                     @click.stop="genVid(task.storyboard)"
                   >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
@@ -859,39 +868,67 @@
               <div class="video-player-history-head">
                 <span>{{ t('episode.vid.history') }}</span>
                 <span class="video-player-history-count">{{ sbVideoHistory.length }}</span>
-                <span v-if="selectedHistory" class="video-player-history-picked">
-                  {{ t('episode.vid.historyPicked', { time: formatHistoryTime(taskCreatedAt(selectedHistory)) }) }}
-                </span>
-                <button
-                  v-if="selectedHistory"
-                  type="button"
-                  class="btn btn-sm btn-ghost video-history-del-picked"
-                  :title="t('episode.vid.deleteRecord')"
-                  @click="askRemoveHistoryVideo(selectedHistory)"
-                >
-                  <Trash2 :size="12" />
-                  {{ t('episode.vid.deletePicked') }}
-                </button>
+                <template v-if="historyBatch">
+                  <span class="video-player-history-picked">{{ t('episode.vid.historyChecked', { n: historyChecked.length }) }}</span>
+                  <button type="button" class="btn btn-sm btn-ghost" @click="toggleAllHistory">
+                    {{ historyChecked.length === sbVideoHistory.length ? t('episode.vid.historyCheckNone') : t('episode.vid.historyCheckAll') }}
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-ghost video-history-del-picked"
+                    :disabled="!historyChecked.length"
+                    @click="askRemoveCheckedHistory"
+                  >
+                    <Trash2 :size="12" />
+                    {{ t('episode.vid.deleteChecked', { n: historyChecked.length }) }}
+                  </button>
+                  <button type="button" class="btn btn-sm btn-ghost" @click="exitHistoryBatch">{{ t('episode.vid.historyBatchDone') }}</button>
+                </template>
+                <template v-else>
+                  <span v-if="selectedHistory" class="video-player-history-picked">
+                    {{ t('episode.vid.historyPicked', { time: formatHistoryTime(taskCreatedAt(selectedHistory)) }) }}
+                  </span>
+                  <button
+                    v-if="selectedHistory"
+                    type="button"
+                    class="btn btn-sm btn-ghost video-history-del-picked"
+                    :title="t('episode.vid.deleteRecord')"
+                    @click="askRemoveHistoryVideo(selectedHistory)"
+                  >
+                    <Trash2 :size="12" />
+                    {{ t('episode.vid.deletePicked') }}
+                  </button>
+                  <button
+                    v-if="sbVideoHistory.length > 1"
+                    type="button"
+                    class="btn btn-sm btn-ghost"
+                    :title="t('episode.vid.historyBatchHint')"
+                    @click="enterHistoryBatch"
+                  >
+                    {{ t('episode.vid.historyBatch') }}
+                  </button>
+                </template>
               </div>
               <div class="video-player-history-list" role="listbox" :aria-label="t('episode.vid.history')">
                 <div
                   v-for="h in sbVideoHistory"
                   :key="h.id"
-                  :class="['video-history-item', { current: isCurrentVideo(h), selected: selectedHistoryId === h.id }]"
+                  :class="['video-history-item', { current: isCurrentVideo(h), selected: historyBatch ? historyChecked.includes(h.id) : selectedHistoryId === h.id }]"
                   role="option"
-                  :aria-selected="selectedHistoryId === h.id"
+                  :aria-selected="historyBatch ? historyChecked.includes(h.id) : selectedHistoryId === h.id"
                   tabindex="0"
-                  @click="previewHistoryVideo(h)"
-                  @keydown.enter.prevent="previewHistoryVideo(h)"
-                  @keydown.delete.prevent="askRemoveHistoryVideo(h)"
+                  @click="historyBatch ? toggleHistoryChecked(h) : previewHistoryVideo(h)"
+                  @keydown.enter.prevent="historyBatch ? toggleHistoryChecked(h) : previewHistoryVideo(h)"
+                  @keydown.delete.prevent="historyBatch ? askRemoveCheckedHistory() : askRemoveHistoryVideo(h)"
                 >
                   <video :src="'/' + taskVideoPath(h)" :poster="posterOf('/' + taskVideoPath(h)) || undefined" preload="none" muted playsinline tabindex="-1" />
                   <span class="video-history-time">{{ formatHistoryTime(taskCreatedAt(h)) }}</span>
                   <span v-if="isCurrentVideo(h)" class="video-history-badge">{{ t('episode.vid.current') }}</span>
-                  <span v-if="selectedHistoryId === h.id" class="video-history-check" aria-hidden="true">
+                  <span v-if="historyBatch ? historyChecked.includes(h.id) : selectedHistoryId === h.id" class="video-history-check" aria-hidden="true">
                     <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                   </span>
-                  <button type="button" class="video-history-del" :title="t('episode.vid.deleteRecord')" @click.stop="askRemoveHistoryVideo(h)">×</button>
+                  <span v-if="historyBatch && !historyChecked.includes(h.id)" class="video-history-check is-empty" aria-hidden="true" />
+                  <button v-if="!historyBatch" type="button" class="video-history-del" :title="t('episode.vid.deleteRecord')" @click.stop="askRemoveHistoryVideo(h)">×</button>
                 </div>
               </div>
             </div>
@@ -1363,10 +1400,23 @@
                   <div v-if="row.kind === 'video' && videoModerationHint(row.errorMsg)" class="video-task-error-hint">{{ videoModerationHint(row.errorMsg) }}</div>
                 </div>
               </div>
-              <span :class="['video-task-status', 'is-' + genTaskStateClass(row.status)]">
-                <span :class="['dot', genTaskStateClass(row.status) === 'done' && 'ok', genTaskStateClass(row.status) === 'pending' && 'pending']" />
-                {{ genTaskStatusLabel(row.status) }}
-              </span>
+              <div class="gen-task-side">
+                <span :class="['video-task-status', 'is-' + genTaskStateClass(row.status)]">
+                  <span :class="['dot', genTaskStateClass(row.status) === 'done' && 'ok', genTaskStateClass(row.status) === 'pending' && 'pending']" />
+                  {{ genTaskStatusLabel(row.status, row.errorMsg) }}
+                </span>
+                <button
+                  v-if="row.kind !== 'merge' && row.status === 'processing'"
+                  type="button"
+                  class="btn btn-sm btn-ghost gen-task-cancel"
+                  :disabled="cancellingTasks.includes(row.id)"
+                  @click="cancelGenTask(row.id)"
+                >
+                  <Loader2 v-if="cancellingTasks.includes(row.id)" :size="12" class="animate-spin" />
+                  <X v-else :size="12" />
+                  {{ t('episode.tasks.cancel') }}
+                </button>
+              </div>
             </div>
           </div>
         </aside>
@@ -1756,7 +1806,7 @@
       <ConfirmDialog
         :open="historyDelete.open"
         :title="t('episode.vid.deleteHistoryTitle')"
-        :message="historyDelete.isCurrent ? t('episode.vid.deleteHistoryCurrent') : t('episode.vid.deleteHistoryMessage', { time: historyDelete.time })"
+        :message="historyDeleteMessage"
         :loading="historyDelete.loading"
         @confirm="confirmRemoveHistoryVideo"
         @cancel="historyDelete.open = false"
@@ -1784,7 +1834,7 @@ import {
 import { api, dramaAPI, episodeAPI, storyboardAPI, characterAPI, sceneAPI, propAPI, taskAPI, mergeAPI, aiConfigAPI, uploadAPI } from '~/composables/useApi'
 import { startTour, autoTour } from '~/composables/useTour'
 import { useAgent } from '~/composables/useAgent'
-import { toastError, mapError, errorDetail, MODERATION_RE } from '~/composables/useToast'
+import { toastError, mapError, errorDetail, MODERATION_RE, isCancelledMessage, TASK_CANCELLED_MESSAGE } from '~/composables/useToast'
 import LocaleSwitcher from '~/components/LocaleSwitcher.vue'
 import TaskProgress from '~/components/TaskProgress.vue'
 
@@ -2399,6 +2449,7 @@ function videoFailMessage(id) {
 // 各厂商审核尺度不同，给出切换模型重试的引导
 /** 失败列表里友好文案下面的「原始报错」：友好文案已经包含原文时不重复 */
 function rawErrorLine(msg) {
+  if (isCancelledMessage(msg)) return ''
   const detail = errorDetail(msg)
   if (!detail) return ''
   const friendly = mapError(msg)
@@ -2419,7 +2470,7 @@ function videoTaskStatusLabel(sb) {
   const state = videoTaskState(sb)
   if (state === 'done') return t('episode.status.done')
   if (state === 'pending') return t('episode.status.generating')
-  if (state === 'failed') return t('episode.status.failed')
+  if (state === 'failed') return isCancelledMessage(videoFailMessage(sb?.id)) ? t('episode.status.cancelled') : t('episode.status.failed')
   return t('episode.status.todo')
 }
 
@@ -2740,6 +2791,11 @@ function confirmBatchVideos() {
           return
         }
         for (let i = 0; i < chain.length; i++) {
+          // 排队时被手动取消：这一镜不提交，后面接它的镜头也暂停
+          if (chainCancelledIds.delete(chain[i].id)) {
+            pauseChain(chain.slice(i + 1), chain[i])
+            return
+          }
           let status = await genVid(chain[i], { silent: true, wait: true })
           if (status === 'unknown') status = await waitShotSettled(chain[i].id) ? 'completed' : 'failed'
           // 这一镜没出片（重试后仍审核不过 / 出错 / 超时）：后面接它结尾帧的镜头先暂停，不浪费额度生成错的画面
@@ -2921,13 +2977,59 @@ const genTaskRows = computed(() => {
   return [...taskRows, ...mergeRows].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
 })
 
+// ===== 手动取消：排队中 / 生成中的任务 =====
+const cancellingTasks = ref([])
+const cancellingShots = ref([])
+/** 接戏链里还没提交就被取消的镜头（链走到它时停下，后面接它结尾帧的镜头也暂停） */
+const chainCancelledIds = new Set()
+async function cancelGenTask(id) {
+  if (!id || cancellingTasks.value.includes(id)) return
+  cancellingTasks.value = [...cancellingTasks.value, id]
+  try {
+    const res = await taskAPI.cancel(id)
+    if (res?.cancelled) toast.success(t('episode.tasks.cancelDone'))
+    else toast.info(t('episode.tasks.cancelEnded'))
+    await loadGenTasks()
+  } catch (e) {
+    toastError(e, { fallback: 'episode.tasks.cancelFailed' })
+  } finally {
+    cancellingTasks.value = cancellingTasks.value.filter(x => x !== id)
+  }
+}
+async function cancelShotVideo(sb) {
+  if (!sb) return
+  // 接戏链里排队、还没提交：标记取消，链走到它就停
+  if (chainQueuedIds.has(sb.id)) {
+    chainQueuedIds.delete(sb.id)
+    chainCancelledIds.add(sb.id)
+    chainPausedMessages[sb.id] = TASK_CANCELLED_MESSAGE
+    pendingVideoIds.value = pendingVideoIds.value.filter(id => id !== sb.id)
+    failedVideoMessages.value = { ...failedVideoMessages.value, [sb.id]: TASK_CANCELLED_MESSAGE }
+    toast.success(t('episode.tasks.cancelDone'))
+    return
+  }
+  const task = genTasks.value
+    .filter(x => x.type === 'video' && x.storyboard_id === sb.id && x.status === 'processing')
+    .sort((a, b) => b.id - a.id)[0]
+  if (!task) {
+    // 刚提交、任务记录还没加载出来
+    await loadGenTasks()
+    toast.info(t('episode.tasks.cancelNotFound'))
+    return
+  }
+  cancellingShots.value = [...cancellingShots.value, sb.id]
+  try { await cancelGenTask(task.id) } finally {
+    cancellingShots.value = cancellingShots.value.filter(x => x !== sb.id)
+  }
+}
+
 function genTaskKindLabel(kind) {
   return kind === 'image' ? t('common.serviceType.image') : kind === 'video' ? t('common.serviceType.video') : t('episode.tasks.mergeKind')
 }
 
-function genTaskStatusLabel(status) {
+function genTaskStatusLabel(status, errorMsg) {
   if (status === 'completed') return t('episode.status.done')
-  if (status === 'failed') return t('episode.status.failed')
+  if (status === 'failed') return isCancelledMessage(errorMsg) ? t('episode.status.cancelled') : t('episode.status.failed')
   return t('episode.status.generating')
 }
 
@@ -3802,7 +3904,19 @@ const previewVideoUrl = ref('') // 正在预览的历史视频(相对路径);空
 // 历史视频里当前选中的那条（点哪条选哪条，删除 / 设为主视频都针对它）
 const selectedHistoryId = ref(null)
 const selectedHistory = computed(() => sbVideoHistory.value.find(h => h.id === selectedHistoryId.value) || null)
-const historyDelete = reactive({ open: false, loading: false, task: null, isCurrent: false, time: '' })
+const historyDelete = reactive({ open: false, loading: false, tasks: [], isCurrent: false, time: '' })
+// 批量删除：多选模式下点哪条勾哪条
+const historyBatch = ref(false)
+const historyChecked = ref([])
+const historyDeleteMessage = computed(() => {
+  const n = historyDelete.tasks.length
+  const head = n > 1
+    ? t('episode.vid.deleteHistoryBatchMessage', { n })
+    : historyDelete.isCurrent ? t('episode.vid.deleteHistoryCurrent') : t('episode.vid.deleteHistoryMessage', { time: historyDelete.time })
+  // 中日韩文句子之间不加空格
+  const join = (a, b) => (b ? `${a}${/[\u3000-\u9fff\uac00-\ud7af\uff00-\uffef]$/.test(a) ? '' : ' '}${b}` : a)
+  return join(join(head, n > 1 && historyDelete.isCurrent ? t('episode.vid.deleteHistoryBatchCurrent') : ''), t('episode.vid.deleteHistoryFiles'))
+})
 
 // 注意:/tasks 返回原始行(camelCase),/episodes/:id/generation-tasks 返回 snake_case,两种命名都兼容
 function taskVideoPath(t) { return t?.local_path || t?.localPath || t?.result_url || t?.resultUrl || '' }
@@ -3823,6 +3937,38 @@ async function loadSbVideoHistory() {
   } catch { sbVideoHistory.value = [] }
   // 默认选中正在使用的主视频
   selectedHistoryId.value = sbVideoHistory.value.find(isCurrentVideo)?.id ?? null
+  historyChecked.value = historyChecked.value.filter(id => sbVideoHistory.value.some(h => h.id === id))
+}
+
+// 换了分镜：退出多选
+watch(() => selectedSb.value?.id, () => { exitHistoryBatch() })
+function enterHistoryBatch() {
+  historyBatch.value = true
+  historyChecked.value = []
+}
+function exitHistoryBatch() {
+  historyBatch.value = false
+  historyChecked.value = []
+}
+function toggleHistoryChecked(h) {
+  historyChecked.value = historyChecked.value.includes(h.id)
+    ? historyChecked.value.filter(id => id !== h.id)
+    : [...historyChecked.value, h.id]
+}
+function toggleAllHistory() {
+  historyChecked.value = historyChecked.value.length === sbVideoHistory.value.length ? [] : sbVideoHistory.value.map(h => h.id)
+}
+function askRemoveCheckedHistory() {
+  const tasks = sbVideoHistory.value.filter(h => historyChecked.value.includes(h.id))
+  if (!tasks.length) return
+  if (tasks.length === 1) { askRemoveHistoryVideo(tasks[0]); return }
+  Object.assign(historyDelete, {
+    open: true,
+    loading: false,
+    tasks,
+    isCurrent: tasks.some(isCurrentVideo),
+    time: '',
+  })
 }
 
 watch(() => [selectedSb.value?.id, getVideoUrl(selectedSb.value)], () => { loadSbVideoHistory() })
@@ -3848,44 +3994,55 @@ function askRemoveHistoryVideo(task) {
   Object.assign(historyDelete, {
     open: true,
     loading: false,
-    task,
+    tasks: [task],
     isCurrent: isCurrentVideo(task),
     time: formatHistoryTime(taskCreatedAt(task)),
   })
 }
 
 async function confirmRemoveHistoryVideo() {
-  const task = historyDelete.task
+  const tasks = historyDelete.tasks
   const sb = selectedSb.value
-  if (!task || !sb) { historyDelete.open = false; return }
+  if (!tasks.length || !sb) { historyDelete.open = false; return }
   historyDelete.loading = true
   try {
-    const wasCurrent = isCurrentVideo(task)
-    await taskAPI.del(task.id)
-    const removedAt = sbVideoHistory.value.findIndex(x => x.id === task.id)
-    const rest = sbVideoHistory.value.filter(x => x.id !== task.id)
+    const ids = new Set(tasks.map(x => x.id))
+    const wasCurrent = tasks.some(isCurrentVideo)
+    const firstAt = sbVideoHistory.value.findIndex(x => ids.has(x.id))
+    // 后端删记录同时删本地视频 / 封面 / 结尾帧 / 字幕；删到正在用的主视频时改用最新的另一条
+    const res = await taskAPI.batchDelete([...ids])
+    const rest = sbVideoHistory.value.filter(x => !ids.has(x.id))
     if (wasCurrent) {
-      // 删掉的是正在用的主视频：改用最新的另一条，没有就清空
       const next = rest[0] ? taskVideoPath(rest[0]) : null
-      await storyboardAPI.update(sb.id, { video_url: next })
       sb.video_url = next
       sb.videoUrl = next
     }
     sbVideoHistory.value = rest
-    if (previewVideoUrl.value === taskVideoPath(task)) previewVideoUrl.value = ''
+    historyChecked.value = []
+    if (tasks.some(x => taskVideoPath(x) === previewVideoUrl.value)) previewVideoUrl.value = ''
     // 选中挪到删掉那条的下一条（没有就上一条）
-    if (selectedHistoryId.value === task.id || wasCurrent) {
-      const pick = rest.length ? rest[Math.min(Math.max(removedAt, 0), rest.length - 1)] : null
+    if (ids.has(selectedHistoryId.value) || wasCurrent) {
+      const pick = rest.length ? rest[Math.min(Math.max(firstAt, 0), rest.length - 1)] : null
       selectedHistoryId.value = pick?.id ?? null
       previewVideoUrl.value = pick && !isCurrentVideo(pick) ? taskVideoPath(pick) : ''
     }
+    if (rest.length <= 1) historyBatch.value = false
     historyDelete.open = false
-    toast.success(t('episode.vid.historyDeleted'))
+    const freed = Number(res?.bytes || 0)
+    toast.success(tasks.length > 1
+      ? t('episode.vid.historyBatchDeleted', { n: tasks.length, size: formatBytes(freed) })
+      : freed ? t('episode.vid.historyDeletedFreed', { size: formatBytes(freed) }) : t('episode.vid.historyDeleted'))
   } catch (e) {
     toastError(e, { fallback: 'common.deleteFailed' })
   } finally {
     historyDelete.loading = false
   }
+}
+
+function formatBytes(n) {
+  if (!n) return '0 MB'
+  if (n >= 1073741824) return `${(n / 1073741824).toFixed(1)} GB`
+  return `${Math.max(0.1, n / 1048576).toFixed(1)} MB`
 }
 
 function formatHistoryTime(iso) {
@@ -4310,7 +4467,7 @@ async function pollVideoGeneration(generationId, storyboardId, maxPolls = 5400, 
           ...failedVideoMessages.value,
           [storyboardId]: errMsg,
         }
-        toastError(errMsg, { fallback: msgs.failed || 'episode.vid.genFailed' })
+        if (!isCancelledMessage(errMsg)) toastError(errMsg, { fallback: msgs.failed || 'episode.vid.genFailed' })
         return 'failed'
       }
     } catch {}
@@ -5696,10 +5853,13 @@ onMounted(() => setTimeout(() => autoTour('episode', EPISODE_TOUR, t), 900))
   border-bottom: 1px solid var(--border);
   background: var(--surface-raised);
 }
+.video-player-history-head > span:first-child { white-space: nowrap; }
+.video-player-history-head .btn { white-space: nowrap; }
 .video-player-history-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 4px 6px;
   margin-bottom: 7px;
   font-size: 11px;
   font-weight: 700;
@@ -5757,6 +5917,10 @@ onMounted(() => setTimeout(() => autoTour('episode', EPISODE_TOUR, t), 900))
   background: var(--accent);
   color: var(--on-accent);
   box-shadow: 0 1px 3px rgba(0,0,0,0.35);
+}
+.video-history-check.is-empty {
+  background: rgba(0,0,0,0.35);
+  border: 1.5px solid rgba(255,255,255,0.85);
 }
 .video-player-history-picked {
   margin-left: auto;
@@ -6992,6 +7156,18 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
 .gen-task-row .video-task-preview img {
   cursor: zoom-in;
 }
+.gen-task-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.gen-task-cancel {
+  gap: 4px;
+  color: var(--text-2);
+}
+.gen-task-cancel:hover:not(:disabled) { color: var(--danger, #d14343); background: var(--danger-bg, rgba(209,67,67,0.1)); }
+.video-task-cancel:hover:not(:disabled) { color: var(--danger, #d14343); }
 
 /* 任务触发按钮(顶栏) */
 .task-drawer-trigger {

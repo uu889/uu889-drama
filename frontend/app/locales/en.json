@@ -1058,7 +1058,19 @@
       "deletePicked": "Delete selected",
       "deleteHistoryTitle": "Delete video",
       "deleteHistoryMessage": "Delete the video generated at {time}?",
-      "deleteHistoryCurrent": "This is the main video of this shot. After deleting it, the newest other video is used instead; if there is none, the shot goes back to \"not generated\"."
+      "deleteHistoryCurrent": "This is the main video of this shot. After deleting it, the newest other video is used instead; if there is none, the shot goes back to \"not generated\".",
+      "historyChecked": "{n} selected",
+      "historyCheckAll": "Select all",
+      "historyCheckNone": "Select none",
+      "deleteChecked": "Delete selected ({n})",
+      "historyBatchDone": "Done",
+      "historyBatch": "Batch delete",
+      "historyBatchHint": "Select several videos and delete them together (local video files are deleted too, freeing disk space)",
+      "deleteHistoryBatchMessage": "Delete the {n} selected videos?",
+      "deleteHistoryBatchCurrent": "This includes the shot's main video; the newest remaining video is used instead, or the shot goes back to \"not generated\" if none is left.",
+      "deleteHistoryFiles": "The local video files (including cover, end frame and subtitled copy) are deleted as well and cannot be recovered.",
+      "historyBatchDeleted": "Deleted {n} videos, freed {size}",
+      "historyDeletedFreed": "Video deleted, freed {size}"
     },
     "inspector": {
       "videoPromptPlaceholder": "Reference assets with {'@'}character / {'@'}scene — auto-mapped to reference images on generation; then describe motion and camera per time segment…",
@@ -1088,7 +1100,12 @@
       "sbN": "Shot #{n}",
       "generic": "General",
       "fullMerge": "Full-episode merge",
-      "mergeKind": "Merge"
+      "mergeKind": "Merge",
+      "cancel": "Cancel",
+      "cancelDone": "Task cancelled",
+      "cancelEnded": "The task has already finished",
+      "cancelFailed": "Cancel failed",
+      "cancelNotFound": "The task for this shot hasn't shown up yet; wait a few seconds and try again"
     },
     "export": {
       "notReadyDesc": "Please finish the storyboard and production steps first",
@@ -1148,7 +1165,8 @@
       "done": "Done",
       "generating": "Generating",
       "failed": "Failed",
-      "todo": "Pending"
+      "todo": "Pending",
+      "cancelled": "Cancelled"
     },
     "resolution": {
       "smooth": "Smooth",
@@ -1357,7 +1375,12 @@
     "modelFailedPlain": "Model request failed: {detail}",
     "failed": "Operation failed",
     "failedWithDetail": "{action}: {detail}",
-    "rawDetail": "Original error: {detail}"
+    "rawDetail": "Original error: {detail}",
+    "cancelled": "Cancelled manually",
+    "uiError": "Interface error: {detail}",
+    "pageCrashed": "Something went wrong on this page",
+    "reloadPage": "Reload",
+    "backHome": "Back to home"
   },
   "tour": {
     "next": "Next",

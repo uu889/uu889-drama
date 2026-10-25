@@ -1058,7 +1058,19 @@
       "deletePicked": "Eliminar selección",
       "deleteHistoryTitle": "Eliminar vídeo",
       "deleteHistoryMessage": "¿Eliminar el vídeo generado a las {time}?",
-      "deleteHistoryCurrent": "Es el vídeo principal de este plano. Al eliminarlo se usará el otro vídeo más reciente; si no hay ninguno, el plano vuelve a «sin generar»."
+      "deleteHistoryCurrent": "Es el vídeo principal de este plano. Al eliminarlo se usará el otro vídeo más reciente; si no hay ninguno, el plano vuelve a «sin generar».",
+      "historyChecked": "{n} seleccionados",
+      "historyCheckAll": "Seleccionar todo",
+      "historyCheckNone": "Quitar selección",
+      "deleteChecked": "Eliminar selección ({n})",
+      "historyBatchDone": "Listo",
+      "historyBatch": "Eliminar varios",
+      "historyBatchHint": "Selecciona varios vídeos y elimínalos juntos (también se borran los archivos locales y se libera espacio)",
+      "deleteHistoryBatchMessage": "¿Eliminar los {n} vídeos seleccionados?",
+      "deleteHistoryBatchCurrent": "Incluye el vídeo principal de este plano; se usará el vídeo restante más reciente o, si no queda ninguno, el plano vuelve a «sin generar».",
+      "deleteHistoryFiles": "Los archivos de vídeo locales (incluidos portada, fotograma final y versión subtitulada) también se eliminan y no se pueden recuperar.",
+      "historyBatchDeleted": "{n} vídeos eliminados, {size} liberados",
+      "historyDeletedFreed": "Vídeo eliminado, {size} liberados"
     },
     "inspector": {
       "videoPromptPlaceholder": "Referencia recursos con {'@'}personaje / {'@'}escena — se asignan automáticamente a imágenes de referencia al generar; luego describe el movimiento y la cámara por tramo de tiempo…",
@@ -1088,7 +1100,12 @@
       "sbN": "Plano #{n}",
       "generic": "General",
       "fullMerge": "Unión del episodio completo",
-      "mergeKind": "Unión"
+      "mergeKind": "Unión",
+      "cancel": "Cancelar",
+      "cancelDone": "Tarea cancelada",
+      "cancelEnded": "La tarea ya ha terminado",
+      "cancelFailed": "No se pudo cancelar",
+      "cancelNotFound": "Aún no aparece la tarea de este plano; espera unos segundos e inténtalo de nuevo"
     },
     "export": {
       "notReadyDesc": "Primero termina los pasos de storyboard y producción",
@@ -1148,7 +1165,8 @@
       "done": "Listo",
       "generating": "Generando",
       "failed": "Fallido",
-      "todo": "Pendiente"
+      "todo": "Pendiente",
+      "cancelled": "Cancelada"
     },
     "resolution": {
       "smooth": "Fluido",
@@ -1357,7 +1375,12 @@
     "modelFailedPlain": "Error en la solicitud al modelo: {detail}",
     "failed": "La operación falló",
     "failedWithDetail": "{action}: {detail}",
-    "rawDetail": "Error original: {detail}"
+    "rawDetail": "Error original: {detail}",
+    "cancelled": "Cancelada manualmente",
+    "uiError": "Error de la interfaz: {detail}",
+    "pageCrashed": "Algo salió mal en esta página",
+    "reloadPage": "Recargar",
+    "backHome": "Volver al inicio"
   },
   "tour": {
     "next": "Siguiente",

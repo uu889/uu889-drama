@@ -118,6 +118,8 @@ export const taskAPI = {
   generate: (d: any) => api.post('/tasks', d),
   get: (id: number) => api.get(`/tasks/${id}`),
   del: (id: number) => api.del(`/tasks/${id}`),
+  cancel: (id: number) => api.post(`/tasks/${id}/cancel`, {}),
+  batchDelete: (ids: number[], deleteFiles = true) => api.post('/tasks/batch-delete', { ids, delete_files: deleteFiles }),
   list: (params?: { type?: 'image' | 'video'; drama_id?: number; storyboard_id?: number }) => {
     const query = new URLSearchParams()
     if (params?.type) query.set('type', params.type)
