@@ -75,8 +75,8 @@ let crashNext = false
 let leak = false
 // 一直显存不足，直到 ComfyUI 被重启
 let oomUntilReboot = false
-// 这个镜头本身太大：画布短边大于 480 就显存不足（重启也没用）
-let oomAbove480 = false
+// 这个镜头本身太大：画布短边大于这个值就显存不足（重启也没用）；0 = 关
+let oomAboveShort = 0
 const canvases: string[] = []
 let reboots = 0
 const OOM = 'CUDA out of memory. Tried to allocate 2.00 GiB. GPU 0 has a total capacity of 12.00 GiB of which 0 bytes is free.'
@@ -110,7 +110,7 @@ function handler(req: http.IncomingMessage, res: http.ServerResponse) {
       if (oomUntilReboot) oomIds.add(id)
       const node = Object.values<any>(JSON.parse(body || '{}').prompt || {}).find((n) => typeof n?.inputs?.length === 'number' && typeof n?.inputs?.width === 'number')
       if (node) canvases.push(`${node.inputs.width}x${node.inputs.height}`)
-      if (oomAbove480 && node && Math.min(node.inputs.width, node.inputs.height) > 480) oomIds.add(id)
+      if (oomAboveShort && node && Math.min(node.inputs.width, node.inputs.height) > oomAboveShort) oomIds.add(id)
       json({ prompt_id: id, number: prompts, node_errors: {} })
       // 模拟 ComfyUI 在执行这个任务时被显存挤崩退出
       if (crashNext) {
@@ -235,20 +235,23 @@ test('out of memory again after one free: restart ComfyUI and resubmit instead o
   assert.equal(reboots, 1)
 })
 
-test('a shot that is simply too big: after free + restart, the last retry renders it at 480p and notes it', async () => {
-  q.resetGpuLanes()
-  prompts = 0
-  reboots = 0
-  frees = 0
-  canvases.length = 0
-  doneIds.clear(); startedAt.clear(); active = new Set(); oomIds.clear()
-  oomAbove480 = true
-  const id = await generateVideo({ prompt: '十秒长镜头', duration: 5 })
-  const row = await waitDone(id, 180_000)
-  oomAbove480 = false
-  assert.equal(row.status, 'completed', String(row.errorMsg))
-  assert.equal(prompts, 4, '原任务 → 释放 → 重启 → 480p')
-  assert.equal(reboots, 1)
-  assert.deepEqual(canvases, ['1344x768', '1344x768', '1344x768', '832x480'])
-  assert.match(String(row.errorMsg), /降到 480p 生成（1344×768 → 832×480）.*高清化/)
+test('a shot that is simply too big: after free + restart, it steps down 768p → 640p → 480p and notes it', async () => {
+  for (const [limit, expected] of [[640, ['1344x768', '1344x768', '1344x768', '1120x640']], [480, ['1344x768', '1344x768', '1344x768', '1120x640', '832x480']]] as const) {
+    q.resetGpuLanes()
+    prompts = 0
+    reboots = 0
+    frees = 0
+    canvases.length = 0
+    doneIds.clear(); startedAt.clear(); active = new Set(); oomIds.clear()
+    oomAboveShort = limit
+    const id = await generateVideo({ prompt: '十秒长镜头', duration: 5 })
+    const row = await waitDone(id, 180_000)
+    oomAboveShort = 0
+    assert.equal(row.status, 'completed', String(row.errorMsg))
+    assert.equal(prompts, expected.length, '原任务 → 释放 → 重启 → 640p（→ 480p）')
+    assert.equal(reboots, 1)
+    assert.deepEqual(canvases, expected)
+    const to = expected[expected.length - 1].replace('x', '×')
+    assert.match(String(row.errorMsg), new RegExp(`降到 ${limit}p 生成（1344×768 → ${to}）.*高清化`))
+  }
 })

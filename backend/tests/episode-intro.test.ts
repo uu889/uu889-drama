@@ -28,7 +28,7 @@ before(() => initDb())
 test('options: off when disabled, duration clamped, image must be a local static image', () => {
   assert.equal(intro.normalizeIntroOptions(null), null)
   assert.equal(intro.normalizeIntroOptions({ enabled: false, title: 'x' }), null)
-  assert.deepEqual(intro.normalizeIntroOptions({ enabled: true }), { duration: 2, image: null, title: '', subtitle: '', font: null, size: 1, color: '#FFFFFF', box: true, y: 0.7 })
+  assert.deepEqual(intro.normalizeIntroOptions({ enabled: true }), { duration: 2, image: null, title: '', subtitle: '', font: null, size: 1, color: '#FFFFFF', box: true, shadow: true, y: 0.7 })
   const o = intro.normalizeIntroOptions({ enabled: true, duration: 9, image: '/static/images/cover.png', title: '  第 3 集   重逢 ', subtitle: '我的剧' })!
   assert.equal(o.duration, 5)
   assert.equal(o.image, 'static/images/cover.png')
@@ -66,6 +66,9 @@ test('style filter: color, size, band only around the text, position follows y',
   const size = (f: string) => Math.max(...[...f.matchAll(/fontsize=(\d+)/g)].map((m) => Number(m[1])))
   assert.ok(size(big) > size(def) * 1.8)
   assert.doesNotMatch(intro.buildIntroFilter({ ...base, box: false }, t, files), /drawbox/)
+  assert.match(def, /borderw=\d+.*shadowx=\d+/)
+  assert.doesNotMatch(intro.buildIntroFilter({ ...base, shadow: false }, t, files), /borderw|shadowx/)
+  assert.equal(intro.normalizeIntroOptions({ shadow: false })!.shadow, false)
   const titleY = (f: string) => Number([...f.matchAll(/:y=(\d+)/g)].pop()![1])
   const top = intro.buildIntroFilter({ ...base, y: 0.2 }, t, files)
   assert.ok(titleY(top) < 200 && titleY(def) > 400)

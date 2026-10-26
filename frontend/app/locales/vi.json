@@ -1326,6 +1326,7 @@
       "titleBatch": "Nâng nét hàng loạt · {n} cảnh",
       "target": "Độ phân giải đích",
       "targets": {
+        "768p": "768p HD",
         "1080p": "1080p Full HD",
         "1440p": "1440p 2K",
         "2160p": "2160p 4K"
@@ -1400,7 +1401,8 @@
       "posMiddle": "Giữa",
       "posLow": "Hơi thấp",
       "posBottom": "Dưới",
-      "resetStyle": "Khôi phục kiểu mặc định"
+      "resetStyle": "Khôi phục kiểu mặc định",
+      "shadow": "Viền và bóng chữ"
     }
   },
   "errors": {

@@ -1326,6 +1326,7 @@
       "titleBatch": "批量高清化 · {n} 个分镜",
       "target": "目标分辨率",
       "targets": {
+        "768p": "768p 高清",
         "1080p": "1080p 全高清",
         "1440p": "1440p 2K",
         "2160p": "2160p 4K"
@@ -1400,7 +1401,8 @@
       "posMiddle": "居中",
       "posLow": "偏下",
       "posBottom": "底部",
-      "resetStyle": "恢复默认样式"
+      "resetStyle": "恢复默认样式",
+      "shadow": "文字描边阴影"
     }
   },
   "errors": {

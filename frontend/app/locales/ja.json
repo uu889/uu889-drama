@@ -1326,6 +1326,7 @@
       "titleBatch": "一括高画質化 · {n} カット",
       "target": "目標解像度",
       "targets": {
+        "768p": "768p HD",
         "1080p": "1080p フルHD",
         "1440p": "1440p 2K",
         "2160p": "2160p 4K"
@@ -1400,7 +1401,8 @@
       "posMiddle": "中央",
       "posLow": "やや下",
       "posBottom": "下",
-      "resetStyle": "既定に戻す"
+      "resetStyle": "既定に戻す",
+      "shadow": "文字の縁取りと影"
     }
   },
   "errors": {

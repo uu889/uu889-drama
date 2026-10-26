@@ -1326,6 +1326,7 @@
       "titleBatch": "Mejora en lote · {n} planos",
       "target": "Resolución objetivo",
       "targets": {
+        "768p": "768p HD",
         "1080p": "1080p Full HD",
         "1440p": "1440p 2K",
         "2160p": "2160p 4K"
@@ -1400,7 +1401,8 @@
       "posMiddle": "Centro",
       "posLow": "Abajo-centro",
       "posBottom": "Abajo",
-      "resetStyle": "Restablecer estilo"
+      "resetStyle": "Restablecer estilo",
+      "shadow": "Contorno y sombra"
     }
   },
   "errors": {

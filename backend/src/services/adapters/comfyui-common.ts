@@ -208,11 +208,24 @@ const CORRUPT_FILE_RE = /incomplete metadata|not fully covered|deserializ|header
 const OUT_OF_MEMORY_RE = /out of memory|OutOfMemory|CUDA error: out of memory|allocation on device/i
 /**
  * 显存不足时自动重试的次数：① 释放显存 ② 重启 ComfyUI（没有 Manager 时再释放一次）
- * ③ 还是不行就降到 480p 再试一次（分辨率已经不高于 480p 时不做这一步）
+ * ③ 还是不行就降一档分辨率再试：768p / 720p 先降到 640p，④ 仍不够再降到 480p（已经不高于 480p 时不做）
  */
-export const COMFY_OOM_RETRIES = 3
+export const COMFY_OOM_RETRIES = 4
+/** 显存不足时逐档降低的短边（先降一档，尽量保住清晰度） */
+export const COMFY_OOM_SHORT_EDGES = [640, 480]
 /** 显存不足最后一招降到的短边 */
 export const COMFY_OOM_SHORT_EDGE = 480
+
+/** 请求里视频画布当前的短边（找不到视频潜空间节点时为 null） */
+export function comfyVideoShortEdge(body: any): number | null {
+  const workflow = body?.prompt
+  if (!workflow || typeof workflow !== 'object') return null
+  for (const node of Object.values<any>(workflow)) {
+    const inp = node?.inputs
+    if (inp && typeof inp.width === 'number' && typeof inp.height === 'number' && typeof inp.length === 'number' && inp.width > 0 && inp.height > 0) return Math.min(inp.width, inp.height)
+  }
+  return null
+}
 
 /** 显存不足时是否允许降到 480p 重试：配置 oom_lower_resolution，默认开 */
 export function oomLowerResolutionEnabled(settings: Record<string, any> | null | undefined): boolean {
@@ -707,12 +720,15 @@ export abstract class ComfyUIClient {
     }
     if (!isComfyOutOfMemory(ctx.error) || ctx.attempt >= COMFY_OOM_RETRIES) return false
     const n = ctx.attempt + 1
-    // 最后一次：释放 + 重启都不够，说明这个镜头本身太大（时长长 / 参考图多 / 分辨率高）：降到 480p 再试
+    // 释放 + 重启都不够，说明这个镜头本身太大（时长长 / 参考图多 / 有首尾帧 / 分辨率高）：逐档降分辨率再试（768p → 640p → 480p）
     if (ctx.attempt >= 2) {
       if (!oomLowerResolutionEnabled(config.settings) || !ctx.request) return false
-      const shrunk = shrinkComfyVideoCanvas(ctx.request.body)
+      const current = comfyVideoShortEdge(ctx.request.body)
+      const short = current ? COMFY_OOM_SHORT_EDGES.find((e) => e < current) : undefined
+      if (!short) return false
+      const shrunk = shrinkComfyVideoCanvas(ctx.request.body, short)
       if (!shrunk) return false
-      ctx.report?.({ stage: 'queued', message: `这个镜头在当前分辨率下显存一直不够，降到 ${COMFY_OOM_SHORT_EDGE}p（${shrunk.from} → ${shrunk.to}）再试（第 ${n}/${COMFY_OOM_RETRIES} 次），出片后可以用「高清化」放大到 1080p` })
+      ctx.report?.({ stage: 'queued', message: `这个镜头在当前分辨率下显存一直不够，降到 ${short}p（${shrunk.from} → ${shrunk.to}）再试（第 ${n}/${COMFY_OOM_RETRIES} 次），出片后可以用「高清化」放大` })
       await freeComfyMemory([config, ...ctx.peers])
       ctx.downgraded = shrunk
       return true

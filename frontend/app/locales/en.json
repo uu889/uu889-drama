@@ -1326,6 +1326,7 @@
       "titleBatch": "Batch upscale · {n} shots",
       "target": "Target resolution",
       "targets": {
+        "768p": "768p HD",
         "1080p": "1080p Full HD",
         "1440p": "1440p 2K",
         "2160p": "2160p 4K"
@@ -1400,7 +1401,8 @@
       "posMiddle": "Middle",
       "posLow": "Lower",
       "posBottom": "Bottom",
-      "resetStyle": "Reset style"
+      "resetStyle": "Reset style",
+      "shadow": "Text outline & shadow"
     }
   },
   "errors": {

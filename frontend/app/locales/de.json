@@ -1326,6 +1326,7 @@
       "titleBatch": "Stapel hochskalieren · {n} Shots",
       "target": "Zielauflösung",
       "targets": {
+        "768p": "768p HD",
         "1080p": "1080p Full HD",
         "1440p": "1440p 2K",
         "2160p": "2160p 4K"
@@ -1400,7 +1401,8 @@
       "posMiddle": "Mitte",
       "posLow": "Unten-Mitte",
       "posBottom": "Unten",
-      "resetStyle": "Stil zurücksetzen"
+      "resetStyle": "Stil zurücksetzen",
+      "shadow": "Kontur & Schatten"
     }
   },
   "errors": {

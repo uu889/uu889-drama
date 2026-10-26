@@ -78,7 +78,7 @@ export const episodeAPI = {
 }
 
 export const storyboardAPI = {
-  /** 视频高清化：engine auto / ai / fast，target 1080p / 1440p / 2160p */
+  /** 视频高清化：engine auto / ai / fast，target 768p / 1080p / 1440p / 2160p */
   upscale: (id: number, data: { engine: string; target: string }) => api.post<{ task_id: number }>(`/storyboards/${id}/upscale`, data),
   upscaleInfo: (episodeId?: number) => api.get(`/storyboards/upscale-info${episodeId ? `?episode_id=${episodeId}` : ''}`),
   create: (data: any) => api.post('/storyboards', data),
@@ -150,7 +150,7 @@ export const uploadAPI = {
   audio: (f: File) => uploadReq<{ url: string; path: string }>('/upload/audio', f),
 }
 export const mergeAPI = {
-  merge: (epId: number, storyboardIds?: number[], bgm?: { path: string; volume: number; duck: boolean; fade: boolean }, intro?: { enabled: boolean; duration: number; image?: string; title: string; subtitle: string; font?: string | null; size?: number; color?: string; box?: boolean; y?: number }) =>
+  merge: (epId: number, storyboardIds?: number[], bgm?: { path: string; volume: number; duck: boolean; fade: boolean }, intro?: { enabled: boolean; duration: number; image?: string; title: string; subtitle: string; font?: string | null; size?: number; color?: string; box?: boolean; shadow?: boolean; y?: number }) =>
     api.post(`/merge/episodes/${epId}/merge`, { ...(storyboardIds?.length ? { storyboard_ids: storyboardIds } : {}), ...(bgm ? { bgm } : {}), ...(intro ? { intro } : {}) }),
   /** 背景音乐曲库 */
   bgmList: () => api.get<any[]>('/merge/bgm'),

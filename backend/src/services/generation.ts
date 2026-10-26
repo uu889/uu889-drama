@@ -759,7 +759,8 @@ async function pollTask(record: SysTaskRecord, config: AIConfig, initialTaskId: 
       const peers = await sameHostPeers(config)
       const ctx: RetryContext = { taskId, error, attempt: retries, peers, report, request }
       const ok = await hooks.prepareRetry(config, ctx)
-      if (ok && ctx.downgraded) downgraded = ctx.downgraded
+      // 逐档降分辨率：记住最初的尺寸和最后用的尺寸
+      if (ok && ctx.downgraded) downgraded = { from: downgraded?.from ?? ctx.downgraded.from, to: ctx.downgraded.to }
       if (!ok) return false
       await resubmit(error)
       return true
@@ -944,7 +945,7 @@ async function pollTask(record: SysTaskRecord, config: AIConfig, initialTaskId: 
       // 刚完成时成片可能还没就绪（网关 /content 短暂 404）：多等几次
       await withRetry(() => handleVideoComplete(record, config, pollResp.videoUrl, pollResp.duration), 5, 5000)
       if (moderationResubmits) addTaskNote(record.id, `审核未通过，自动原样重新提交 ${moderationResubmits} 次后生成成功`)
-      if (downgraded) addTaskNote(record.id, `显存不足，这个镜头降到 480p 生成（${downgraded.from} → ${downgraded.to}），可以用「高清化」放大到 1080p`)
+      if (downgraded) addTaskNote(record.id, `显存不足（释放显存、重启 ComfyUI 后仍不够），这个镜头降到 ${Math.min(...downgraded.to.split('×').map(Number))}p 生成（${downgraded.from} → ${downgraded.to}），可以用「高清化」放大到 768p / 1080p`)
       await flushTaskNotes(record.id)
     } catch (err: any) {
       await failTask(record.id, `结果下载失败：${err.message}`)

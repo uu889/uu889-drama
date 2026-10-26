@@ -5,7 +5,7 @@
  * - 文字：可选的集标题（如「第 3 集 · 重逢」）和上方一行小字（如剧名），居中偏下，底部压暗一条保证看得清
  * - 画面按成片尺寸裁满（cover），开头 / 结尾各 0.3 秒淡入淡出；带一条静音音轨，拼接时和镜头统一
  * - 文字用 drawtext；字体可选本机中文字体或上传的字体（intro-fonts.ts），找不到时用 findSubtitleFont，再没有就只出封面图
- * - 文字样式：字号倍数 size、颜色 color、半透明背景条 box（只压暗文字那一块）、垂直位置 y（标题中心占画面高度的比例）
+ * - 文字样式：字号倍数 size、颜色 color、半透明背景条 box（只压暗文字那一块）、描边阴影 shadow、垂直位置 y（标题中心占画面高度的比例）
  */
 import fs from 'fs'
 import path from 'path'
@@ -33,11 +33,13 @@ export interface IntroOptions {
   color: string
   /** 文字后面的半透明背景条 */
   box: boolean
+  /** 文字描边 + 阴影（关掉就是纯色字） */
+  shadow: boolean
   /** 标题垂直位置：标题中心在画面高度的比例（0.1 顶部 ~ 0.9 底部） */
   y: number
 }
 
-export const INTRO_STYLE_DEFAULTS = { size: 1, color: '#FFFFFF', box: true, y: 0.7 }
+export const INTRO_STYLE_DEFAULTS = { size: 1, color: '#FFFFFF', box: true, shadow: true, y: 0.7 }
 
 const IMAGE_EXT = /\.(png|jpe?g|webp|bmp)$/i
 
@@ -57,6 +59,7 @@ export function normalizeIntroOptions(raw: unknown): IntroOptions | null {
     size: num(r.size, 0.5, 2, INTRO_STYLE_DEFAULTS.size),
     color: typeof r.color === 'string' && /^#?[0-9a-f]{6}$/i.test(r.color) ? `#${r.color.replace('#', '').toUpperCase()}` : INTRO_STYLE_DEFAULTS.color,
     box: r.box === undefined ? INTRO_STYLE_DEFAULTS.box : r.box !== false,
+    shadow: r.shadow === undefined ? INTRO_STYLE_DEFAULTS.shadow : r.shadow !== false,
     y: num(r.y, 0.1, 0.9, INTRO_STYLE_DEFAULTS.y),
   }
 }
@@ -104,8 +107,13 @@ export function buildIntroFilter(opts: IntroOptions, target: IntroTarget, text: 
       'expansion=none',
       `fontsize=${size}`,
       'x=(w-text_w)/2',
-      `borderw=${Math.max(1, Math.round(size * 0.06))}`,
-      'bordercolor=black@0.7',
+      ...(opts.shadow ? [
+        `borderw=${Math.max(1, Math.round(size * 0.05))}`,
+        'bordercolor=black@0.6',
+        `shadowx=${Math.max(1, Math.round(size * 0.04))}`,
+        `shadowy=${Math.max(1, Math.round(size * 0.04))}`,
+        'shadowcolor=black@0.5',
+      ] : []),
     ]
     if (text.subtitleFile) {
       parts.push(`drawtext=${[...common(subSize), `textfile=${filterPath(text.subtitleFile)}`, `y=${top}`, `fontcolor=${color}@0.85`].join(':')}`)

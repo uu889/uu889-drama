@@ -1279,10 +1279,16 @@
                         <button v-for="c in INTRO_COLORS" :key="c" type="button" :class="['export-intro-swatch', { on: mergeIntro.color.toUpperCase() === c }]" :style="{ background: c }" :title="c" @click="mergeIntro.color = c" />
                         <input v-model="mergeIntro.color" type="color" class="export-intro-color" :aria-label="t('episode.intro.colorCustom')" :title="t('episode.intro.colorCustom')" />
                       </div>
-                      <label class="video-direction-toggle">
-                        <input v-model="mergeIntro.box" type="checkbox" />
-                        <span>{{ t('episode.intro.box') }}</span>
-                      </label>
+                      <div class="export-intro-row export-intro-toggles">
+                        <label class="video-direction-toggle">
+                          <input v-model="mergeIntro.box" type="checkbox" />
+                          <span>{{ t('episode.intro.box') }}</span>
+                        </label>
+                        <label class="video-direction-toggle">
+                          <input v-model="mergeIntro.shadow" type="checkbox" />
+                          <span>{{ t('episode.intro.shadow') }}</span>
+                        </label>
+                      </div>
                       <label class="export-bgm-vol">
                         <span>{{ t('episode.intro.position') }}</span>
                         <input v-model.number="mergeIntro.y" type="range" min="0.1" max="0.9" step="0.05" />
@@ -1875,7 +1881,7 @@
             <div class="upscale-field">
               <span class="upscale-label">{{ t('episode.upscale.target') }}</span>
               <div class="upscale-choices">
-                <button v-for="tg in ['1080p', '1440p', '2160p']" :key="tg" type="button" :class="['sv-preset', { active: upscalePrefs.target === tg }]" @click="upscalePrefs.target = tg">{{ t('episode.upscale.targets.' + tg) }}</button>
+                <button v-for="tg in ['768p', '1080p', '1440p', '2160p']" :key="tg" type="button" :class="['sv-preset', { active: upscalePrefs.target === tg }]" @click="upscalePrefs.target = tg">{{ t('episode.upscale.targets.' + tg) }}</button>
               </div>
             </div>
             <div class="upscale-field">
@@ -2060,7 +2066,7 @@ function readBgmPrefs() {
 }
 // ===== 片头 / 封面（每个项目一套：封面图统一，标题默认用「第 N 集 · 集标题」）=====
 const INTRO_STORE_KEY = `uu889:merge-intro:${dramaId}`
-const INTRO_STYLE_DEFAULTS = { font: '', size: 1, color: '#FFFFFF', box: true, y: 0.7 }
+const INTRO_STYLE_DEFAULTS = { font: '', size: 1, color: '#FFFFFF', box: true, shadow: true, y: 0.7 }
 const INTRO_DEFAULTS = { enabled: false, image: '', showTitle: true, showDrama: true, duration: 2, ...INTRO_STYLE_DEFAULTS }
 const INTRO_COLORS = ['#FFFFFF', '#FFD84D', '#FF5A4E', '#7FD3FF', '#111111']
 const INTRO_POSITIONS = [{ y: 0.2, label: 'episode.intro.posTop' }, { y: 0.5, label: 'episode.intro.posMiddle' }, { y: 0.7, label: 'episode.intro.posLow' }, { y: 0.85, label: 'episode.intro.posBottom' }]
@@ -2080,6 +2086,7 @@ function readIntroPrefs() {
         size: clampNum(v.size, 0.5, 2, 1),
         color: typeof v.color === 'string' && /^#[0-9a-f]{6}$/i.test(v.color) ? v.color : '#FFFFFF',
         box: v.box !== false,
+        shadow: v.shadow !== false,
         y: clampNum(v.y, 0.1, 0.9, 0.7),
       }
     }
@@ -2199,7 +2206,7 @@ const introPreviewLayout = computed(() => {
   top = Math.min(H - pad - blockH, Math.max(pad, top))
   const family = introFontFamily(introFontSelected.value)
   const weight = introFontSelected.value?.weight || (mergeIntro.font ? 400 : 700)
-  const line = (size, y) => ({ top: `${(y / H) * 100}%`, fontSize: `${size}px`, lineHeight: `${size}px`, color: mergeIntro.color, fontFamily: family || undefined, fontWeight: weight })
+  const line = (size, y) => ({ top: `${(y / H) * 100}%`, fontSize: `${size}px`, lineHeight: `${size}px`, color: mergeIntro.color, fontFamily: family || undefined, fontWeight: weight, textShadow: mergeIntro.shadow ? undefined : 'none' })
   const bandTop = Math.max(0, top - pad)
   return {
     band: { top: `${(bandTop / H) * 100}%`, height: `${(Math.min(H - bandTop, blockH + pad * 2) / H) * 100}%` },
@@ -2220,6 +2227,7 @@ function introPayload() {
     size: mergeIntro.size,
     color: mergeIntro.color,
     box: mergeIntro.box,
+    shadow: mergeIntro.shadow,
     y: mergeIntro.y,
   }
 }
@@ -2974,7 +2982,7 @@ function readUpscalePrefs() {
     if (v && typeof v === 'object') {
       return {
         engine: ['auto', 'ai', 'fast'].includes(v.engine) ? v.engine : 'auto',
-        target: ['1080p', '1440p', '2160p'].includes(v.target) ? v.target : '1080p',
+        target: ['768p', '1080p', '1440p', '2160p'].includes(v.target) ? v.target : '1080p',
       }
     }
   } catch { /* 静默 */ }
@@ -7157,7 +7165,9 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
 .export-split { flex: 1; display: flex; min-height: 0; }
 .export-main { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; align-items: stretch; gap: 18px; padding: 16px 20px 24px; }
 .export-section { display: flex; flex-direction: column; min-height: 0; }
-.export-section-grow { flex: 1; }
+/* 片头 / 背景音乐展开后上面变高：镜头素材区不能被压成 0 高（之前会挤没、点不到），保留最小高度，整页滚动 */
+.export-main > .export-section { flex-shrink: 0; }
+.export-section-grow { flex: 1 0 auto; min-height: min(560px, 75vh); }
 .export-section-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .export-section-title { font-size: 13px; font-weight: 800; color: var(--text-0); }
 .export-merge-strip { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; }

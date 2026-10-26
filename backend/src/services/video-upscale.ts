@@ -1,5 +1,5 @@
 /**
- * 视频高清化：把分镜视频（如 768p / 720p）放大到 1080p（或 1440p / 4K）
+ * 视频高清化：把分镜视频（如 480p / 768p / 720p）放大到 768p / 1080p（或 1440p / 4K）
  *
  * 两种方式：
  * - AI 超分（ComfyUI）：用 ComfyUI 里的放大模型（models/upscale_models，如 RealESRGAN x2）逐帧超分，再缩放到目标分辨率。
@@ -28,7 +28,7 @@ import { comfyAuthHeaders, comfyUrl, findComfyOutput, comfyViewPath, readComfyHi
 import { logTaskError, logTaskStart, logTaskSuccess, logTaskWarn } from '../utils/task-logger.js'
 
 export type UpscaleEngine = 'auto' | 'ai' | 'fast'
-export const UPSCALE_TARGETS: Record<string, number> = { '1080p': 1080, '1440p': 1440, '2160p': 2160 }
+export const UPSCALE_TARGETS: Record<string, number> = { '768p': 768, '1080p': 1080, '1440p': 1440, '2160p': 2160 }
 
 export interface UpscaleOptions {
   engine: UpscaleEngine
@@ -50,7 +50,7 @@ export function upscaleDimensions(width: number, height: number, targetShort: nu
 
 /** <名>.mp4 → <名>_1080p.mp4（已经带分辨率后缀的先去掉，避免 x_1080p_1440p） */
 export function upscaledPathFor(relativePath: string, target: string): string {
-  return relativePath.replace(/(_(?:1080p|1440p|2160p))?\.[^./]+$/, `_${target}.mp4`)
+  return relativePath.replace(/(_(?:768p|1080p|1440p|2160p))?\.[^./]+$/, `_${target}.mp4`)
 }
 
 /** 从放大模型列表里挑：优先 2x（速度快、内存小），其次 4x，再其次随便一个 */
