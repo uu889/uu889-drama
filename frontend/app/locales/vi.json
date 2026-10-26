@@ -481,7 +481,9 @@
         "groupVram": "Theo VRAM · {family}",
         "groupOther": "Mẫu khác",
         "vramTag": "VRAM {n} GB",
-        "maxResTag": "Tối đa {n}p"
+        "maxResTag": "Tối đa {n}p",
+        "styleLoraOn": "Khi bật \"Phong cách hình ảnh → mô hình\", lúc tạo sẽ thêm LoRA phong cách của dự án (vd. 3d_render_style_xl.safetensors cho 3D); tệp này không có trong danh sách trên. Kiểm tra ở \"Tải mô hình một chạm\" bên dưới.",
+        "styleLoraOff": "\"Phong cách hình ảnh → mô hình\" đang tắt: chỉ dùng và kiểm tra các tệp trên."
       },
       "local": {
         "apiKeyOptional": "không bắt buộc với dịch vụ cục bộ",
@@ -668,7 +670,15 @@
         "keyTooBig": "Tệp quá lớn, không giống khóa riêng",
         "keyHint": "Hỗ trợ OpenSSH (id_ed25519 / id_rsa / id_ecdsa), PEM (.pem / .key), PKCS#8, PuTTY .ppk (v2 / v3). Khóa có mật khẩu thì nhập mật khẩu khóa. Khóa công khai tương ứng phải nằm trong ~/.ssh/authorized_keys trên máy từ xa.",
         "fingerprint": "Khóa máy chủ",
-        "fingerprintHint": "Lần đầu kết nối, hãy so với kết quả ssh-keygen -lf trên máy chủ"
+        "fingerprintHint": "Lần đầu kết nối, hãy so với kết quả ssh-keygen -lf trên máy chủ",
+        "role": {
+          "checkpoint": "Checkpoint",
+          "lora": "LoRA phong cách",
+          "diffusion_models": "Mô hình video",
+          "text_encoders": "Bộ mã hóa văn bản",
+          "vae": "VAE"
+        },
+        "manual": "Tải thủ công"
       },
       "diagnosis": "Nhận diện tại địa chỉ này: {name}",
       "aiask": {

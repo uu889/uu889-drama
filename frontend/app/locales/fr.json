@@ -481,7 +481,9 @@
         "groupVram": "Par VRAM · {family}",
         "groupOther": "Autres modèles",
         "vramTag": "{n} Go de VRAM",
-        "maxResTag": "Jusqu’à {n}p"
+        "maxResTag": "Jusqu’à {n}p",
+        "styleLoraOn": "Avec \"Style visuel → modèles\" activé, une LoRA de style (ex. 3d_render_style_xl.safetensors pour la 3D) est ajoutée ; elle n’est pas dans la liste ci-dessus. Vérifiez-la dans \"Téléchargement des modèles en un clic\".",
+        "styleLoraOff": "\"Style visuel → modèles\" est désactivé : seuls les fichiers ci-dessus sont utilisés et vérifiés."
       },
       "local": {
         "apiKeyOptional": "facultatif pour les services locaux",
@@ -668,7 +670,15 @@
         "keyTooBig": "Fichier trop gros pour une clé privée",
         "keyHint": "Prend en charge OpenSSH (id_ed25519 / id_rsa / id_ecdsa), PEM (.pem / .key), PKCS#8 et PuTTY .ppk (v2 / v3). Saisissez la phrase secrète des clés protégées. La clé publique doit figurer dans ~/.ssh/authorized_keys sur la machine distante.",
         "fingerprint": "Clé d’hôte",
-        "fingerprintHint": "À la première connexion, comparez avec ssh-keygen -lf sur le serveur"
+        "fingerprintHint": "À la première connexion, comparez avec ssh-keygen -lf sur le serveur",
+        "role": {
+          "checkpoint": "Checkpoint",
+          "lora": "LoRA de style",
+          "diffusion_models": "Modèle vidéo",
+          "text_encoders": "Encodeur de texte",
+          "vae": "VAE"
+        },
+        "manual": "Téléchargement manuel"
       },
       "diagnosis": "Détecté à cette adresse : {name}",
       "aiask": {

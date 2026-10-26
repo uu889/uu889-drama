@@ -481,7 +481,9 @@
         "groupVram": "按显存选 · {family}",
         "groupOther": "其他模板",
         "vramTag": "{n}G 显存",
-        "maxResTag": "最高 {n}p"
+        "maxResTag": "最高 {n}p",
+        "styleLoraOn": "开启「视觉风格 → 模型」后，生成时还会按项目画风加上画风 LoRA（如 3D 漫剧的 3d_render_style_xl.safetensors），这些文件不在上面的列表里，在下方「一键下载模型」检查和下载。",
+        "styleLoraOff": "「视觉风格 → 模型」没开，只用上面这些文件；「一键下载模型」也只检查这些。"
       },
       "local": {
         "apiKeyOptional": "本地服务可留空",
@@ -668,7 +670,15 @@
         "keyTooBig": "这个文件太大，不像私钥文件",
         "keyHint": "支持 OpenSSH（~/.ssh/id_ed25519、id_rsa、id_ecdsa）、PEM（云服务器下发的 .pem / .key 证书）、PKCS#8、PuTTY .ppk（v2 / v3）。私钥有密码时填「私钥密码」。对应的公钥需要已加入远程用户的 ~/.ssh/authorized_keys。",
         "fingerprint": "主机指纹",
-        "fingerprintHint": "首次连接请与服务器上 ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub 的输出核对"
+        "fingerprintHint": "首次连接请与服务器上 ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub 的输出核对",
+        "role": {
+          "checkpoint": "Checkpoint",
+          "lora": "画风 LoRA",
+          "diffusion_models": "视频模型",
+          "text_encoders": "文本编码器",
+          "vae": "VAE"
+        },
+        "manual": "手动下载"
       },
       "diagnosis": "识别到这个地址上是：{name}",
       "aiask": {

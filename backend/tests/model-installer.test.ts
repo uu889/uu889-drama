@@ -280,6 +280,17 @@ test('plan: files per style, dedupe, template base files + 14B LoRA only, states
   // 可选替代里的文件也能下载
   const alt = buildPlanFiles({ provider: 'sdwebui', serviceType: 'image', styles: ['guofeng'], settings: { style_models: { guofeng: { checkpoint: 'starlightXLAnimated_v3.safetensors' } } } })
   assert.ok(alt.files.some((f) => f.file === 'starlightXLAnimated_v3.safetensors'))
+  // 「视觉风格 → 本地模型」关着：不列画风 LoRA，只列内置模板要的文件（和模板卡片一致），并说明原因
+  const on3d = buildPlanFiles({ provider: 'comfyui', serviceType: 'image', styles: ['3d'], settings: { style_models_enabled: true } })
+  assert.ok(on3d.files.some((f) => f.file === '3d_render_style_xl.safetensors'))
+  assert.ok(on3d.notes.some((n) => /画风 LoRA/.test(n)))
+  const off3d = buildPlanFiles({ provider: 'comfyui', serviceType: 'image', styles: ['3d'], settings: { style_models_enabled: false } })
+  assert.deepEqual(off3d.files.map((f) => f.file), ['sd_xl_base_1.0.safetensors'])
+  assert.ok(off3d.notes.some((n) => /没有开启/.test(n)))
+  const offVid = buildPlanFiles({ provider: 'comfyui', serviceType: 'video', styles: ['3d'], settings: { style_models_enabled: false } })
+  assert.ok(!offVid.files.some((f) => f.role === 'lora'))
+  assert.ok(offVid.files.some((f) => f.role === 'diffusion_models'))
+  assert.equal(buildPlanFiles({ provider: 'sdwebui', serviceType: 'image', styles: ['3d'], settings: { style_models_enabled: false } }).files.length, 0)
 
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'uu889-comfy-'))
   for (const d of ['comfy', 'models/checkpoints']) fs.mkdirSync(path.join(root, d), { recursive: true })

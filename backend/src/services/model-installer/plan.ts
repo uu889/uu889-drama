@@ -96,6 +96,8 @@ export interface BuildPlanInput {
 export function buildPlanFiles(input: BuildPlanInput): { files: PlanFile[]; skipped: PlanSkip[]; notes: string[] } {
   const kind = catalogKindFor(input.provider, input.serviceType)
   if (!kind) throw new Error('只有 Stable Diffusion WebUI / ComfyUI / Fooocus（生图）和 ComfyUI（生视频）支持按风格下载模型')
+  // 「视觉风格 → 本地模型」明确关着：生成时不会按风格切 Checkpoint / 加 LoRA，只列出模板本身要的文件，不列风格文件
+  const styleOff = input.settings?.style_models_enabled === false
   const settings: Record<string, any> = { ...(input.settings || {}), style_models_enabled: true }
   const preferMirror = !!input.preferMirror
   const files = new Map<string, PlanFile>()
@@ -109,6 +111,25 @@ export function buildPlanFiles(input: BuildPlanInput): { files: PlanFile[]; skip
       files.set(pf.key, pf)
     }
   }
+  const addTemplateFile = (tf: { file: string; folder: string; url: string }, style: StyleKey) => {
+    const role = FOLDER_ROLE[tf.folder.split('/').pop() || '']
+    if (!role) return
+    const meta = FILE_META[tf.file] || {}
+    add({
+      key: `${role}:${tf.file}`,
+      name: tf.file,
+      file: tf.file,
+      role,
+      styles: [style],
+      page: tf.url.replace(/\/resolve\/main\/.*$/, ''),
+      url: tf.url,
+      bytes: meta.bytes,
+      sha256: meta.sha256,
+      licenseStatus: 'ok',
+      sources: sourcesFor({ file: tf.file, url: tf.url }, { preferMirror }),
+    })
+  }
+  if (styleOff) notes.push('「视觉风格 → 模型」没有开启：生成时不会按画风加 LoRA / 换 Checkpoint，所以这里只列内置模板要的文件。要用画风 LoRA（如 3D 漫剧的 3d_render_style_xl）请先开启它，再检查一次')
   const styles = [...new Set(input.styles.filter(isStyleKey))] as StyleKey[]
   if (!styles.length) throw new Error('请选择至少一个视觉风格')
 
@@ -116,6 +137,13 @@ export function buildPlanFiles(input: BuildPlanInput): { files: PlanFile[]; skip
     const sm = resolveStyleModels(input.provider, input.serviceType, settings, style)
     if (!sm) continue
     if (input.serviceType === 'image') {
+      if (styleOff) {
+        // ComfyUI 生图：内置模板要的 Checkpoint；SD WebUI / Fooocus 用设置里选的模型，这里不管
+        if (input.provider === 'comfyui' && !parseComfyWorkflow(settings.comfyui_workflow)) {
+          for (const tf of resolveComfyTemplate('image', settings.comfyui_template || null, input.model).files) addTemplateFile(tf, style)
+        }
+        continue
+      }
       if (sm.checkpoint) {
         const f = findCatalogFile(sm.checkpoint)
         if (f) add(fromCatalog(f, 'checkpoint', style, preferMirror))
@@ -131,7 +159,7 @@ export function buildPlanFiles(input: BuildPlanInput): { files: PlanFile[]; skip
 
     // 视频：先确定实际会用的模板（与 comfyui-video.ts 的优先级一致）
     if (parseComfyWorkflow(settings.comfyui_workflow)) {
-      if (!notes.length) notes.push('这个配置用的是自定义工作流：只下载风格 LoRA，工作流里的基础模型请按「检查工作流」的清单自行下载')
+      if (!notes.some((n) => n.includes('自定义工作流'))) notes.push('这个配置用的是自定义工作流：只下载风格 LoRA，工作流里的基础模型请按「检查工作流」的清单自行下载')
     }
     const model = String(input.model || '').trim()
     const userPicked = !!settings.comfyui_template || (!!model && resolveComfyTemplate('video', null, model).id !== DEFAULT_VIDEO_TEMPLATE_ID) || model === DEFAULT_VIDEO_TEMPLATE_ID
@@ -139,27 +167,9 @@ export function buildPlanFiles(input: BuildPlanInput): { files: PlanFile[]; skip
     const template = resolveComfyTemplate('video', templateId, model)
     const custom = parseComfyWorkflow(settings.comfyui_workflow)
     if (!custom) {
-      for (const tf of template.files) {
-        const folderName = tf.folder.split('/').pop() || ''
-        const role = FOLDER_ROLE[folderName]
-        if (!role) continue
-        const meta = FILE_META[tf.file] || {}
-        add({
-          key: `${role}:${tf.file}`,
-          name: tf.file,
-          file: tf.file,
-          role,
-          styles: [style],
-          page: tf.url.replace(/\/resolve\/main\/.*$/, ''),
-          url: tf.url,
-          bytes: meta.bytes,
-          sha256: meta.sha256,
-          licenseStatus: 'ok',
-          sources: sourcesFor({ file: tf.file, url: tf.url }, { preferMirror }),
-        })
-      }
+      for (const tf of template.files) addTemplateFile(tf, style)
     }
-    if (sm.lora) {
+    if (sm.lora && !styleOff) {
       const workflow = custom || template.workflow
       if (!hasWan14bModel(workflow)) {
         skipped.push({ style, file: sm.lora, reason: `当前模板（${getComfyTemplate('video', template.id)?.label || template.id}）不是 Wan 14B，风格 LoRA 用不上，不下载` })
@@ -169,6 +179,9 @@ export function buildPlanFiles(input: BuildPlanInput): { files: PlanFile[]; skip
         else skipped.push({ style, file: sm.lora, reason: '风格覆盖里填的 LoRA 不在推荐清单里，无法自动下载' })
       }
     }
+  }
+  if (!styleOff && [...files.values()].some((f) => f.role === 'lora')) {
+    notes.push('画风 LoRA（放在 loras 文件夹）是「视觉风格 → 模型」按项目画风加的，不在内置模板的文件列表里；每一行的「手动下载」可以打开原始下载页')
   }
   return { files: [...files.values()], skipped, notes }
 }

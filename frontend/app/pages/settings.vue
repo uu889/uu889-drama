@@ -626,6 +626,7 @@
                     <span class="mono tpl-file-path">ComfyUI/{{ f.folder }}/<b>{{ f.file }}</b></span>
                     <a :href="f.url" target="_blank" rel="noopener" class="tpl-file-link">{{ t('settings.cfg.comfy.download') }}</a>
                   </div>
+                  <p class="field-hint">{{ cfgForm.style_models_enabled ? t('settings.cfg.comfy.styleLoraOn') : t('settings.cfg.comfy.styleLoraOff') }}</p>
                 </div>
                 <div class="tpl-card-actions">
                   <button type="button" class="btn btn-sm" @click="useTemplateAsModel">{{ t('settings.cfg.comfy.useTemplateModel', { model: activeComfyTemplate.default_model }) }}</button>
@@ -1113,6 +1114,7 @@ const promptTemplatePreview = computed(() => {
 /** 一键下载模型按当前表单（未保存的草稿）计算：风格覆盖、内置模板 / 自定义工作流 */
 const installerPlanSettings = computed(() => ({
   style_models: cfgForm.style_models || {},
+  style_models_enabled: !!cfgForm.style_models_enabled,
   comfyui_template: comfySource.value === 'builtin' ? cfgForm.comfyui_template || '' : '',
   comfyui_workflow: comfySource.value === 'custom' ? cfgForm.comfyui_workflow || '' : '',
 }))

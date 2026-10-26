@@ -481,7 +481,9 @@
         "groupVram": "By VRAM · {family}",
         "groupOther": "Other templates",
         "vramTag": "{n} GB VRAM",
-        "maxResTag": "Up to {n}p"
+        "maxResTag": "Up to {n}p",
+        "styleLoraOn": "With \"Visual style → models\" on, a style LoRA for the project style (e.g. 3d_render_style_xl.safetensors for 3D) is added at generation time; it is not in the list above. Check and download it under \"One-click model download\" below.",
+        "styleLoraOff": "\"Visual style → models\" is off: only the files above are used, and \"One-click model download\" checks only these."
       },
       "local": {
         "apiKeyOptional": "optional for local services",
@@ -668,7 +670,15 @@
         "keyTooBig": "That file is too large to be a private key",
         "keyHint": "Supports OpenSSH (~/.ssh/id_ed25519, id_rsa, id_ecdsa), PEM (.pem / .key from cloud consoles), PKCS#8 and PuTTY .ppk (v2 / v3). Enter the passphrase for protected keys. The matching public key must be in the remote user’s ~/.ssh/authorized_keys.",
         "fingerprint": "Host key",
-        "fingerprintHint": "On first connect, compare with ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub on the server"
+        "fingerprintHint": "On first connect, compare with ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub on the server",
+        "role": {
+          "checkpoint": "Checkpoint",
+          "lora": "Style LoRA",
+          "diffusion_models": "Video model",
+          "text_encoders": "Text encoder",
+          "vae": "VAE"
+        },
+        "manual": "Manual download"
       },
       "diagnosis": "Detected at this address: {name}",
       "aiask": {

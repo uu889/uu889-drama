@@ -481,7 +481,9 @@
         "groupVram": "VRAM 용량별 · {family}",
         "groupOther": "기타 템플릿",
         "vramTag": "VRAM {n}GB",
-        "maxResTag": "최대 {n}p"
+        "maxResTag": "최대 {n}p",
+        "styleLoraOn": "「비주얼 스타일 → 모델」이 켜져 있으면 생성 시 프로젝트 화풍 LoRA(예: 3D의 3d_render_style_xl.safetensors)도 추가됩니다. 위 목록에는 없으니 아래 「모델 원클릭 다운로드」에서 확인하세요.",
+        "styleLoraOff": "「비주얼 스타일 → 모델」이 꺼져 있음: 위 파일만 사용하며 「모델 원클릭 다운로드」도 이것만 확인합니다."
       },
       "local": {
         "apiKeyOptional": "로컬 서비스는 비워 두어도 됩니다",
@@ -668,7 +670,15 @@
         "keyTooBig": "개인 키라기엔 너무 큰 파일입니다",
         "keyHint": "OpenSSH(id_ed25519 / id_rsa / id_ecdsa), PEM(.pem / .key), PKCS#8, PuTTY .ppk(v2 / v3) 지원. 암호가 있는 키는 키 암호를 입력하세요. 해당 공개 키가 원격 사용자의 ~/.ssh/authorized_keys에 있어야 합니다.",
         "fingerprint": "호스트 키",
-        "fingerprintHint": "처음 연결할 때 서버의 ssh-keygen -lf 결과와 비교하세요"
+        "fingerprintHint": "처음 연결할 때 서버의 ssh-keygen -lf 결과와 비교하세요",
+        "role": {
+          "checkpoint": "Checkpoint",
+          "lora": "화풍 LoRA",
+          "diffusion_models": "영상 모델",
+          "text_encoders": "텍스트 인코더",
+          "vae": "VAE"
+        },
+        "manual": "수동 다운로드"
       },
       "diagnosis": "이 주소에서 감지됨: {name}",
       "aiask": {

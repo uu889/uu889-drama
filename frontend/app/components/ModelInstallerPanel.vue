@@ -119,7 +119,11 @@
             <td>
               <div class="mono mi-file">{{ f.file }}</div>
               <div class="mi-dim mi-dest" :title="f.dest">{{ f.dest }}</div>
-              <div class="mi-dim">{{ f.sources.map(s => s.label).join(' → ') }}</div>
+              <div class="mi-dim">
+                <span :class="['mi-tag', { 'mi-tag-lora': f.role === 'lora' }]">{{ t(`settings.cfg.installer.role.${f.role}`) }}</span>
+                {{ f.sources.map(s => s.label).join(' → ') }}
+                <a v-if="f.page || f.url" :href="f.page || f.url" target="_blank" rel="noopener" class="mi-link">{{ t('settings.cfg.installer.manual') }}</a>
+              </div>
             </td>
             <td class="mi-dim">{{ f.styles.length >= STYLE_LIST.length ? t('settings.cfg.installer.pickAll') : f.styles.map(styleLabel).join('、') }}</td>
             <td class="mi-dim">{{ f.bytes ? fmtBytes(f.bytes) : (f.size || '—') }}</td>
@@ -456,6 +460,9 @@ function fmtEta(s) {
 .mi-job-head, .mi-item-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 11.5px; min-width: 0; }
 .mi-spacer { flex: 1; }
 .mi-tag { font-size: 10.5px; padding: 0 6px; border-radius: 4px; background: var(--bg-1); color: var(--text-2); }
+.mi-tag-lora { background: var(--accent-soft, rgba(249,115,22,0.12)); color: var(--accent, #ea580c); }
+.mi-link { margin-left: 6px; color: var(--accent, #ea580c); text-decoration: none; }
+.mi-link:hover { text-decoration: underline; }
 .mi-bar { height: 8px; border-radius: 999px; background: var(--bg-1); overflow: hidden; border: 1px solid var(--border); }
 .mi-bar-sm { height: 5px; }
 .mi-bar-fill { height: 100%; background: var(--accent, #6e56cf); transition: width .4s ease; }

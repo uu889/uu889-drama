@@ -481,7 +481,9 @@
         "groupVram": "VRAM 容量で選ぶ · {family}",
         "groupOther": "その他のテンプレート",
         "vramTag": "VRAM {n}GB",
-        "maxResTag": "最大 {n}p"
+        "maxResTag": "最大 {n}p",
+        "styleLoraOn": "「ビジュアルスタイル → モデル」がオンの場合、生成時にプロジェクトの画風 LoRA（例：3D の 3d_render_style_xl.safetensors）も使います。上の一覧には含まれないので、下の「モデルをワンクリックでダウンロード」で確認してください。",
+        "styleLoraOff": "「ビジュアルスタイル → モデル」がオフ：上のファイルだけを使い、「モデルをワンクリックでダウンロード」もこれだけを確認します。"
       },
       "local": {
         "apiKeyOptional": "ローカルサービスは空欄可",
@@ -668,7 +670,15 @@
         "keyTooBig": "秘密鍵としては大きすぎるファイルです",
         "keyHint": "OpenSSH（id_ed25519 / id_rsa / id_ecdsa）、PEM（.pem / .key）、PKCS#8、PuTTY .ppk（v2 / v3）に対応。パスフレーズ付きの鍵はパスフレーズを入力。対応する公開鍵がリモートの ~/.ssh/authorized_keys に必要です。",
         "fingerprint": "ホスト鍵",
-        "fingerprintHint": "初回はサーバー上の ssh-keygen -lf の結果と照合してください"
+        "fingerprintHint": "初回はサーバー上の ssh-keygen -lf の結果と照合してください",
+        "role": {
+          "checkpoint": "Checkpoint",
+          "lora": "画風 LoRA",
+          "diffusion_models": "動画モデル",
+          "text_encoders": "テキストエンコーダー",
+          "vae": "VAE"
+        },
+        "manual": "手動ダウンロード"
       },
       "diagnosis": "このアドレスで検出：{name}",
       "aiask": {

@@ -481,7 +481,9 @@
         "groupVram": "Nach VRAM · {family}",
         "groupOther": "Weitere Vorlagen",
         "vramTag": "{n} GB VRAM",
-        "maxResTag": "Bis {n}p"
+        "maxResTag": "Bis {n}p",
+        "styleLoraOn": "Ist \"Visueller Stil → Modelle\" an, kommt beim Generieren eine Stil-LoRA dazu (z. B. 3d_render_style_xl.safetensors für 3D); sie steht nicht in der Liste oben. Prüfen und laden unter \"Modelle mit einem Klick laden\".",
+        "styleLoraOff": "\"Visueller Stil → Modelle\" ist aus: nur die Dateien oben werden verwendet und geprüft."
       },
       "local": {
         "apiKeyOptional": "bei lokalen Diensten optional",
@@ -668,7 +670,15 @@
         "keyTooBig": "Die Datei ist zu groß für einen privaten Schlüssel",
         "keyHint": "Unterstützt OpenSSH (id_ed25519 / id_rsa / id_ecdsa), PEM (.pem / .key), PKCS#8 und PuTTY .ppk (v2 / v3). Bei geschützten Schlüsseln Passphrase eingeben. Der öffentliche Schlüssel muss in ~/.ssh/authorized_keys des Remote-Benutzers stehen.",
         "fingerprint": "Host-Schlüssel",
-        "fingerprintHint": "Beim ersten Verbinden mit ssh-keygen -lf auf dem Server vergleichen"
+        "fingerprintHint": "Beim ersten Verbinden mit ssh-keygen -lf auf dem Server vergleichen",
+        "role": {
+          "checkpoint": "Checkpoint",
+          "lora": "Stil-LoRA",
+          "diffusion_models": "Videomodell",
+          "text_encoders": "Text-Encoder",
+          "vae": "VAE"
+        },
+        "manual": "Manuell herunterladen"
       },
       "diagnosis": "An dieser Adresse erkannt: {name}",
       "aiask": {
