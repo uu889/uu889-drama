@@ -1253,7 +1253,11 @@
       "qualityLock": "Imagem nítida",
       "qualityLockTip": "Acrescenta [Quality]: imagem nítida, com traços, cabelo e textura dos tecidos claros; sem desfoque, borrões ou aspecto de plástico. Nunca é removido ao encurtar um prompt longo.",
       "physicsLock": "Física real",
-      "physicsLockTip": "Adiciona uma instrução [Physics]: gravidade, pés firmes, pegada real, sem atravessar nem deformar objetos, velocidade natural. Modelos abertos locais (ex.: MiniMax H3 com pouca VRAM) erram mais nisso."
+      "physicsLockTip": "Adiciona uma instrução [Physics]: gravidade, pés firmes, pegada real, sem atravessar nem deformar objetos, velocidade natural. Modelos abertos locais (ex.: MiniMax H3 com pouca VRAM) erram mais nisso.",
+      "timingSource": {
+        "prompt": "pelo prompt de vídeo",
+        "description": "pela descrição da cena (o prompt não tem falas)"
+      }
     },
     "subtitle": {
       "enable": "Legendas (gravar os diálogos do plano no vídeo)",

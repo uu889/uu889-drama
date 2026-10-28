@@ -6,8 +6,8 @@ import { checkShotTiming } from './shot-direction.js'
 import { getAbsolutePath } from '../utils/storage.js'
 import { endFramePathFor } from '../utils/video-poster.js'
 
-export function storyboardTiming(row: { description?: string | null; duration?: number | null }, characterNames: string[] = []) {
-  const t = checkShotTiming(row.description, Number(row.duration || 0), characterNames)
+export function storyboardTiming(row: { description?: string | null; videoPrompt?: string | null; duration?: number | null }, characterNames: string[] = []) {
+  const t = checkShotTiming(row.description, Number(row.duration || 0), characterNames, row.videoPrompt)
   return {
     lines: t.lines.length,
     speech_seconds: t.speechSeconds,
@@ -15,6 +15,8 @@ export function storyboardTiming(row: { description?: string | null; duration?: 
     idle_seconds: t.idleSeconds,
     status: t.status,
     recommended: t.recommended,
+    /** prompt = 按视频提示词里的台词算；description = 提示词没写台词，按分镜描述算 */
+    source: t.source,
   }
 }
 

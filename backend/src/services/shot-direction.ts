@@ -1,7 +1,8 @@
 /**
  * 镜头导演指令：解决 AI 视频「补台词胡言乱语」「人物 / 场景 / 画风飘」「不接戏」三类问题
  *
- * 1. 台词计时：从分镜 description 里解析台词 / 旁白，按语速估算说话时长；
+ * 1. 台词计时：解析台词 / 旁白，按语速估算说话时长（视频提示词里写了台词就以视频提示词为准——那才是本镜真正要演的，
+ *    分镜描述常常带着整段剧本台词；视频提示词没写台词才用 description）；
  *    生成视频时附加【台词控制】——只许说这几句、逐字一致、说完闭嘴，空余时间明确写成「无人说话」，
  *    不让视频模型自己补台词；拆分镜时按台词时长校正段落时长。
  * 2. 一致性锁定：附加【人物外观锁定】（参考图 + 外观 / 服装文字）、【场景一致】、【画风一致】；
@@ -181,6 +182,21 @@ export function parseShotDialogue(
   return found.sort((a, b) => a.at - b.at).map(({ at: _at, ...line }) => line)
 }
 
+/**
+ * 本镜要演的台词：视频提示词里有台词就用视频提示词的（提示词是生成视频时真正发出去的内容，
+ * 拆分镜时描述里常常保留整段剧本台词，而提示词只截了这一镜要说的那一句）；提示词没有台词时用分镜描述。
+ */
+export function shotDialogueLines(
+  description: string | null | undefined,
+  videoPrompt: string | null | undefined,
+  knownNames: string[] = [],
+  opts: { systemNames?: string[]; systemLabel?: string } = {},
+): { lines: DialogueLine[]; source: 'prompt' | 'description' } {
+  const fromPrompt = parseShotDialogue(videoPrompt, knownNames, opts)
+  if (fromPrompt.length) return { lines: fromPrompt, source: 'prompt' }
+  return { lines: parseShotDialogue(description, knownNames, opts), source: 'description' }
+}
+
 /** 演完这些台词需要的时长：开场 0.5 秒 + 台词 + 同人停顿 0.4 / 换人停顿 0.8 + 收尾 1 秒 */
 export function planDialogue(lines: DialogueLine[]): DialoguePlan {
   if (!lines.length) return { lines, speechSeconds: 0, neededSeconds: 0 }
@@ -195,20 +211,21 @@ export function planDialogue(lines: DialogueLine[]): DialoguePlan {
 }
 
 /** 按台词推荐的分镜时长（整秒，3~15）；没有台词返回 null */
-export function recommendShotDuration(description: string | null | undefined, knownNames: string[] = []): number | null {
-  const plan = planDialogue(parseShotDialogue(description, knownNames))
+export function recommendShotDuration(description: string | null | undefined, knownNames: string[] = [], videoPrompt?: string | null): number | null {
+  const plan = planDialogue(shotDialogueLines(description, videoPrompt, knownNames).lines)
   if (!plan.lines.length) return null
   return Math.min(15, Math.max(3, Math.ceil(plan.neededSeconds)))
 }
 
 /** 时长与台词的匹配情况：too_short 演不完；too_long 空余时间过多，模型容易补台词 */
-export function checkShotTiming(description: string | null | undefined, duration: number, knownNames: string[] = []) {
-  const plan = planDialogue(parseShotDialogue(description, knownNames))
+export function checkShotTiming(description: string | null | undefined, duration: number, knownNames: string[] = [], videoPrompt?: string | null) {
+  const picked = shotDialogueLines(description, videoPrompt, knownNames)
+  const plan = planDialogue(picked.lines)
   const idle = Math.round((duration - plan.neededSeconds) * 10) / 10
   const status: 'ok' | 'too_short' | 'too_long' | 'silent' = !plan.lines.length
     ? 'silent'
     : idle < -0.5 ? 'too_short' : idle > MAX_IDLE_SECONDS ? 'too_long' : 'ok'
-  return { ...plan, duration, idleSeconds: idle, status, recommended: plan.lines.length ? Math.min(15, Math.max(3, Math.ceil(plan.neededSeconds))) : null }
+  return { ...plan, source: picked.source, duration, idleSeconds: idle, status, recommended: plan.lines.length ? Math.min(15, Math.max(3, Math.ceil(plan.neededSeconds))) : null }
 }
 
 export function isChinesePrompt(text: string | null | undefined): boolean {
@@ -321,7 +338,7 @@ export function buildShotDirectives(input: ShotDirectionInput): string {
   const duration = Math.max(1, Math.round(input.duration || 0))
   const sv = input.systemVoice?.enabled ? input.systemVoice : null
   const sysNames = systemNamesFor(sv)
-  const allLines = parseShotDialogue(input.description, names, { systemNames: sysNames, systemLabel: sv?.name })
+  const allLines = shotDialogueLines(input.description, input.prompt, names, { systemNames: sysNames, systemLabel: sv?.name }).lines
 
   const compact = input.compact === true
 

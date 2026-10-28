@@ -119,3 +119,25 @@ test('quality directive is its own block: always appended (also in compact mode)
   }
   assert.doesNotMatch(buildShotDirectives({ ...base, options: { qualityLock: false } }), /【画质】/)
 })
+
+test('timing follows the video prompt lines when the description carries the whole monologue', () => {
+  // 分镜描述带着整段剧本台词，视频提示词只截了本镜要说的一句
+  const desc = '【镜头1】深夜灶火下，老太太揉面，对孩子说：「我儿子在镇口开杂货铺，铺子门檐上挂了个铜铃铛，拳头那么大，红绳系着。前些日子出了邪事——半夜有人来偷铃铛，人刚摸上去，铃铛就响，我儿子从后屋拎着擀面杖冲出来，人跑了，铃铛还在。」孩子停下筷子，老太太接着说：「上回又来了一个，这回铃铛没响，可第二天一早，门檐上的红绳断了，铃铛却还挂在那儿，比原先更亮了，像被谁擦过一遍似的。」'
+  const prompt = '@农家院子，深夜平视中近景：@老太太在左侧案板揉面，@孩子在右侧灶前持碗，灶火暖橙、背景浓黑。老太太讲述铜铃屡次响、偷铃人捂耳逃走的怪事；她说：「我儿子在镇口开杂货铺，铺子门檐上挂了个铜铃铛，拳头那么大，红绳系着。」\n切孩子反应近景，孩子嚼馍变慢，老太太画外继续描述第三次偷铃。（无人说话）'
+  const names = ['老太太', '孩子']
+  const fromDesc = checkShotTiming(desc, 15, names)
+  assert.equal(fromDesc.source, 'description')
+  assert.equal(fromDesc.status, 'too_short')
+  const t = checkShotTiming(desc, 15, names, prompt)
+  assert.equal(t.source, 'prompt')
+  assert.equal(t.lines.length, 1)
+  assert.equal(t.lines[0].speaker, '老太太')
+  assert.ok(t.neededSeconds < 12, String(t.neededSeconds))
+  assert.notEqual(t.status, 'too_short')
+  // 视频提示词没写台词：按描述
+  assert.equal(checkShotTiming(desc, 15, names, '@老太太揉面，孩子看着她。').source, 'description')
+  // 【台词控制】也只锁提示词里那一句
+  const dir = buildShotDirectives({ description: desc, duration: 15, characters: names.map((name) => ({ name })), prompt, options: {} })
+  assert.match(dir, /只有以下 1 句话/)
+  assert.doesNotMatch(dir, /前些日子出了邪事/)
+})

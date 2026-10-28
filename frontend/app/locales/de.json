@@ -1253,7 +1253,11 @@
       "qualityLock": "Scharfe Bildqualität",
       "qualityLockTip": "Fügt [Quality] an: scharfes Bild mit klaren Gesichtszügen, Haaren und Stoffstrukturen; keine Unschärfe, kein Verschmieren, kein Plastik-Look. Wird beim Kürzen langer Prompts nie entfernt.",
       "physicsLock": "Echte Physik",
-      "physicsLockTip": "Fügt eine [Physics]-Anweisung hinzu: Schwerkraft, fester Stand, echtes Greifen, kein Durchdringen oder Verformen, natürliches Tempo. Lokale offene Modelle (z. B. MiniMax H3 mit wenig VRAM) brechen Physik am häufigsten."
+      "physicsLockTip": "Fügt eine [Physics]-Anweisung hinzu: Schwerkraft, fester Stand, echtes Greifen, kein Durchdringen oder Verformen, natürliches Tempo. Lokale offene Modelle (z. B. MiniMax H3 mit wenig VRAM) brechen Physik am häufigsten.",
+      "timingSource": {
+        "prompt": "nach dem Video-Prompt",
+        "description": "nach der Szenenbeschreibung (kein Text im Video-Prompt)"
+      }
     },
     "subtitle": {
       "enable": "Untertitel (Dialog der Einstellung ins Video brennen)",

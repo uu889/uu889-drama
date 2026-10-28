@@ -1253,7 +1253,11 @@
       "qualityLock": "Hình ảnh sắc nét",
       "qualityLockTip": "Thêm [Quality]: hình ảnh sắc nét, rõ đường nét khuôn mặt, tóc và chất liệu vải; không mờ, không nhòe, không bóng nhựa. Không bao giờ bị bỏ khi rút gọn prompt dài.",
       "physicsLock": "Vật lý thật",
-      "physicsLockTip": "Thêm chỉ dẫn [Physics]: trọng lực, chân chạm đất, cầm nắm thật, không xuyên vật hay biến dạng, tốc độ tự nhiên. Mô hình mở chạy local (như MiniMax H3 VRAM thấp) dễ sai nhất."
+      "physicsLockTip": "Thêm chỉ dẫn [Physics]: trọng lực, chân chạm đất, cầm nắm thật, không xuyên vật hay biến dạng, tốc độ tự nhiên. Mô hình mở chạy local (như MiniMax H3 VRAM thấp) dễ sai nhất.",
+      "timingSource": {
+        "prompt": "theo lời thoại trong prompt video",
+        "description": "theo mô tả phân cảnh (prompt video không có lời thoại)"
+      }
     },
     "subtitle": {
       "enable": "Phụ đề (in lời thoại của cảnh vào video)",

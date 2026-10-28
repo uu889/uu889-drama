@@ -1,7 +1,7 @@
 /**
  * 生成视频时直接烧录字幕
  *
- * - 字幕文字：分镜描述里的台词 / 旁白（shot-direction.ts parseShotDialogue，和「台词控制」同一套解析）
+ * - 字幕文字：视频提示词（没写台词时用分镜描述）里的台词 / 旁白（shot-direction.ts shotDialogueLines，和「台词控制」同一套解析）
  * - 时间轴：按估算的说话时长依次排开（开场 0.5 秒、换人停顿），总长超过成片时按比例压缩
  * - 渲染：FFmpeg drawtext + 本机中文字体文件（只需要 freetype，不依赖 libass / fontconfig，各平台内置 ffmpeg 都能用）
  * - 原视频保留（<名字>.mp4），带字幕的另存为 <名字>_sub.mp4；接戏用的结尾帧取自原视频，下一镜不会带上字幕
@@ -12,7 +12,7 @@ import os from 'os'
 import path from 'path'
 import { ffmpeg, checkFfmpegSuite } from '../utils/ffmpeg.js'
 import { getAbsolutePath } from '../utils/storage.js'
-import { parseShotDialogue, systemNamesFor, type DialogueLine } from './shot-direction.js'
+import { shotDialogueLines, systemNamesFor, type DialogueLine } from './shot-direction.js'
 
 export const SUBTITLE_STYLES = ['classic', 'yellow', 'box', 'shadow', 'pink'] as const
 export type SubtitleStyle = typeof SUBTITLE_STYLES[number]
@@ -392,11 +392,13 @@ export async function burnSubtitles(relativeVideo: string, lines: DialogueLine[]
   }
 }
 
-/** 分镜描述 + 角色名 → 台词（传入开启的系统音时，系统的台词标成 system） */
+/** 分镜描述 / 视频提示词 + 角色名 → 台词（传入开启的系统音时，系统的台词标成 system） */
 export function storyboardDialogue(
   description: string | null | undefined,
   characterNames: string[],
   systemVoice?: { enabled?: boolean; name?: string } | null,
+  videoPrompt?: string | null,
 ): DialogueLine[] {
-  return parseShotDialogue(description, characterNames, { systemNames: systemNamesFor(systemVoice), systemLabel: systemVoice?.name })
+  // 和生成视频时的【台词控制】同一来源：视频提示词写了台词就用它，否则用分镜描述
+  return shotDialogueLines(description, videoPrompt, characterNames, { systemNames: systemNamesFor(systemVoice), systemLabel: systemVoice?.name }).lines
 }

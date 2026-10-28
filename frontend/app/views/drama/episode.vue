@@ -965,7 +965,7 @@
                       :class="['video-timing', 'is-' + selectedSb.timing.status]"
                     >
                       <div class="video-timing-line">
-                        <span>{{ t('episode.direction.timing', { lines: selectedSb.timing.lines, need: selectedSb.timing.needed_seconds, dur: selectedSb.duration || 10 }) }}</span>
+                        <span>{{ t('episode.direction.timing', { lines: selectedSb.timing.lines, need: selectedSb.timing.needed_seconds, dur: selectedSb.duration || 10 }) }}<span v-if="selectedSb.timing.source" class="dim"> · {{ t('episode.direction.timingSource.' + selectedSb.timing.source) }}</span></span>
                         <button
                           v-if="selectedSb.timing.status !== 'ok' && selectedSb.timing.recommended && selectedSb.timing.recommended !== Number(selectedSb.duration)"
                           type="button"

@@ -1235,7 +1235,7 @@
       "badgeLong": "too long",
       "badgeShort": "lines overrun",
       "dialogueLock": "Lock dialogue (only these lines, no improvised speech)",
-      "dialogueLockTip": "Adds dialogue control: only the lines in the description, word for word, then silence; shots without lines tell everyone to keep quiet.",
+      "dialogueLockTip": "Adds dialogue control: only the lines in the video prompt (or the description when the prompt has none), word for word, then silence; shots without lines tell everyone to keep quiet.",
       "appearanceLock": "Lock characters / scene / style",
       "appearanceLockTip": "Adds character look and outfit text, scene layout and style-consistency requirements to keep faces and art style from drifting.",
       "continuity": "Continuity (blocking + 180-degree rule)",
@@ -1253,7 +1253,11 @@
       "qualityLock": "Sharp quality",
       "qualityLockTip": "Appends [Quality]: sharp image with clear facial features, hair and fabric texture; no blur, smearing or plastic look. Never removed when a long prompt is shortened.",
       "physicsLock": "Real physics",
-      "physicsLockTip": "Adds a [Physics] directive: gravity, planted feet, real grip, no clipping or morphing, natural speed. Local open models (e.g. small-VRAM MiniMax H3 tiers) break physics most often."
+      "physicsLockTip": "Adds a [Physics] directive: gravity, planted feet, real grip, no clipping or morphing, natural speed. Local open models (e.g. small-VRAM MiniMax H3 tiers) break physics most often.",
+      "timingSource": {
+        "prompt": "from the video prompt",
+        "description": "from the shot description (no lines in the video prompt)"
+      }
     },
     "subtitle": {
       "enable": "Subtitles (burn the shot's dialogue into the video)",

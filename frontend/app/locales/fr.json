@@ -1253,7 +1253,11 @@
       "qualityLock": "Image nette",
       "qualityLockTip": "Ajoute [Quality] : image nette, traits, cheveux et texture des tissus bien visibles ; ni flou, ni bavure, ni aspect plastique. Jamais retiré quand un prompt trop long est raccourci.",
       "physicsLock": "Physique réaliste",
-      "physicsLockTip": "Ajoute une consigne [Physics] : gravité, pieds ancrés, vraie prise en main, pas de traversée ni de déformation, vitesse naturelle. Les modèles ouverts locaux (ex. MiniMax H3 petite VRAM) cassent le plus souvent la physique."
+      "physicsLockTip": "Ajoute une consigne [Physics] : gravité, pieds ancrés, vraie prise en main, pas de traversée ni de déformation, vitesse naturelle. Les modèles ouverts locaux (ex. MiniMax H3 petite VRAM) cassent le plus souvent la physique.",
+      "timingSource": {
+        "prompt": "d’après le prompt vidéo",
+        "description": "d’après la description du plan (pas de réplique dans le prompt)"
+      }
     },
     "subtitle": {
       "enable": "Sous-titres (incruster les dialogues du plan)",

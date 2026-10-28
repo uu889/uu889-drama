@@ -276,7 +276,7 @@ async function fitDurationToDialogueRaw(sb: z.infer<typeof storyboardFields>): P
   const names = ids.length
     ? (await db.select().from(schema.characters)).filter(ch => ids.includes(ch.id)).map(ch => ch.name)
     : []
-  const timing = checkShotTiming(sb.description, requested, names)
+  const timing = checkShotTiming(sb.description, requested, names, sb.video_prompt)
   if (timing.status === 'too_short' && timing.recommended) {
     return {
       duration: Math.max(requested, timing.recommended),
