@@ -10,6 +10,8 @@ import { EXTRACT_TARGETS, getExtractionStatus, startExtraction, type ExtractTarg
 import { getVideoPromptBatchStatus, startVideoPromptBatch } from '../services/video-prompts.js'
 import { startEpisodeUpscale } from '../services/video-upscale.js'
 import { ATTACHMENT_LIMITS, AttachmentError, addAttachments, deleteAttachment, listAttachments, retryAttachment } from '../services/source-attachments.js'
+import { DEFAULT_SHOT_MAX_SECONDS, SHOT_MAX_RANGE, shotDialogueCharBudget, shotLimitsForEpisode } from '../services/shot-limits.js'
+import { splitOverlongShots } from '../services/shot-split.js'
 
 const app = new Hono()
 
@@ -214,6 +216,34 @@ app.post('/:id/upscale', async (c) => {
   return success(c, await startEpisodeUpscale(Number(c.req.param('id')), body, ids))
 })
 
+// GET /episodes/:id/shot-limit — 单镜时长上限：生效值、来源（视频配置 / 项目设置 / 默认 15 秒）
+app.get('/:id/shot-limit', async (c) => {
+  const l = await shotLimitsForEpisode(Number(c.req.param('id')))
+  return success(c, {
+    max_seconds: l.maxShotSeconds,
+    source: l.shotCapSource,
+    project_max: l.projectMaxSeconds,
+    config_max: l.maxDuration || null,
+    config_name: l.configName,
+    default_max: DEFAULT_SHOT_MAX_SECONDS,
+    range: SHOT_MAX_RANGE,
+    dialogue_chars: shotDialogueCharBudget(l.maxShotSeconds),
+  })
+})
+
+// POST /episodes/:id/split-long-shots — 台词超过单镜上限的分镜按台词自动拆开
+// body: { storyboard_ids?: number[]（只拆这些）, include_with_video?: boolean（已有视频的也拆，拆后要重新生成） }
+app.post('/:id/split-long-shots', async (c) => {
+  const id = Number(c.req.param('id'))
+  const body = await c.req.json().catch(() => ({}))
+  const [ep] = await db.select().from(schema.episodes).where(eq(schema.episodes.id, id))
+  if (!ep) return notFound(c, '剧集不存在')
+  const storyboardIds = Array.isArray(body.storyboard_ids)
+    ? body.storyboard_ids.map(Number).filter((n: number) => Number.isInteger(n) && n > 0)
+    : undefined
+  return success(c, await splitOverlongShots(id, { storyboardIds, includeWithVideo: body.include_with_video === true }))
+})
+
 // GET /episodes/:id/video-prompts-status — 查询批量视频提示词任务状态
 app.get('/:id/video-prompts-status', async (c) => {
   const id = Number(c.req.param('id'))
@@ -255,12 +285,14 @@ app.get('/:episode_id/storyboards', async (c) => {
   const allProps = (await db.select().from(schema.props))
     .filter(p => episodePropIds.includes(p.id) && !p.deletedAt)
 
+  const shotMax = (await shotLimitsForEpisode(episodeId)).maxShotSeconds
+
   return success(c, rows.map((row) => ({
     ...toSnakeCase(row),
     character_ids: charIdsByStoryboard.get(row.id) || [],
     prop_ids: propIdsByStoryboard.get(row.id) || [],
     // 台词时长与分镜时长是否匹配（前端提示「台词 X 秒 / 分镜 Y 秒」）
-    timing: storyboardTiming(row, allChars.filter(ch => (charIdsByStoryboard.get(row.id) || []).includes(ch.id)).map(ch => ch.name)),
+    timing: storyboardTiming(row, allChars.filter(ch => (charIdsByStoryboard.get(row.id) || []).includes(ch.id)).map(ch => ch.name), shotMax),
     // 成片结尾帧（接戏用），文件存在才返回
     end_frame_url: existingEndFrame(row.videoUrl),
     characters: allChars

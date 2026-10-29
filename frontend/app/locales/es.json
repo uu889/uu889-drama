@@ -1231,7 +1231,7 @@
         "too_long": "Unos {idle} s sin que nadie hable: los modelos de vídeo tienden a inventar diálogo (galimatías). Acorta el plano o describe una acción concreta para ese tiempo.",
         "too_short": "Las líneas no caben (faltan {idle} s) y se cortarán o irán aceleradas. Alarga el plano o pasa líneas al siguiente.",
         "silent": "Este plano no tiene diálogo.",
-        "overMax": "El diálogo necesita unos {need} s y un plano (una generación de vídeo) dura como máximo 15 s: divídelo en unos {n} planos seguidos (vuelve a dividir o mueve las últimas frases al siguiente plano)."
+        "overMax": "El diálogo necesita unos {need} s y un plano (una generación de vídeo) dura como máximo {max} s, así que cambiar la duración no basta: divídelo en {n} planos seguidos. Usa \"Dividir en {n} planos\" para dividirlo por sus frases o vuelve a dividir el guion."
       },
       "badgeLong": "demasiado largo",
       "badgeShort": "texto excede",
@@ -1258,7 +1258,9 @@
       "timingSource": {
         "prompt": "según el prompt de vídeo",
         "description": "según la descripción del plano (el prompt no tiene diálogo)"
-      }
+      },
+      "splitBtn": "Dividir en {n} planos",
+      "badgeOverMax": "Dividir"
     },
     "subtitle": {
       "enable": "Subtítulos (incrustar los diálogos del plano)",
@@ -1418,6 +1420,33 @@
       "posBottom": "Abajo",
       "resetStyle": "Restablecer estilo",
       "shadow": "Contorno y sombra"
+    },
+    "shotLimit": {
+      "tag": "Plano ≤ {n} s",
+      "title": "Duración máxima del plano",
+      "preset": "{n} s",
+      "seconds": "segundos",
+      "sourceConfig": "La configuración de vídeo \"{name}\" permite como máximo {n} s por plano (duración máxima del vídeo en sus ajustes).",
+      "sourceProject": "Definido para este proyecto: como máximo {n} s por plano.",
+      "sourceProjectConfig": "Definido para este proyecto: {n} s (la configuración de vídeo \"{name}\" permite {cfg} s; se usa el menor).",
+      "sourceDefault": "Sin definir, se usa el valor por defecto de {n} s (los modelos de vídeo habituales generan como máximo 15 s por petición). Cámbialo aquí si tu modelo es más corto (p. ej. 5 o 10 s).",
+      "explain": "Cada plano es una generación de vídeo. Al dividir, cada plano queda por debajo de {n} s (unos {chars} caracteres de diálogo); los más largos se dividen automáticamente por sus frases en planos seguidos.",
+      "followConfig": "Quitar, seguir la configuración de vídeo ({n} s)",
+      "useDefault": "Quitar, usar {n} s por defecto",
+      "invalid": "Introduce un número entero de segundos entre {min} y {max}",
+      "saved": "Duración máxima del plano: {n} s"
+    },
+    "split": {
+      "all": "Dividir planos largos ({n})",
+      "allTip": "Divide por sus frases en planos seguidos los planos cuyo diálogo dura más de {max} s (los que ya tienen vídeo no se tocan)",
+      "done": "{n} plano(s) necesitaban más de {max} s y se dividieron por sus frases en {parts} planos ({shots})",
+      "skippedVideo": "{n} plano(s) largos ya tienen vídeo y no se dividieron; si hace falta, selecciona el plano y usa \"Dividir en N planos\"",
+      "skippedGenerating": "{n} plano(s) largos están generando vídeo y no se dividieron",
+      "unsplittable": "{n} plano(s) tienen una sola frase que no se puede partir; acórtala a mano",
+      "none": "Ningún plano necesita más de {max} s",
+      "confirmVideo": "Este plano ya tiene vídeo. Al dividirlo, el vídeo dejará de coincidir con los nuevos planos y habrá que regenerarlo (el vídeo anterior queda en el historial). ¿Dividir igualmente?",
+      "afterPrompts": "Tras escribir los prompts, {n} plano(s) necesitaban más de {max} s y se dividieron automáticamente",
+      "overAfterSave": "{n} plano(s) necesitan más de {max} s; usa \"Dividir planos largos\" para dividirlos por sus frases"
     }
   },
   "errors": {

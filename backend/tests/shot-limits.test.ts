@@ -48,7 +48,10 @@ test('limits follow the episode\'s locked video config, else the active one (unl
   assert.equal(shotLimitsFrom({ max_prompt_bytes: 8000 }, null, 'xai').maxPromptBytes, 4096)
   const free = shotLimitsFrom({}, null, 'comfyui')
   assert.equal(free.promptBudgetBytes, 0)
-  assert.equal(shotLimitsAgentDirective('storyboard_breaker', free, 'zh'), '', '不限制时不追加说明')
+  // 都不限制时也按默认 15 秒告诉拆分镜 Agent（一个分镜就是一次视频生成），但不写提示词预算
+  const freeDirective = shotLimitsAgentDirective('storyboard_breaker', free, 'zh')
+  assert.match(freeDirective, /最长 15 秒（默认上限/)
+  assert.doesNotMatch(freeDirective, /字节/)
   assert.equal(shotLimitsFrom({ max_prompt_bytes: 0 }).promptBudgetBytes, 0)
 })
 
@@ -79,12 +82,12 @@ test('save_storyboards clamps a shot to the video API limit and asks the agent t
   assert.equal(rows.find((r) => r.storyboardNumber === 1)!.duration, 8)
   assert.equal(rows.find((r) => r.storyboardNumber === 2)!.duration, 5)
   const warnings = res.timing_warnings.join('\n')
-  assert.match(warnings, /#1: .*超过视频接口单镜上限 8 秒/)
+  assert.match(warnings, /#1: 台词需要约 [\d.]+ 秒（\d+ 字），一个分镜最多 8 秒，必须拆开/)
   assert.match(warnings, /#1: video_prompt 1500 字节，超过预算 900 字节/)
 
   const id = rows.find((r) => r.storyboardNumber === 2)!.id
   const upd: any = await (storyboardTools.updateStoryboard as any).execute({ storyboard_id: id, duration: 12 }, { requestContext })
-  assert.match(upd.warnings[0], /已改为 8 秒/)
+  assert.match(upd.warnings[0], /超过单镜上限 8 秒，已改为 8 秒/)
   const [row] = await db.select().from(schema.storyboards).where(eq(schema.storyboards.id, id))
   assert.equal(row.duration, 8)
 })

@@ -2,7 +2,7 @@
  * 分镜拆解 Agent 工具
  * 模块级单例 — episodeId + dramaId 通过 RequestContext 按请求注入
  */
-import { shotLimitsForEpisode, type ShotLimits } from '../../services/shot-limits.js'
+import { shotDialogueCharBudget, shotLimitsForEpisode, type ShotLimits } from '../../services/shot-limits.js'
 import { utf8Bytes } from '../../services/video-limits.js'
 import { createTool } from '@mastra/core/tools'
 import type { ToolExecutionContext } from '@mastra/core/tools'
@@ -252,27 +252,24 @@ const storyboardFields = z.object({
 
 /** 按台词校正段落时长：演不完的自动加长；空余过多的不改（可能有动作戏），返回提醒让 Agent 处理 */
 async function fitDurationToDialogue(sb: z.infer<typeof storyboardFields>, limits: ShotLimits): Promise<{ duration: number; warning?: string }> {
-  const fitted = await fitDurationToDialogueRaw(sb)
-  const max = limits.maxDuration
-  // 没设单镜上限时也按 15 秒算（一个分镜就是一次视频生成，台词再多也只能 15 秒）：台词超出就要求拆段
-  if (!max) {
-    if (fitted.needed && fitted.needed > SHOT_MAX_SECONDS + 0.5) {
-      const parts = Math.ceil(fitted.needed / 12)
-      return {
-        duration: SHOT_MAX_SECONDS,
-        warning: `#${sb.shot_number}: 台词需要约 ${fitted.needed} 秒（${fitted.chars} 字），一个分镜最多 ${SHOT_MAX_SECONDS} 秒，必须拆开：把台词在句号 / 停顿处断成几句，分到 ${parts} 个连续的同场景分镜（每段台词 ≤ 50 字，中间插听者反应），用 save_storyboards 重写这一批；video_prompt 只写本段那几句`,
-      }
+  // 单镜上限：视频配置 / 项目设置取小的，都没设按 15 秒（一个分镜就是一次视频生成）
+  const max = limits.maxShotSeconds
+  const fitted = await fitDurationToDialogueRaw(sb, max)
+  if (fitted.needed && fitted.needed > max + 0.5) {
+    const words = shotDialogueCharBudget(max)
+    const parts = Math.ceil(fitted.needed / Math.max(3, max - 2))
+    return {
+      duration: max,
+      warning: `#${sb.shot_number}: 台词需要约 ${fitted.needed} 秒（${fitted.chars} 字），一个分镜最多 ${max} 秒，必须拆开：把台词在句号 / 停顿处断成几句，分到 ${parts} 个连续的同场景分镜（每段台词 ≤ ${words} 字，中间插听者反应），用 save_storyboards 重写这一批；video_prompt 只写本段那几句。不拆的话保存完成后系统会按台词机械地切开`,
     }
-    return { duration: fitted.duration, warning: fitted.warning }
   }
-  // recommended 本身封顶 15 秒，要看台词真正需要的秒数
-  const need = Math.max(fitted.duration, Math.ceil(fitted.needed || 0))
-  if (need <= max) return { duration: fitted.duration, warning: fitted.warning }
-  // 视频接口单次最多 max 秒：夹到上限，并让 Agent 把这段拆开
-  return {
-    duration: max,
-    warning: `#${sb.shot_number}: 这段需要约 ${need} 秒，超过视频接口单镜上限 ${max} 秒，时长已改为 ${max} 秒。请把这段在台词 / 动作的停顿处拆成两个连续分镜（用 save_storyboards 重写这一批），否则台词会被截掉或念得过快`,
+  if (fitted.duration > max) {
+    return {
+      duration: max,
+      warning: `#${sb.shot_number}: duration ${fitted.duration} 秒超过单镜上限 ${max} 秒，已改为 ${max} 秒；动作在 ${max} 秒内做不完请拆成两个连续分镜`,
+    }
   }
+  return { duration: fitted.duration, warning: fitted.warning }
 }
 
 /** 视频提示词超过预算时的提醒 */
@@ -283,31 +280,31 @@ function promptBudgetWarning(shot: number | string, videoPrompt: string | undefi
   return `#${shot}: video_prompt ${bytes} 字节，超过预算 ${limits.promptBudgetBytes} 字节（视频接口上限 ${limits.maxPromptBytes} 字节，还要留给自动追加的导演指令）。请精简后用 update_storyboard 重写，否则提交时会被自动截短`
 }
 
-/** 一个分镜（一次视频生成）最长秒数：主流视频模型单次最多 15 秒 */
-const SHOT_MAX_SECONDS = 15
-
-async function fitDurationToDialogueRaw(sb: z.infer<typeof storyboardFields>): Promise<{ duration: number; warning?: string; needed?: number; chars?: number }> {
+async function fitDurationToDialogueRaw(sb: z.infer<typeof storyboardFields>, maxSeconds: number): Promise<{ duration: number; warning?: string; needed?: number; chars?: number }> {
   const requested = Number(sb.duration) || 10
   const ids = [...new Set((sb.character_ids || []).filter(Boolean))]
   const names = ids.length
     ? (await db.select().from(schema.characters)).filter(ch => ids.includes(ch.id)).map(ch => ch.name)
     : []
-  const timing = checkShotTiming(sb.description, requested, names, sb.video_prompt)
+  const timing = checkShotTiming(sb.description, requested, names, sb.video_prompt, maxSeconds)
+  const chars = timing.lines.reduce((n, l) => n + l.text.length, 0)
   if (timing.status === 'too_short' && timing.recommended) {
     return {
       needed: timing.neededSeconds,
-      chars: timing.lines.reduce((n, l) => n + l.text.length, 0),
+      chars,
       duration: Math.max(requested, timing.recommended),
       warning: `#${sb.shot_number}: 台词需要约 ${timing.neededSeconds} 秒，时长已从 ${requested} 秒自动加到 ${Math.max(requested, timing.recommended)} 秒`,
     }
   }
   if (timing.status === 'too_long') {
     return {
+      needed: timing.neededSeconds,
+      chars,
       duration: requested,
       warning: `#${sb.shot_number}: 台词只需约 ${timing.neededSeconds} 秒，但段落 ${requested} 秒，有 ${timing.idleSeconds} 秒没人说话——视频模型会自己补台词。请用 update_storyboard 把 duration 改为 ${timing.recommended} 秒左右，或在 description 里把多出的时间写成具体的无台词动作 / 反应`,
     }
   }
-  return { duration: requested }
+  return { duration: requested, needed: timing.lines.length ? timing.neededSeconds : undefined, chars }
 }
 
 const saveStoryboards = createTool({
@@ -504,9 +501,9 @@ const updateStoryboard = createTool({
     const limits = await shotLimitsForEpisode(episodeId)
     if ('duration' in fields) {
       updates.duration = fields.duration
-      if (limits.maxDuration && Number(fields.duration) > limits.maxDuration) {
-        updates.duration = limits.maxDuration
-        warnings.push(`duration ${fields.duration} 秒超过视频接口单镜上限 ${limits.maxDuration} 秒，已改为 ${limits.maxDuration} 秒；演不完请拆成两个分镜`)
+      if (Number(fields.duration) > limits.maxShotSeconds) {
+        updates.duration = limits.maxShotSeconds
+        warnings.push(`duration ${fields.duration} 秒超过单镜上限 ${limits.maxShotSeconds} 秒，已改为 ${limits.maxShotSeconds} 秒；演不完请拆成两个分镜`)
       }
     }
     const pw = promptBudgetWarning(storyboard.storyboardNumber, fields.video_prompt, limits)

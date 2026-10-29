@@ -7,6 +7,7 @@ import { logTaskPayload, logTaskStart, logTaskSuccess } from '../utils/task-logg
 import { extractVideoEndFrame } from '../utils/video-poster.js'
 import { existingEndFrame, storyboardTiming } from '../services/storyboard-timing.js'
 import { startUpscale, upscaleInfo } from '../services/video-upscale.js'
+import { shotLimitsForEpisode } from '../services/shot-limits.js'
 
 const app = new Hono()
 
@@ -181,7 +182,8 @@ app.put('/:id', async (c) => {
   const [fresh] = await db.select().from(schema.storyboards).where(eq(schema.storyboards.id, id))
   const names = await storyboardCharacterNames(id)
   if ('video_url' in body && fresh?.videoUrl) await extractVideoEndFrame(fresh.videoUrl)
-  return success(c, { timing: fresh ? storyboardTiming(fresh, names) : null, end_frame_url: existingEndFrame(fresh?.videoUrl) })
+  const shotMax = fresh ? (await shotLimitsForEpisode(fresh.episodeId)).maxShotSeconds : 15
+  return success(c, { timing: fresh ? storyboardTiming(fresh, names, shotMax) : null, end_frame_url: existingEndFrame(fresh?.videoUrl) })
 })
 
 async function storyboardCharacterNames(storyboardId: number): Promise<string[]> {

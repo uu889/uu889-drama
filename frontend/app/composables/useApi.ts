@@ -44,6 +44,8 @@ export const dramaAPI = {
   /** 系统音（系统流的「系统」角色），项目级设置 */
   getSystemVoice: (id: number) => api.get(`/dramas/${id}/system-voice`),
   saveSystemVoice: (id: number, data: any) => api.put(`/dramas/${id}/system-voice`, data),
+  /** 项目的单镜时长上限（null = 跟随视频配置，都没设按 15 秒） */
+  saveShotLimit: (id: number, maxSeconds: number | null) => api.put(`/dramas/${id}/shot-limit`, { max_seconds: maxSeconds }),
 }
 
 export const episodeAPI = {
@@ -61,6 +63,10 @@ export const episodeAPI = {
   extractStatus: (id: number) => api.get(`/episodes/${id}/extract-status`),
   generateVideoPrompts: (id: number, model?: string, configId?: number, storyboardIds?: number[]) => api.post(`/episodes/${id}/generate-video-prompts`, { model: model || undefined, config_id: configId || undefined, storyboard_ids: storyboardIds?.length ? storyboardIds : undefined }),
   videoPromptsStatus: (id: number) => api.get(`/episodes/${id}/video-prompts-status`),
+  /** 单镜时长上限：生效值 / 来源（视频配置 / 项目设置 / 默认 15 秒） */
+  shotLimit: (id: number) => api.get<{ max_seconds: number; source: 'config' | 'project' | 'default'; project_max: number | null; config_max: number | null; config_name: string | null; default_max: number; range: { min: number; max: number }; dialogue_chars: number }>(`/episodes/${id}/shot-limit`),
+  /** 台词超过单镜上限的分镜按台词自动拆开 */
+  splitLongShots: (id: number, data: { storyboard_ids?: number[]; include_with_video?: boolean } = {}) => api.post<{ max_seconds: number; split: Array<{ storyboard_id: number; shot_number: number; parts: number; needed_seconds: number }>; skipped: Array<{ storyboard_id: number; shot_number: number; reason: string }>; created_ids: number[]; total: number }>(`/episodes/${id}/split-long-shots`, data),
   /** 原始内容附件（txt / PDF / Word / 图片，AI 改写时一起读取） */
   attachments: (id: number) => api.get<{ items: any[]; limits: { max_files: number; max_file_mb: number; max_total_chars: number } }>(`/episodes/${id}/attachments`),
   uploadAttachments: async (id: number, files: File[], model?: string, configId?: number) => {

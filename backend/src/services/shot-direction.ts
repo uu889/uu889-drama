@@ -82,12 +82,13 @@ export function speechSeconds(text: string): number {
 }
 
 function cleanSpeaker(raw: string, knownNames: string[]): string {
-  const text = raw.replace(/[\s*#>\-·•]+/g, ' ').trim()
+  const text = raw.replace(/[\s*#>\-·•@]+/g, ' ').trim()
   // 优先匹配已知角色名（取最长，避免「小明」命中「小明月」）
   const hits = knownNames.filter((n) => n && text.includes(n)).sort((a, b) => b.length - a.length)
   if (hits.length) return hits[0]
   return text
     .replace(SPEECH_MARKER_RE, '')
+    .replace(/(继续|接着)$/, '')
     .replace(/(对|對|向|朝)\S{0,8}$/, '')
     .replace(/(低声|轻声|小声|大声|冷冷地|笑着|哭着|愤怒地|平静地|压低声音|冷笑|苦笑)+$/, '')
     .replace(/(は|が|이|가|은|는)$/, '')
@@ -141,19 +142,22 @@ export function parseShotDialogue(
       const label = before.replace(/[:：]\s*$/, '').trim()
       const isNarration = NARRATION_RE.test(label)
       let speaker = isNarration ? '' : cleanSpeaker(label, knownNames)
-      // 「小红坐下，笑着说：…」：说话人在前一个分句里——在同一句（到句号 / 换行 / 【 为止）往前找最近的已知角色名
+      // 「小红坐下，笑着说：…」：说话人在前一个分句里——在同一句（到句号 / 换行 / 【 为止）往前逐个分句找，
+      // 取最近一个出现角色名的分句里的第一个名字（分句主语）：「老太太拉着孩子的手，弯腰说」是老太太，「林晚抬头，陈默走进来，说」是陈默
       if (!isNarration && !knownNames.includes(speaker)) {
         let s = i
         while (s > 0 && !/[。！？!?\n【]/.test(text[s - 1]) && i - s < 120) s--
-        const sentence = text.slice(s, i)
-        let best = ''
-        let bestAt = -1
-        for (const name of knownNames) {
-          if (!name) continue
-          const at = sentence.lastIndexOf(name)
-          if (at > bestAt || (at === bestAt && name.length > best.length)) { best = name; bestAt = at }
+        const clauses = text.slice(s, i).split(/[，,；;、」』”"]/)
+        for (let k = clauses.length - 1; k >= 0 && !knownNames.includes(speaker); k--) {
+          let best = ''
+          let bestAt = Infinity
+          for (const name of knownNames) {
+            if (!name) continue
+            const at = clauses[k].indexOf(name)
+            if (at >= 0 && (at < bestAt || (at === bestAt && name.length > best.length))) { best = name; bestAt = at }
+          }
+          if (best) speaker = best
         }
-        if (best && bestAt >= 0) speaker = best
       }
       const isSystem = !isNarration && isSystemSpeaker(speaker, systemNames)
       found.push({
@@ -223,22 +227,34 @@ export function planDialogue(lines: DialogueLine[]): DialoguePlan {
   return { lines, speechSeconds: Math.round(speech * 10) / 10, neededSeconds: Math.round(needed * 10) / 10 }
 }
 
-/** 按台词推荐的分镜时长（整秒，3~15）；没有台词返回 null */
-export function recommendShotDuration(description: string | null | undefined, knownNames: string[] = [], videoPrompt?: string | null): number | null {
+/** 按台词推荐的分镜时长（整秒，3~单镜上限，默认 15）；没有台词返回 null */
+export function recommendShotDuration(description: string | null | undefined, knownNames: string[] = [], videoPrompt?: string | null, maxSeconds = 15): number | null {
   const plan = planDialogue(shotDialogueLines(description, videoPrompt, knownNames).lines)
   if (!plan.lines.length) return null
-  return Math.min(15, Math.max(3, Math.ceil(plan.neededSeconds)))
+  return Math.min(maxSeconds, Math.max(3, Math.ceil(plan.neededSeconds)))
 }
 
-/** 时长与台词的匹配情况：too_short 演不完；too_long 空余时间过多，模型容易补台词 */
-export function checkShotTiming(description: string | null | undefined, duration: number, knownNames: string[] = [], videoPrompt?: string | null) {
+/**
+ * 时长与台词的匹配情况：too_short 演不完；too_long 空余时间过多，模型容易补台词。
+ * maxSeconds = 单镜上限（shot-limits.ts maxShotSeconds，默认 15）：overMax = 台词本身就超过上限，加时长也没用，只能拆成几个分镜
+ */
+export function checkShotTiming(description: string | null | undefined, duration: number, knownNames: string[] = [], videoPrompt?: string | null, maxSeconds = 15) {
   const picked = shotDialogueLines(description, videoPrompt, knownNames)
   const plan = planDialogue(picked.lines)
   const idle = Math.round((duration - plan.neededSeconds) * 10) / 10
   const status: 'ok' | 'too_short' | 'too_long' | 'silent' = !plan.lines.length
     ? 'silent'
     : idle < -0.5 ? 'too_short' : idle > MAX_IDLE_SECONDS ? 'too_long' : 'ok'
-  return { ...plan, source: picked.source, duration, idleSeconds: idle, status, recommended: plan.lines.length ? Math.min(15, Math.max(3, Math.ceil(plan.neededSeconds))) : null }
+  return {
+    ...plan,
+    source: picked.source,
+    duration,
+    idleSeconds: idle,
+    status,
+    maxSeconds,
+    overMax: plan.lines.length > 0 && plan.neededSeconds > maxSeconds + 0.5,
+    recommended: plan.lines.length ? Math.min(maxSeconds, Math.max(3, Math.ceil(plan.neededSeconds))) : null,
+  }
 }
 
 export function isChinesePrompt(text: string | null | undefined): boolean {

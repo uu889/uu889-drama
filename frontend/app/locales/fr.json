@@ -1231,7 +1231,7 @@
         "too_long": "Environ {idle} s sans parole : les modèles vidéo inventent alors des répliques (charabia). Raccourcissez le plan ou décrivez une action concrète pour ce temps.",
         "too_short": "Les répliques ne tiennent pas ({idle} s de trop peu) et seront coupées ou précipitées. Allongez le plan ou déplacez des répliques au suivant.",
         "silent": "Ce plan n’a pas de dialogue.",
-        "overMax": "Les répliques demandent environ {need} s, un plan (une génération vidéo) dure au plus 15 s : découpez-le en environ {n} plans consécutifs (redécoupez ou déplacez la fin du texte au plan suivant)."
+        "overMax": "Les répliques demandent environ {need} s, mais un plan (une génération vidéo) dure au plus {max} s : changer la durée ne suffit pas, il faut le découper en {n} plans consécutifs. Utilisez « Découper en {n} plans » ou relancez le découpage."
       },
       "badgeLong": "trop long",
       "badgeShort": "texte trop long",
@@ -1258,7 +1258,9 @@
       "timingSource": {
         "prompt": "d’après le prompt vidéo",
         "description": "d’après la description du plan (pas de réplique dans le prompt)"
-      }
+      },
+      "splitBtn": "Découper en {n} plans",
+      "badgeOverMax": "À découper"
     },
     "subtitle": {
       "enable": "Sous-titres (incruster les dialogues du plan)",
@@ -1418,6 +1420,33 @@
       "posBottom": "Bas",
       "resetStyle": "Style par défaut",
       "shadow": "Contour et ombre"
+    },
+    "shotLimit": {
+      "tag": "Plan ≤ {n} s",
+      "title": "Durée maximale d'un plan",
+      "preset": "{n} s",
+      "seconds": "secondes",
+      "sourceConfig": "La configuration vidéo « {name} » autorise au plus {n} s par plan (durée vidéo maximale dans ses réglages).",
+      "sourceProject": "Défini pour ce projet : au plus {n} s par plan.",
+      "sourceProjectConfig": "Défini pour ce projet : {n} s (la configuration vidéo « {name} » autorise {cfg} s ; la plus petite valeur s'applique).",
+      "sourceDefault": "Non défini, valeur par défaut de {n} s (les modèles vidéo courants génèrent au plus 15 s par requête). Modifiez-la ici si votre modèle est plus court (5 ou 10 s par exemple).",
+      "explain": "Chaque plan correspond à une génération vidéo. Le découpage garde chaque plan sous {n} s (environ {chars} caractères de dialogue) ; les plans plus longs sont découpés automatiquement selon leurs répliques en plans consécutifs.",
+      "followConfig": "Effacer, suivre la configuration vidéo ({n} s)",
+      "useDefault": "Effacer, utiliser {n} s par défaut",
+      "invalid": "Saisissez un nombre entier de secondes entre {min} et {max}",
+      "saved": "Durée maximale d'un plan : {n} s"
+    },
+    "split": {
+      "all": "Découper les plans trop longs ({n})",
+      "allTip": "Découpe selon leurs répliques en plans consécutifs les plans dont le dialogue dépasse {max} s (ceux qui ont déjà une vidéo ne sont pas modifiés)",
+      "done": "{n} plan(s) dépassaient {max} s et ont été découpés selon leurs répliques en {parts} plans ({shots})",
+      "skippedVideo": "{n} plan(s) trop longs ont déjà une vidéo et n'ont pas été découpés ; si besoin, sélectionnez le plan et utilisez « Découper en N plans »",
+      "skippedGenerating": "{n} plan(s) trop longs sont en cours de génération et n'ont pas été découpés",
+      "unsplittable": "{n} plan(s) contiennent une seule réplique impossible à couper ; raccourcissez-la à la main",
+      "none": "Aucun plan ne dépasse {max} s",
+      "confirmVideo": "Ce plan a déjà une vidéo. Après le découpage, elle ne correspondra plus aux nouveaux plans et devra être régénérée (l'ancienne vidéo reste dans l'historique). Découper quand même ?",
+      "afterPrompts": "Après l'écriture des prompts, {n} plan(s) dépassaient {max} s et ont été découpés automatiquement",
+      "overAfterSave": "{n} plan(s) dépassent {max} s ; utilisez « Découper les plans trop longs » pour les découper selon leurs répliques"
     }
   },
   "errors": {

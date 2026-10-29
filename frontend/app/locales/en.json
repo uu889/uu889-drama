@@ -1231,7 +1231,7 @@
         "too_long": "About {idle}s with nobody speaking — video models tend to invent lines (gibberish). Shorten the shot to fit the lines, or describe concrete action for that time.",
         "too_short": "The lines do not fit ({idle}s short) and will be cut off or rushed. Lengthen the shot or move some lines to the next one.",
         "silent": "This shot has no dialogue.",
-        "overMax": "The lines need about {need}s, but one shot (one video generation) is at most 15s, so changing the duration won't help: split it into about {n} consecutive shots. Re-split the storyboard (long lines are now split by sentence) or move the later lines to the next shot."
+        "overMax": "The lines need about {need}s, but one shot (one video generation) is at most {max}s, so changing the duration won't help: split it into {n} consecutive shots. Use \"Split into {n} shots\" to split it by its lines, or re-split the storyboard."
       },
       "badgeLong": "too long",
       "badgeShort": "lines overrun",
@@ -1258,7 +1258,9 @@
       "timingSource": {
         "prompt": "from the video prompt",
         "description": "from the shot description (no lines in the video prompt)"
-      }
+      },
+      "splitBtn": "Split into {n} shots",
+      "badgeOverMax": "Too long"
     },
     "subtitle": {
       "enable": "Subtitles (burn the shot's dialogue into the video)",
@@ -1418,6 +1420,33 @@
       "posBottom": "Bottom",
       "resetStyle": "Reset style",
       "shadow": "Text outline & shadow"
+    },
+    "shotLimit": {
+      "tag": "Shot ≤ {n}s",
+      "title": "Max shot length",
+      "preset": "{n}s",
+      "seconds": "seconds",
+      "sourceConfig": "The video config \"{name}\" allows at most {n}s per shot (Max video duration in its settings).",
+      "sourceProject": "Set for this project: at most {n}s per shot.",
+      "sourceProjectConfig": "Set for this project: {n}s (the video config \"{name}\" allows {cfg}s; the smaller one wins).",
+      "sourceDefault": "Not set, using the default {n}s (mainstream video models generate at most 15s per request). Change it here if your model is shorter (e.g. 5s or 10s).",
+      "explain": "Each shot is one video generation. Storyboard splitting keeps every shot within {n}s (about {chars} characters of dialogue); longer shots are split automatically by their lines into consecutive shots.",
+      "followConfig": "Clear, follow the video config ({n}s)",
+      "useDefault": "Clear, use the default {n}s",
+      "invalid": "Enter a whole number of seconds between {min} and {max}",
+      "saved": "Max shot length set to {n}s"
+    },
+    "split": {
+      "all": "Split long shots ({n})",
+      "allTip": "Split every shot whose lines need more than {max}s into consecutive shots by its lines (shots that already have a video are left alone)",
+      "done": "{n} shot(s) needed more than {max}s and were split by their lines into {parts} shots ({shots})",
+      "skippedVideo": "{n} long shot(s) already have a video and were not split; select one and use \"Split into N shots\" if needed",
+      "skippedGenerating": "{n} long shot(s) are generating a video and were not split",
+      "unsplittable": "{n} shot(s) contain a single line that cannot be broken up; shorten the line manually",
+      "none": "No shot needs more than {max}s",
+      "confirmVideo": "This shot already has a video. After splitting, the video no longer matches the new shots and needs to be regenerated (the old video stays in the history). Split anyway?",
+      "afterPrompts": "After writing the prompts, {n} shot(s) needed more than {max}s and were split automatically",
+      "overAfterSave": "{n} shot(s) need more than {max}s; use \"Split long shots\" to split them by their lines"
     }
   },
   "errors": {

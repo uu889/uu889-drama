@@ -14,6 +14,7 @@ import { mastra } from '../mastra/index.js'
 import { success, badRequest } from '../utils/response.js'
 import { logTaskError, logTaskPayload, logTaskProgress, logTaskStart, logTaskSuccess } from '../utils/task-logger.js'
 import { describeModelError } from '../utils/model-error.js'
+import { splitOverlongShots, type SplitResult } from '../services/shot-split.js'
 
 const app = new Hono()
 
@@ -100,11 +101,21 @@ app.post('/:type/chat', async (c) => {
     })
     logTaskPayload('Agent', `${agentType} tool-results`, normalizedToolResults)
 
+    // 拆分镜 Agent 不一定按单镜上限拆：拆完后台词仍超过上限的分镜由系统按台词自动拆开（已有视频的不动）
+    let autoSplit: SplitResult | null = null
+    if (agentType === 'storyboard_breaker') {
+      autoSplit = await splitOverlongShots(Number(episode_id)).catch((err: any) => {
+        logTaskError('ShotSplit', 'after-breakdown', { episodeId: episode_id, error: err?.message })
+        return null
+      })
+    }
+
     return success(c, {
       type: 'done',
       text: result.text || '',
       toolCalls: normalizedToolCalls,
       toolResults: normalizedToolResults,
+      ...(autoSplit?.split.length ? { auto_split: autoSplit } : {}),
     })
   } catch (err: any) {
     const elapsed = ((performance.now() - startTime) / 1000).toFixed(1)

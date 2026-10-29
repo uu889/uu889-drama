@@ -1231,7 +1231,7 @@
         "too_long": "Có khoảng {idle} giây không ai nói — mô hình video dễ tự bịa thoại (nói lung tung). Hãy rút ngắn theo thoại hoặc mô tả hành động cụ thể cho khoảng đó.",
         "too_short": "Thoại không đủ chỗ (thiếu {idle} giây), sẽ bị cắt hoặc nói quá nhanh. Hãy tăng thời lượng hoặc chuyển bớt thoại sang phân cảnh sau.",
         "silent": "Phân cảnh này không có thoại.",
-        "overMax": "Lời thoại cần khoảng {need} giây, một phân cảnh (một lần tạo video) tối đa 15 giây: hãy tách thành khoảng {n} phân cảnh liên tiếp (tách lại hoặc chuyển phần thoại sau sang phân cảnh kế)."
+        "overMax": "Lời thoại cần khoảng {need} giây, nhưng một cảnh (một lần tạo video) tối đa {max} giây nên đổi thời lượng không giải quyết được: cần chia thành {n} cảnh liên tiếp. Bấm \"Chia thành {n} cảnh\" để chia theo lời thoại, hoặc chia cảnh lại."
       },
       "badgeLong": "quá dài",
       "badgeShort": "thoại quá dài",
@@ -1258,7 +1258,9 @@
       "timingSource": {
         "prompt": "theo lời thoại trong prompt video",
         "description": "theo mô tả phân cảnh (prompt video không có lời thoại)"
-      }
+      },
+      "splitBtn": "Chia thành {n} cảnh",
+      "badgeOverMax": "Cần chia"
     },
     "subtitle": {
       "enable": "Phụ đề (in lời thoại của cảnh vào video)",
@@ -1418,6 +1420,33 @@
       "posBottom": "Dưới",
       "resetStyle": "Khôi phục kiểu mặc định",
       "shadow": "Viền và bóng chữ"
+    },
+    "shotLimit": {
+      "tag": "Mỗi cảnh ≤ {n} giây",
+      "title": "Độ dài tối đa mỗi cảnh",
+      "preset": "{n} giây",
+      "seconds": "giây",
+      "sourceConfig": "Cấu hình video \"{name}\" giới hạn mỗi cảnh tối đa {n} giây (Thời lượng video tối đa trong cài đặt).",
+      "sourceProject": "Cài đặt của dự án: mỗi cảnh tối đa {n} giây.",
+      "sourceProjectConfig": "Cài đặt của dự án {n} giây (cấu hình video \"{name}\" cho phép {cfg} giây; lấy giá trị nhỏ hơn).",
+      "sourceDefault": "Chưa cài đặt, dùng mặc định {n} giây (các mô hình video phổ biến tạo tối đa 15 giây mỗi lần). Đổi ở đây nếu mô hình của bạn ngắn hơn (ví dụ 5 hoặc 10 giây).",
+      "explain": "Mỗi cảnh là một lần tạo video. Khi chia cảnh, mỗi cảnh không quá {n} giây (lời thoại khoảng {chars} ký tự); cảnh dài hơn sẽ tự động được chia theo lời thoại thành các cảnh liên tiếp.",
+      "followConfig": "Xóa, theo cấu hình video ({n} giây)",
+      "useDefault": "Xóa, dùng mặc định {n} giây",
+      "invalid": "Nhập số giây nguyên trong khoảng {min}–{max}",
+      "saved": "Đã đặt độ dài tối đa mỗi cảnh là {n} giây"
+    },
+    "split": {
+      "all": "Chia cảnh quá dài ({n})",
+      "allTip": "Tự động chia theo lời thoại thành các cảnh liên tiếp những cảnh có lời thoại quá {max} giây (cảnh đã có video giữ nguyên)",
+      "done": "{n} cảnh có lời thoại quá {max} giây đã được chia theo lời thoại thành {parts} cảnh ({shots})",
+      "skippedVideo": "{n} cảnh dài đã có video nên chưa chia; nếu cần, chọn cảnh đó và bấm \"Chia thành N cảnh\"",
+      "skippedGenerating": "{n} cảnh dài đang tạo video nên chưa chia",
+      "unsplittable": "{n} cảnh chỉ có một câu thoại không thể tách; hãy rút ngắn câu thoại",
+      "none": "Không có cảnh nào cần quá {max} giây",
+      "confirmVideo": "Cảnh này đã có video. Sau khi chia, video không còn khớp với các cảnh mới và cần tạo lại (video cũ vẫn ở lịch sử). Vẫn chia?",
+      "afterPrompts": "Sau khi viết prompt, {n} cảnh có lời thoại quá {max} giây đã được tự động chia",
+      "overAfterSave": "Có {n} cảnh lời thoại quá {max} giây; bấm \"Chia cảnh quá dài\" để chia theo lời thoại"
     }
   },
   "errors": {

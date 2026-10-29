@@ -1231,7 +1231,7 @@
         "too_long": "Etwa {idle} s spricht niemand – Videomodelle erfinden dann gern Text (Kauderwelsch). Shot auf den Text kürzen oder konkrete Handlung für diese Zeit beschreiben.",
         "too_short": "Der Text passt nicht hinein ({idle} s zu kurz) und wird abgeschnitten oder gehetzt. Shot verlängern oder Sätze in den nächsten verschieben.",
         "silent": "Dieser Shot hat keinen Dialog.",
-        "overMax": "Der Text braucht ca. {need} s, eine Szene (eine Videogenerierung) hat höchstens 15 s: in ca. {n} aufeinanderfolgende Szenen teilen (neu aufteilen oder späteren Text in die nächste Szene verschieben)."
+        "overMax": "Der Text braucht ca. {need} s, eine Szene (eine Videogenerierung) hat höchstens {max} s, eine andere Dauer hilft nicht: in {n} aufeinanderfolgende Szenen teilen. Mit „In {n} Szenen teilen\" nach dem Text aufteilen oder neu aufteilen."
       },
       "badgeLong": "zu lang",
       "badgeShort": "Text zu lang",
@@ -1258,7 +1258,9 @@
       "timingSource": {
         "prompt": "nach dem Video-Prompt",
         "description": "nach der Szenenbeschreibung (kein Text im Video-Prompt)"
-      }
+      },
+      "splitBtn": "In {n} Szenen teilen",
+      "badgeOverMax": "Teilen"
     },
     "subtitle": {
       "enable": "Untertitel (Dialog der Einstellung ins Video brennen)",
@@ -1418,6 +1420,33 @@
       "posBottom": "Unten",
       "resetStyle": "Stil zurücksetzen",
       "shadow": "Kontur & Schatten"
+    },
+    "shotLimit": {
+      "tag": "Szene ≤ {n} s",
+      "title": "Maximale Szenenlänge",
+      "preset": "{n} s",
+      "seconds": "Sekunden",
+      "sourceConfig": "Die Videokonfiguration „{name}\" erlaubt höchstens {n} s pro Szene (maximale Videodauer in den Einstellungen).",
+      "sourceProject": "Für dieses Projekt festgelegt: höchstens {n} s pro Szene.",
+      "sourceProjectConfig": "Für dieses Projekt {n} s (die Videokonfiguration „{name}\" erlaubt {cfg} s; der kleinere Wert gilt).",
+      "sourceDefault": "Nicht festgelegt, Standard {n} s (gängige Videomodelle erzeugen höchstens 15 s pro Aufruf). Ändern Sie es hier, wenn Ihr Modell kürzer ist (z. B. 5 oder 10 s).",
+      "explain": "Jede Szene ist eine Videogenerierung. Beim Aufteilen bleibt jede Szene unter {n} s (etwa {chars} Zeichen Text); längere Szenen werden automatisch nach ihrem Text in aufeinanderfolgende Szenen geteilt.",
+      "followConfig": "Zurücksetzen, Videokonfiguration folgen ({n} s)",
+      "useDefault": "Zurücksetzen, Standard {n} s",
+      "invalid": "Ganze Sekunden zwischen {min} und {max} eingeben",
+      "saved": "Maximale Szenenlänge auf {n} s gesetzt"
+    },
+    "split": {
+      "all": "Lange Szenen teilen ({n})",
+      "allTip": "Szenen, deren Text länger als {max} s dauert, automatisch nach dem Text in aufeinanderfolgende Szenen teilen (Szenen mit Video bleiben unverändert)",
+      "done": "{n} Szene(n) brauchten mehr als {max} s und wurden nach dem Text in {parts} Szenen geteilt ({shots})",
+      "skippedVideo": "{n} lange Szene(n) haben schon ein Video und wurden nicht geteilt; bei Bedarf die Szene wählen und „In N Szenen teilen\" nutzen",
+      "skippedGenerating": "{n} lange Szene(n) erzeugen gerade ein Video und wurden nicht geteilt",
+      "unsplittable": "{n} Szene(n) enthalten einen einzigen Satz, der sich nicht teilen lässt; bitte den Text kürzen",
+      "none": "Keine Szene braucht mehr als {max} s",
+      "confirmVideo": "Diese Szene hat bereits ein Video. Nach dem Teilen passt es nicht mehr zu den neuen Szenen und muss neu erzeugt werden (das alte Video bleibt im Verlauf). Trotzdem teilen?",
+      "afterPrompts": "Nach dem Schreiben der Prompts brauchten {n} Szene(n) mehr als {max} s und wurden automatisch geteilt",
+      "overAfterSave": "{n} Szene(n) brauchen mehr als {max} s; mit „Lange Szenen teilen\" nach dem Text aufteilen"
     }
   },
   "errors": {

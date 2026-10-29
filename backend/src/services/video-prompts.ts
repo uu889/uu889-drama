@@ -7,6 +7,7 @@ import { db, schema } from '../db/index.js'
 import { mastra } from '../mastra/index.js'
 import { buildAgentRequestContext } from '../agents/context.js'
 import { logTaskError, logTaskProgress, logTaskStart, logTaskSuccess } from '../utils/task-logger.js'
+import { splitOverlongShots } from './shot-split.js'
 
 export interface VideoPromptBatchStatus {
   status: 'running' | 'done' | 'error'
@@ -17,6 +18,8 @@ export interface VideoPromptBatchStatus {
   started_at: string
   finished_at?: string
   error?: string
+  /** 写完提示词后台词仍超过单镜上限、被自动拆开的分镜数 */
+  split?: number
 }
 
 const tasks = new Map<number, VideoPromptBatchStatus>()
@@ -87,6 +90,12 @@ export async function startVideoPromptBatch(
         logTaskError('VideoPrompt', 'batch-shot', { storyboardId: sb.id, error: err?.message })
       }
     }
+    // 提示词按描述写出来的台词仍超过单镜上限（描述里塞了整段台词）：按台词自动拆开这几个分镜
+    const split = await splitOverlongShots(episodeId, { storyboardIds: pending.map(sb => sb.id) }).catch((err: any) => {
+      logTaskError('ShotSplit', 'after-video-prompts', { episodeId, error: err?.message })
+      return null
+    })
+    if (split?.split.length) task.split = split.split.length
   })()
     .then(() => {
       task.status = 'done'

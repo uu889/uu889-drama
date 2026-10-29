@@ -1231,7 +1231,7 @@
         "too_long": "Cerca de {idle} s sem ninguém falar: modelos de vídeo costumam inventar falas (balbucio). Encurte o plano ou descreva uma ação concreta para esse tempo.",
         "too_short": "As falas não cabem (faltam {idle} s) e serão cortadas ou apressadas. Aumente o plano ou passe falas para o próximo.",
         "silent": "Este plano não tem diálogo.",
-        "overMax": "As falas precisam de cerca de {need} s e uma cena (uma geração de vídeo) tem no máximo 15 s: divida em cerca de {n} cenas seguidas (divida de novo ou mova as últimas falas para a próxima cena)."
+        "overMax": "As falas precisam de cerca de {need} s, mas um plano (uma geração de vídeo) tem no máximo {max} s, então mudar a duração não resolve: divida em {n} planos seguidos. Use \"Dividir em {n} planos\" para dividir pelas falas ou refaça a divisão."
       },
       "badgeLong": "longo demais",
       "badgeShort": "falas excedem",
@@ -1258,7 +1258,9 @@
       "timingSource": {
         "prompt": "pelo prompt de vídeo",
         "description": "pela descrição da cena (o prompt não tem falas)"
-      }
+      },
+      "splitBtn": "Dividir em {n} planos",
+      "badgeOverMax": "Dividir"
     },
     "subtitle": {
       "enable": "Legendas (gravar os diálogos do plano no vídeo)",
@@ -1418,6 +1420,33 @@
       "posBottom": "Base",
       "resetStyle": "Restaurar estilo",
       "shadow": "Contorno e sombra"
+    },
+    "shotLimit": {
+      "tag": "Plano ≤ {n} s",
+      "title": "Duração máxima do plano",
+      "preset": "{n} s",
+      "seconds": "segundos",
+      "sourceConfig": "A configuração de vídeo \"{name}\" permite no máximo {n} s por plano (duração máxima do vídeo nas configurações).",
+      "sourceProject": "Definido para este projeto: no máximo {n} s por plano.",
+      "sourceProjectConfig": "Definido para este projeto: {n} s (a configuração de vídeo \"{name}\" permite {cfg} s; vale o menor).",
+      "sourceDefault": "Não definido, usando o padrão de {n} s (os modelos de vídeo comuns geram no máximo 15 s por pedido). Altere aqui se o seu modelo for mais curto (ex.: 5 ou 10 s).",
+      "explain": "Cada plano é uma geração de vídeo. Ao dividir, cada plano fica abaixo de {n} s (cerca de {chars} caracteres de fala); os mais longos são divididos automaticamente pelas falas em planos seguidos.",
+      "followConfig": "Limpar, seguir a configuração de vídeo ({n} s)",
+      "useDefault": "Limpar, usar o padrão de {n} s",
+      "invalid": "Digite um número inteiro de segundos entre {min} e {max}",
+      "saved": "Duração máxima do plano: {n} s"
+    },
+    "split": {
+      "all": "Dividir planos longos ({n})",
+      "allTip": "Divide pelas falas em planos seguidos os planos cujo diálogo passa de {max} s (os que já têm vídeo não são alterados)",
+      "done": "{n} plano(s) precisavam de mais de {max} s e foram divididos pelas falas em {parts} planos ({shots})",
+      "skippedVideo": "{n} plano(s) longos já têm vídeo e não foram divididos; se precisar, selecione o plano e use \"Dividir em N planos\"",
+      "skippedGenerating": "{n} plano(s) longos estão gerando vídeo e não foram divididos",
+      "unsplittable": "{n} plano(s) têm uma única fala que não dá para partir; encurte-a manualmente",
+      "none": "Nenhum plano precisa de mais de {max} s",
+      "confirmVideo": "Este plano já tem vídeo. Depois de dividir, o vídeo não corresponde mais aos novos planos e precisa ser gerado de novo (o vídeo antigo fica no histórico). Dividir mesmo assim?",
+      "afterPrompts": "Depois de escrever os prompts, {n} plano(s) precisavam de mais de {max} s e foram divididos automaticamente",
+      "overAfterSave": "{n} plano(s) precisam de mais de {max} s; use \"Dividir planos longos\" para dividi-los pelas falas"
     }
   },
   "errors": {

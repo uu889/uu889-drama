@@ -4,6 +4,7 @@ import { db, getInsertId, schema } from '../db/index.js'
 import { success, badRequest, notFound, created, now } from '../utils/response.js'
 import { toSnakeCase, toSnakeCaseArray } from '../utils/transform.js'
 import { getDramaSystemVoice, saveDramaSystemVoice } from '../services/system-voice.js'
+import { getDramaShotMax, saveDramaShotMax } from '../services/shot-limits.js'
 
 const app = new Hono()
 
@@ -139,6 +140,14 @@ app.put('/:id/system-voice', async (c) => {
   const saved = await saveDramaSystemVoice(Number(c.req.param('id')), body)
   if (!saved) return badRequest(c, '项目不存在')
   return success(c, saved)
+})
+
+// PUT /dramas/:id/shot-limit — 项目的单镜时长上限 { max_seconds: 3~120 | null }（null / 0 = 跟随视频配置，都没设按 15 秒）
+app.put('/:id/shot-limit', async (c) => {
+  const id = Number(c.req.param('id'))
+  const body = await c.req.json().catch(() => ({}))
+  if (!(await saveDramaShotMax(id, body.max_seconds))) return badRequest(c, '项目不存在')
+  return success(c, { project_max: await getDramaShotMax(id) })
 })
 
 // DELETE /dramas/:id - Soft delete

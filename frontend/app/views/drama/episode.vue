@@ -564,6 +564,43 @@
               <span class="dim" style="font-size:12px">{{ t('episode.prod.videos') }}</span>
               <span class="tag mono">{{ t('episode.sb.segmentStat', { n: sbs.length, dur: totalDuration }) }}</span>
               <span class="tag mono" :title="t('episode.vid.aspectRatio')">{{ dramaAspectRatio }}</span>
+              <div class="shot-limit-wrap">
+                <button type="button" class="tag mono shot-limit-tag" :title="shotLimitSourceText" @click="toggleShotLimit">{{ t('episode.shotLimit.tag', { n: shotLimit.max_seconds }) }}</button>
+                <template v-if="shotLimitOpen">
+                  <div class="shot-limit-backdrop" @click="shotLimitOpen = false" />
+                  <div class="shot-limit-pop">
+                    <div class="shot-limit-title">{{ t('episode.shotLimit.title') }}</div>
+                    <div class="shot-limit-presets">
+                      <button
+                        v-for="n in SHOT_LIMIT_PRESETS"
+                        :key="n"
+                        type="button"
+                        :class="['shot-limit-chip', { 'is-on': Number(shotLimitDraft) === n }]"
+                        @click="shotLimitDraft = n"
+                      >{{ t('episode.shotLimit.preset', { n }) }}</button>
+                    </div>
+                    <div class="shot-limit-row">
+                      <input v-model="shotLimitDraft" class="input input-sm" type="number" :min="shotLimit.range.min" :max="shotLimit.range.max" step="1" :placeholder="String(shotLimit.config_max || shotLimit.default_max)" />
+                      <span class="dim">{{ t('episode.shotLimit.seconds') }}</span>
+                      <button type="button" class="btn btn-sm btn-primary ml-auto" :disabled="shotLimitSaving" @click="saveShotLimit(shotLimitDraft)">{{ t('common.save') }}</button>
+                    </div>
+                    <div class="shot-limit-note">{{ shotLimitSourceText }}</div>
+                    <div class="shot-limit-note">{{ t('episode.shotLimit.explain', { n: shotLimit.max_seconds, chars: shotLimit.dialogue_chars }) }}</div>
+                    <button v-if="shotLimit.project_max" type="button" class="btn btn-sm" :disabled="shotLimitSaving" @click="saveShotLimit(null)">{{ shotLimit.config_max ? t('episode.shotLimit.followConfig', { n: shotLimit.config_max }) : t('episode.shotLimit.useDefault', { n: shotLimit.default_max }) }}</button>
+                  </div>
+                </template>
+              </div>
+              <button
+                v-if="overMaxShots.length"
+                type="button"
+                class="btn btn-sm shot-split-all"
+                :disabled="splittingShots"
+                :title="t('episode.split.allTip', { max: shotLimit.max_seconds })"
+                @click="splitLongShots()"
+              >
+                <Loader2 v-if="splittingShots" :size="11" class="animate-spin" />
+                {{ t('episode.split.all', { n: overMaxShots.length, max: shotLimit.max_seconds }) }}
+              </button>
               <div class="ml-auto flex gap-1">
                 <button class="btn btn-sm" :disabled="rn" @click="doBreakdown">
                   <Loader2 v-if="rt === 'storyboard_breaker'" :size="11" class="animate-spin" />
@@ -667,7 +704,12 @@
                       <span class="video-task-sep">·</span>
                       <span>{{ task.duration }}s</span>
                       <span
-                        v-if="task.storyboard.timing && ['too_long', 'too_short'].includes(task.storyboard.timing.status)"
+                        v-if="task.storyboard.timing?.over_max"
+                        class="video-task-timing-warn is-over"
+                        :title="t('episode.direction.timingHint.overMax', overMaxParams(task.storyboard.timing))"
+                      >{{ t('episode.direction.badgeOverMax') }}</span>
+                      <span
+                        v-else-if="task.storyboard.timing && ['too_long', 'too_short'].includes(task.storyboard.timing.status)"
                         class="video-task-timing-warn"
                         :title="t('episode.direction.timingHint.' + task.storyboard.timing.status, { idle: task.storyboard.timing.idle_seconds })"
                       >{{ task.storyboard.timing.status === 'too_long' ? t('episode.direction.badgeLong') : t('episode.direction.badgeShort') }}</span>
@@ -967,14 +1009,24 @@
                       <div class="video-timing-line">
                         <span>{{ t('episode.direction.timing', { lines: selectedSb.timing.lines, need: selectedSb.timing.needed_seconds, dur: selectedSb.duration || 10 }) }}<span v-if="selectedSb.timing.source" class="dim"> · {{ t('episode.direction.timingSource.' + selectedSb.timing.source) }}</span></span>
                         <button
-                          v-if="selectedSb.timing.status !== 'ok' && selectedSb.timing.recommended && selectedSb.timing.recommended !== Number(selectedSb.duration)"
+                          v-if="selectedSb.timing.over_max && selectedSb.timing.split_parts > 1"
+                          type="button"
+                          class="btn btn-sm btn-primary"
+                          :disabled="splittingShots"
+                          @click="splitLongShots(selectedSb)"
+                        >
+                          <Loader2 v-if="splittingShots" :size="11" class="animate-spin" />
+                          {{ t('episode.direction.splitBtn', { n: selectedSb.timing.split_parts }) }}
+                        </button>
+                        <button
+                          v-else-if="selectedSb.timing.status !== 'ok' && selectedSb.timing.recommended && selectedSb.timing.recommended !== Number(selectedSb.duration)"
                           type="button"
                           class="btn btn-sm"
                           @click="fitDurationToDialogue(selectedSb)"
                         >{{ t('episode.direction.fit', { n: selectedSb.timing.recommended }) }}</button>
                       </div>
-                      <div class="video-timing-hint">{{ selectedSb.timing.status === 'too_short' && selectedSb.timing.needed_seconds > 15.5
-                        ? t('episode.direction.timingHint.overMax', { need: selectedSb.timing.needed_seconds, n: Math.ceil(selectedSb.timing.needed_seconds / 12) })
+                      <div class="video-timing-hint">{{ selectedSb.timing.over_max
+                        ? t('episode.direction.timingHint.overMax', overMaxParams(selectedSb.timing))
                         : t('episode.direction.timingHint.' + selectedSb.timing.status, { idle: selectedSb.timing.idle_seconds }) }}</div>
                     </div>
                     <label class="video-direction-toggle" :title="t('episode.direction.dialogueLockTip')">
@@ -1980,6 +2032,94 @@ async function setSystemVoiceEnabled(on) {
   if (on) {
     toast.success(t('episode.systemVoice.enabledToast', { name: systemVoice.name || t('episode.systemVoice.defaultName') }))
     nextTick(() => { try { systemVoiceOptsEl.value?.scrollIntoView({ block: 'nearest' }) } catch {} })
+  }
+}
+// ===== 单镜时长上限：项目设置（dramas.metadata.shot_max_seconds）与视频配置的 max_duration 取小的，都没设按 15 秒 =====
+const SHOT_LIMIT_PRESETS = [5, 6, 8, 10, 12, 15, 20]
+const shotLimit = reactive({ max_seconds: 15, source: 'default', project_max: null, config_max: null, config_name: null, default_max: 15, range: { min: 3, max: 120 }, dialogue_chars: 50 })
+const shotLimitOpen = ref(false)
+const shotLimitDraft = ref('')
+const shotLimitSaving = ref(false)
+const splittingShots = ref(false)
+async function loadShotLimit() {
+  if (!epId.value) return
+  try { Object.assign(shotLimit, await episodeAPI.shotLimit(epId.value) || {}) } catch {}
+}
+const shotLimitSourceText = computed(() => {
+  if (shotLimit.source === 'config') return t('episode.shotLimit.sourceConfig', { name: shotLimit.config_name || '', n: shotLimit.config_max })
+  if (shotLimit.source === 'project') {
+    return shotLimit.config_max ? t('episode.shotLimit.sourceProjectConfig', { n: shotLimit.project_max, cfg: shotLimit.config_max, name: shotLimit.config_name || '' }) : t('episode.shotLimit.sourceProject', { n: shotLimit.project_max })
+  }
+  return t('episode.shotLimit.sourceDefault', { n: shotLimit.default_max })
+})
+function toggleShotLimit() {
+  shotLimitOpen.value = !shotLimitOpen.value
+  if (shotLimitOpen.value) shotLimitDraft.value = shotLimit.project_max || shotLimit.max_seconds
+}
+async function saveShotLimit(value) {
+  const id = drama.value?.id || dramaId
+  const n = value === null || value === '' ? null : Math.round(Number(value))
+  if (n !== null && (!Number.isFinite(n) || n < shotLimit.range.min || n > shotLimit.range.max)) {
+    toast.warning(t('episode.shotLimit.invalid', { min: shotLimit.range.min, max: shotLimit.range.max }))
+    return
+  }
+  shotLimitSaving.value = true
+  try {
+    await dramaAPI.saveShotLimit(id, n)
+    await loadShotLimit()
+    shotLimitOpen.value = false
+    await refresh()
+    toast.success(t('episode.shotLimit.saved', { n: shotLimit.max_seconds }))
+    if (overMaxShots.value.length) toast.info(t('episode.split.overAfterSave', { n: overMaxShots.value.length, max: shotLimit.max_seconds }))
+  } catch (e) {
+    toastError(e)
+  } finally {
+    shotLimitSaving.value = false
+  }
+}
+/** 台词超过单镜上限的分镜 */
+const overMaxShots = computed(() => sbs.value.filter(sb => sb.timing?.over_max))
+function overMaxParams(timing) {
+  return { need: timing?.needed_seconds, max: timing?.max_seconds || shotLimit.max_seconds, n: timing?.split_parts || Math.ceil((timing?.needed_seconds || 0) / Math.max(3, (timing?.max_seconds || 15) - 2)) }
+}
+function reportShotSplit(res, { quiet = false } = {}) {
+  const split = res?.split || []
+  const skipped = res?.skipped || []
+  if (split.length) toast.success(t('episode.split.done', { n: split.length, parts: split.reduce((s, x) => s + x.parts, 0), max: res.max_seconds, shots: split.map(x => '#' + x.shot_number).join(' ') }))
+  const withVideo = skipped.filter(x => x.reason === 'has_video').length
+  const generating = skipped.filter(x => x.reason === 'generating').length
+  const unsplittable = skipped.filter(x => x.reason === 'unsplittable').length
+  if (withVideo) toast.info(t('episode.split.skippedVideo', { n: withVideo }))
+  if (generating) toast.info(t('episode.split.skippedGenerating', { n: generating }))
+  if (unsplittable) toast.warning(t('episode.split.unsplittable', { n: unsplittable }))
+  if (!quiet && !split.length && !skipped.length) toast.info(t('episode.split.none', { max: res?.max_seconds || shotLimit.max_seconds }))
+}
+/** 按台词自动拆开：传 sb 只拆这一个（已有视频时先确认），不传拆本集所有超时、还没视频的分镜 */
+async function splitLongShots(sb) {
+  if (!epId.value || splittingShots.value) return
+  const hasVideo = !!(sb && (sb.video_url || sb.videoUrl))
+  if (hasVideo && !window.confirm(t('episode.split.confirmVideo'))) return
+  splittingShots.value = true
+  try {
+    const res = await episodeAPI.splitLongShots(epId.value, { storyboard_ids: sb ? [sb.id] : undefined, include_with_video: hasVideo })
+    await refresh()
+    reportShotSplit(res)
+    // 按分镜描述拆开的段落没有视频提示词：只给这几段补写
+    const touched = [...(res?.split || []).map(x => x.storyboard_id), ...(res?.created_ids || [])]
+    const missing = sbs.value.filter(x => touched.includes(x.id) && !(x.video_prompt || x.videoPrompt || '').trim()).map(x => x.id)
+    if (missing.length && !videoPromptBatch.value.running) {
+      try {
+        const st = await episodeAPI.generateVideoPrompts(epId.value, chatModelOverride(), chatConfigId(), missing)
+        if (st?.total) {
+          videoPromptBatch.value = { running: true, total: st.total, completed: 0 }
+          pollVideoPromptBatch()
+        }
+      } catch (e) { toastError(e) }
+    }
+  } catch (e) {
+    toastError(e)
+  } finally {
+    splittingShots.value = false
   }
 }
 /** 系统音开启时，角色表里名叫「系统」的只有声音：不需要出图 */
@@ -3664,6 +3804,7 @@ async function refresh() {
       try { scenes.value = await episodeAPI.scenes(ep.id) } catch { scenes.value = [] }
       try { propItems.value = await episodeAPI.props(ep.id) } catch { propItems.value = [] }
       sbs.value = await episodeAPI.storyboards(ep.id)
+      loadShotLimit()
       selectedVideoSbIds.value = selectedVideoSbIds.value.filter(id => sbs.value.some(sb => sb.id === id))
       if (sbs.value.length) {
         const currentSelectedId = selectedSb.value?.id
@@ -3976,6 +4117,7 @@ function pollVideoPromptBatch(attempts = 240) {
         await refresh()
         if (st.status === 'done') {
           toast.success(st.failed ? t('episode.sb.batchDoneFailed', { n: st.failed }) : t('episode.sb.batchDone'))
+          if (st.split) toast.info(t('episode.split.afterPrompts', { n: st.split, max: shotLimit.max_seconds }))
         } else {
           toastError(st.error, { fallback: 'episode.sb.batchFailed' })
         }
@@ -4017,8 +4159,10 @@ function doBreakdown() {
 }
 
 /** 拆分完成后刷新并自动补齐缺失的视频提示词（兜住 Agent 漏写/截断） */
-async function onBreakdownDone() {
+async function onBreakdownDone(data) {
   await refresh()
+  // 台词超过单镜上限的分镜已被系统按台词自动拆开
+  if (data?.auto_split) reportShotSplit(data.auto_split, { quiet: true })
   const missing = sbs.value.filter(sb => !(sb.video_prompt || sb.videoPrompt || '').trim())
   if (missing.length) batchVideoPrompts()
 }
@@ -5651,6 +5795,21 @@ onMounted(() => setTimeout(() => autoTour('episode', EPISODE_TOUR, t), 900))
 /* Production content */
 .prod-content { flex: 1; overflow-y: auto; padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 10px; }
 .prod-section-bar { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.shot-limit-wrap { position: relative; display: inline-flex; }
+.shot-limit-tag { cursor: pointer; border: 1px dashed var(--border); background: transparent; color: inherit; font: inherit; }
+.shot-limit-tag:hover { border-color: var(--accent); }
+.shot-limit-backdrop { position: fixed; inset: 0; z-index: 40; }
+.shot-limit-pop { position: absolute; top: calc(100% + 6px); left: 0; z-index: 41; width: 300px; max-width: calc(100vw - 32px); padding: 12px; display: flex; flex-direction: column; gap: 8px; background: var(--surface-raised, var(--bg-1)); border: 1px solid var(--border); border-radius: var(--radius-lg, 10px); box-shadow: 0 10px 30px rgba(0,0,0,.25); font-size: 12px; }
+.shot-limit-title { font-weight: 600; font-size: 13px; }
+.shot-limit-presets { display: flex; flex-wrap: wrap; gap: 4px; }
+.shot-limit-chip { padding: 2px 9px; border: 1px solid var(--border); border-radius: 999px; background: transparent; color: var(--text-1); font-size: 12px; cursor: pointer; }
+.shot-limit-chip:hover { border-color: var(--accent); }
+.shot-limit-chip.is-on { border-color: var(--accent); color: var(--accent-text, var(--accent)); background: var(--accent-bg); }
+.shot-limit-row { display: flex; align-items: center; gap: 6px; }
+.shot-limit-row .input { width: 80px; }
+.shot-limit-note { color: var(--text-2); line-height: 1.5; }
+.shot-split-all { border-color: var(--warning); color: var(--warning); background: var(--warning-bg); }
+.video-task-timing-warn.is-over { color: var(--error); }
 
 /* 资产栏动作：提取（虚线中性）与批量生成（强调色）视觉分组 */
 .asset-bar-actions { align-items: center; }
