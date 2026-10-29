@@ -1230,7 +1230,8 @@
         "ok": "Duration matches the lines. Generation locks these lines; nobody speaks the rest of the time.",
         "too_long": "About {idle}s with nobody speaking — video models tend to invent lines (gibberish). Shorten the shot to fit the lines, or describe concrete action for that time.",
         "too_short": "The lines do not fit ({idle}s short) and will be cut off or rushed. Lengthen the shot or move some lines to the next one.",
-        "silent": "This shot has no dialogue."
+        "silent": "This shot has no dialogue.",
+        "overMax": "The lines need about {need}s, but one shot (one video generation) is at most 15s, so changing the duration won't help: split it into about {n} consecutive shots. Re-split the storyboard (long lines are now split by sentence) or move the later lines to the next shot."
       },
       "badgeLong": "too long",
       "badgeShort": "lines overrun",

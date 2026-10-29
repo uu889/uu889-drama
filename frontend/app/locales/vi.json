@@ -1230,7 +1230,8 @@
         "ok": "Thời lượng khớp với thoại. Khi tạo sẽ khóa các câu này; thời gian còn lại không ai nói.",
         "too_long": "Có khoảng {idle} giây không ai nói — mô hình video dễ tự bịa thoại (nói lung tung). Hãy rút ngắn theo thoại hoặc mô tả hành động cụ thể cho khoảng đó.",
         "too_short": "Thoại không đủ chỗ (thiếu {idle} giây), sẽ bị cắt hoặc nói quá nhanh. Hãy tăng thời lượng hoặc chuyển bớt thoại sang phân cảnh sau.",
-        "silent": "Phân cảnh này không có thoại."
+        "silent": "Phân cảnh này không có thoại.",
+        "overMax": "Lời thoại cần khoảng {need} giây, một phân cảnh (một lần tạo video) tối đa 15 giây: hãy tách thành khoảng {n} phân cảnh liên tiếp (tách lại hoặc chuyển phần thoại sau sang phân cảnh kế)."
       },
       "badgeLong": "quá dài",
       "badgeShort": "thoại quá dài",

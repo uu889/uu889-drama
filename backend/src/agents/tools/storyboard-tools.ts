@@ -254,11 +254,24 @@ const storyboardFields = z.object({
 async function fitDurationToDialogue(sb: z.infer<typeof storyboardFields>, limits: ShotLimits): Promise<{ duration: number; warning?: string }> {
   const fitted = await fitDurationToDialogueRaw(sb)
   const max = limits.maxDuration
-  if (!max || fitted.duration <= max) return fitted
+  // 没设单镜上限时也按 15 秒算（一个分镜就是一次视频生成，台词再多也只能 15 秒）：台词超出就要求拆段
+  if (!max) {
+    if (fitted.needed && fitted.needed > SHOT_MAX_SECONDS + 0.5) {
+      const parts = Math.ceil(fitted.needed / 12)
+      return {
+        duration: SHOT_MAX_SECONDS,
+        warning: `#${sb.shot_number}: 台词需要约 ${fitted.needed} 秒（${fitted.chars} 字），一个分镜最多 ${SHOT_MAX_SECONDS} 秒，必须拆开：把台词在句号 / 停顿处断成几句，分到 ${parts} 个连续的同场景分镜（每段台词 ≤ 50 字，中间插听者反应），用 save_storyboards 重写这一批；video_prompt 只写本段那几句`,
+      }
+    }
+    return { duration: fitted.duration, warning: fitted.warning }
+  }
+  // recommended 本身封顶 15 秒，要看台词真正需要的秒数
+  const need = Math.max(fitted.duration, Math.ceil(fitted.needed || 0))
+  if (need <= max) return { duration: fitted.duration, warning: fitted.warning }
   // 视频接口单次最多 max 秒：夹到上限，并让 Agent 把这段拆开
   return {
     duration: max,
-    warning: `#${sb.shot_number}: 这段需要约 ${fitted.duration} 秒，超过视频接口单镜上限 ${max} 秒，时长已改为 ${max} 秒。请把这段在台词 / 动作的停顿处拆成两个连续分镜（用 save_storyboards 重写这一批），否则台词会被截掉或念得过快`,
+    warning: `#${sb.shot_number}: 这段需要约 ${need} 秒，超过视频接口单镜上限 ${max} 秒，时长已改为 ${max} 秒。请把这段在台词 / 动作的停顿处拆成两个连续分镜（用 save_storyboards 重写这一批），否则台词会被截掉或念得过快`,
   }
 }
 
@@ -270,7 +283,10 @@ function promptBudgetWarning(shot: number | string, videoPrompt: string | undefi
   return `#${shot}: video_prompt ${bytes} 字节，超过预算 ${limits.promptBudgetBytes} 字节（视频接口上限 ${limits.maxPromptBytes} 字节，还要留给自动追加的导演指令）。请精简后用 update_storyboard 重写，否则提交时会被自动截短`
 }
 
-async function fitDurationToDialogueRaw(sb: z.infer<typeof storyboardFields>): Promise<{ duration: number; warning?: string }> {
+/** 一个分镜（一次视频生成）最长秒数：主流视频模型单次最多 15 秒 */
+const SHOT_MAX_SECONDS = 15
+
+async function fitDurationToDialogueRaw(sb: z.infer<typeof storyboardFields>): Promise<{ duration: number; warning?: string; needed?: number; chars?: number }> {
   const requested = Number(sb.duration) || 10
   const ids = [...new Set((sb.character_ids || []).filter(Boolean))]
   const names = ids.length
@@ -279,6 +295,8 @@ async function fitDurationToDialogueRaw(sb: z.infer<typeof storyboardFields>): P
   const timing = checkShotTiming(sb.description, requested, names, sb.video_prompt)
   if (timing.status === 'too_short' && timing.recommended) {
     return {
+      needed: timing.neededSeconds,
+      chars: timing.lines.reduce((n, l) => n + l.text.length, 0),
       duration: Math.max(requested, timing.recommended),
       warning: `#${sb.shot_number}: 台词需要约 ${timing.neededSeconds} 秒，时长已从 ${requested} 秒自动加到 ${Math.max(requested, timing.recommended)} 秒`,
     }

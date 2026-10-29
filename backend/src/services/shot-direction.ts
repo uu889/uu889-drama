@@ -45,6 +45,7 @@ const CJK_RE = /[぀-ヿ㐀-䶿一-鿿가-힯]/g
 const LATIN_WORD_RE = /[A-Za-z0-9]+(?:['’][A-Za-z]+)?/g
 const QUOTE_PAIRS: Record<string, string> = { '\u300c': '\u300d', '\u300e': '\u300f', '\u201c': '\u201d', '"': '"' }
 const QUOTE_OPEN = Object.keys(QUOTE_PAIRS).join('')
+const QUOTE_CHARS = QUOTE_OPEN + Object.values(QUOTE_PAIRS).join('')
 /** 说话动词 / 标记（中英日韩） */
 const SPEECH_MARKER_RE = /(说|說|道|问|問|答|喊|叫|吼|念|嘀咕|低语|says?|said|asks?|asked|replies|replied|shouts?|whispers?|言う|言った|話す|叫ぶ|囁く|말한다|말했다|외친다|묻는다|속삭인다)\s*[:：]?\s*$/i
 const COLON_END_RE = /[:：]\s*$/
@@ -118,12 +119,23 @@ export function parseShotDialogue(
     const open = text[i]
     if (!QUOTE_OPEN.includes(open)) continue
     const close = QUOTE_PAIRS[open]
-    const end = text.indexOf(close, i + 1)
+    let end = text.indexOf(close, i + 1)
     if (end < 0) break
+    // 引号没闭合（漏了」）时 indexOf 会一路找到下一句台词的」，把中间的动作描写、下一个【镜头N】都算成台词：
+    // 遇到新的同种开引号或【镜头 就当作这句在那之前结束（截到最后一个句末标点）
+    const nextOpen = open !== close ? text.indexOf(open, i + 1) : -1
+    const nextShot = text.indexOf('【镜头', i + 1)
+    const stop = Math.min(...[nextOpen, nextShot].filter((n) => n >= 0 && n < end))
+    const truncated = Number.isFinite(stop)
+    if (truncated) {
+      const seg = text.slice(i + 1, stop)
+      const lastStop = Math.max(...['。', '！', '？', '!', '?', '…'].map((c) => seg.lastIndexOf(c)))
+      end = i + 1 + (lastStop >= 0 ? lastStop + 1 : seg.length)
+    }
     const quote = text.slice(i + 1, end).trim()
     // 往前取到分句边界
     let start = i
-    while (start > 0 && !CLAUSE_BREAK_RE.test(text[start - 1]) && i - start < 40) start--
+    while (start > 0 && !CLAUSE_BREAK_RE.test(text[start - 1]) && !QUOTE_CHARS.includes(text[start - 1]) && i - start < 40) start--
     const before = text.slice(start, i)
     if (quote && (SPEECH_MARKER_RE.test(before) || COLON_END_RE.test(before))) {
       const label = before.replace(/[:：]\s*$/, '').trim()
@@ -153,7 +165,8 @@ export function parseShotDialogue(
       })
       covered.push([start, end])
     }
-    i = end
+    // 截短的那句后面紧跟着下一句的开引号：下一轮要从它开始
+    i = truncated ? end - 1 : end
   }
 
   // 1b. 系统流常见的不带引号写法：【系统：……】【叮！……】 / 系统播报：……（只在开启系统音时识别）

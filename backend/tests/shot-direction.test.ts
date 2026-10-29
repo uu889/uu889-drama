@@ -141,3 +141,18 @@ test('timing follows the video prompt lines when the description carries the who
   assert.match(dir, /只有以下 1 句话/)
   assert.doesNotMatch(dir, /前些日子出了邪事/)
 })
+
+test('an unclosed quote does not swallow the action text and the next line', () => {
+  // 第一句漏了闭引号：不能一路吞到下一句的」
+  const desc = '【镜头1】老太太揉面，说：「我儿子在镇口开杂货铺，铺子门檐上挂了个铜铃铛。孩子停下筷子，盯着灶火看了很久很久，火苗一跳一跳的，屋外的风把窗纸吹得哗哗响。【镜头2】孩子问：「后来呢？」'
+  const lines = parseShotDialogue(desc, ['老太太', '孩子'])
+  assert.equal(lines.length, 2)
+  assert.equal(lines[0].speaker, '老太太')
+  // 漏了闭引号就分不清台词在哪结束，最多到下一个【镜头N】 / 下一句开引号为止
+  assert.ok(lines[0].text.startsWith('我儿子在镇口开杂货铺') && !lines[0].text.includes('后来呢') && !lines[0].text.includes('镜头2'))
+  assert.equal(lines[1].speaker, '孩子')
+  assert.equal(lines[1].text, '后来呢？')
+  // 没有句末标点、直接接下一句开引号
+  const b = parseShotDialogue('小明说：「你好 小红说：「你也好」', ['小明', '小红'])
+  assert.deepEqual(b.map((l) => [l.speaker, l.text]), [['小明', '你好 小红说：'], ['小红', '你也好']])
+})

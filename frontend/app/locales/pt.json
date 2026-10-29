@@ -1230,7 +1230,8 @@
         "ok": "A duração combina com as falas. A geração trava estas falas; no resto do tempo ninguém fala.",
         "too_long": "Cerca de {idle} s sem ninguém falar: modelos de vídeo costumam inventar falas (balbucio). Encurte o plano ou descreva uma ação concreta para esse tempo.",
         "too_short": "As falas não cabem (faltam {idle} s) e serão cortadas ou apressadas. Aumente o plano ou passe falas para o próximo.",
-        "silent": "Este plano não tem diálogo."
+        "silent": "Este plano não tem diálogo.",
+        "overMax": "As falas precisam de cerca de {need} s e uma cena (uma geração de vídeo) tem no máximo 15 s: divida em cerca de {n} cenas seguidas (divida de novo ou mova as últimas falas para a próxima cena)."
       },
       "badgeLong": "longo demais",
       "badgeShort": "falas excedem",

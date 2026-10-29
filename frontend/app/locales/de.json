@@ -1230,7 +1230,8 @@
         "ok": "Dauer passt zum Text. Die Generierung fixiert diese Sätze; den Rest der Zeit spricht niemand.",
         "too_long": "Etwa {idle} s spricht niemand – Videomodelle erfinden dann gern Text (Kauderwelsch). Shot auf den Text kürzen oder konkrete Handlung für diese Zeit beschreiben.",
         "too_short": "Der Text passt nicht hinein ({idle} s zu kurz) und wird abgeschnitten oder gehetzt. Shot verlängern oder Sätze in den nächsten verschieben.",
-        "silent": "Dieser Shot hat keinen Dialog."
+        "silent": "Dieser Shot hat keinen Dialog.",
+        "overMax": "Der Text braucht ca. {need} s, eine Szene (eine Videogenerierung) hat höchstens 15 s: in ca. {n} aufeinanderfolgende Szenen teilen (neu aufteilen oder späteren Text in die nächste Szene verschieben)."
       },
       "badgeLong": "zu lang",
       "badgeShort": "Text zu lang",

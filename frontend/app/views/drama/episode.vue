@@ -973,7 +973,9 @@
                           @click="fitDurationToDialogue(selectedSb)"
                         >{{ t('episode.direction.fit', { n: selectedSb.timing.recommended }) }}</button>
                       </div>
-                      <div class="video-timing-hint">{{ t('episode.direction.timingHint.' + selectedSb.timing.status, { idle: selectedSb.timing.idle_seconds }) }}</div>
+                      <div class="video-timing-hint">{{ selectedSb.timing.status === 'too_short' && selectedSb.timing.needed_seconds > 15.5
+                        ? t('episode.direction.timingHint.overMax', { need: selectedSb.timing.needed_seconds, n: Math.ceil(selectedSb.timing.needed_seconds / 12) })
+                        : t('episode.direction.timingHint.' + selectedSb.timing.status, { idle: selectedSb.timing.idle_seconds }) }}</div>
                     </div>
                     <label class="video-direction-toggle" :title="t('episode.direction.dialogueLockTip')">
                       <input v-model="videoDirection.dialogue_lock" type="checkbox" />

@@ -1230,7 +1230,8 @@
         "ok": "La duración encaja con el texto. Se bloquean estas líneas; el resto del tiempo nadie habla.",
         "too_long": "Unos {idle} s sin que nadie hable: los modelos de vídeo tienden a inventar diálogo (galimatías). Acorta el plano o describe una acción concreta para ese tiempo.",
         "too_short": "Las líneas no caben (faltan {idle} s) y se cortarán o irán aceleradas. Alarga el plano o pasa líneas al siguiente.",
-        "silent": "Este plano no tiene diálogo."
+        "silent": "Este plano no tiene diálogo.",
+        "overMax": "El diálogo necesita unos {need} s y un plano (una generación de vídeo) dura como máximo 15 s: divídelo en unos {n} planos seguidos (vuelve a dividir o mueve las últimas frases al siguiente plano)."
       },
       "badgeLong": "demasiado largo",
       "badgeShort": "texto excede",

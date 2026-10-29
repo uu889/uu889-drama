@@ -1230,7 +1230,8 @@
         "ok": "La durée correspond au texte. La génération verrouille ces répliques ; personne ne parle le reste du temps.",
         "too_long": "Environ {idle} s sans parole : les modèles vidéo inventent alors des répliques (charabia). Raccourcissez le plan ou décrivez une action concrète pour ce temps.",
         "too_short": "Les répliques ne tiennent pas ({idle} s de trop peu) et seront coupées ou précipitées. Allongez le plan ou déplacez des répliques au suivant.",
-        "silent": "Ce plan n’a pas de dialogue."
+        "silent": "Ce plan n’a pas de dialogue.",
+        "overMax": "Les répliques demandent environ {need} s, un plan (une génération vidéo) dure au plus 15 s : découpez-le en environ {n} plans consécutifs (redécoupez ou déplacez la fin du texte au plan suivant)."
       },
       "badgeLong": "trop long",
       "badgeShort": "texte trop long",
