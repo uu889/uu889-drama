@@ -1247,6 +1247,8 @@
       "prevTextOnly": "Enchaîne sur le placement final du plan #{n} (sans son image).",
       "prevNoVideo": "Le plan #{n} n’a pas encore de vidéo : générez-le d’abord pour raccorder sur sa dernière image.",
       "prevAsFirst": "Démarre sur la dernière image du plan #{n} comme première image.",
+      "prevResetRef": "La dernière image du plan #{n} a déjà été enchaînée {d} fois ; ce plan l'utilise comme image de référence 1 et repart des images sources (évite la dégradation cumulée).",
+      "prevResetText": "La dernière image du plan #{n} a déjà été enchaînée {d} fois ; ce plan s'enchaîne par le texte seulement et repart des images sources (évite la dégradation cumulée).",
       "prevAsRef": "Utilise la dernière image du plan #{n} comme référence 1 pour des positions de départ identiques.",
       "chainBatch": "Raccord activé : {n} groupe(s) de plans d’un même décor seront générés dans l’ordre, chacun à partir de la dernière image du précédent.",
       "chainPaused": "Le plan précédent #{n} n'a pas été généré. Ce plan reprend sa dernière image : il a été mis en pause et non envoyé. Quand #{n} aura une vidéo, cliquez sur « Relancer les échecs » pour continuer dans l'ordre.",

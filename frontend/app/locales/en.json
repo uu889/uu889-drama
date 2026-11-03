@@ -1247,6 +1247,8 @@
       "prevTextOnly": "Continues from the end blocking of shot #{n} (without its image).",
       "prevNoVideo": "Shot #{n} has no video yet: generate it first so this shot can continue from its last frame.",
       "prevAsFirst": "Opens from the last frame of shot #{n} as the first frame.",
+      "prevResetRef": "The last frame of shot #{n} has already been chained {d} times; this shot uses it as reference image 1 and starts fresh from the source art (prevents quality loss building up).",
+      "prevResetText": "The last frame of shot #{n} has already been chained {d} times; this shot continues by text only and starts fresh from the source art (prevents quality loss building up).",
       "prevAsRef": "Uses the last frame of shot #{n} as reference 1 so the opening positions match.",
       "chainBatch": "Continuity is on: {n} group(s) of same-scene shots will be generated in order, each continuing from the previous last frame.",
       "chainPaused": "Previous shot #{n} did not generate, and this shot continues from its last frame, so it was paused and not submitted. Once #{n} has a video, click Retry failed to continue in order.",

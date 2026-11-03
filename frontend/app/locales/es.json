@@ -1247,6 +1247,8 @@
       "prevTextOnly": "Continúa desde las posiciones finales del plano #{n} (sin su imagen).",
       "prevNoVideo": "El plano #{n} aún no tiene vídeo: genéralo primero para enlazar con su último fotograma.",
       "prevAsFirst": "Empieza con el último fotograma del plano #{n} como primer fotograma.",
+      "prevResetRef": "El último fotograma del plano #{n} ya se ha encadenado {d} veces; este plano lo usa como imagen de referencia 1 y empieza de nuevo desde las imágenes originales (evita la pérdida de calidad acumulada).",
+      "prevResetText": "El último fotograma del plano #{n} ya se ha encadenado {d} veces; este plano enlaza solo por texto y empieza de nuevo desde las imágenes originales (evita la pérdida de calidad acumulada).",
       "prevAsRef": "Usa el último fotograma del plano #{n} como referencia 1 para igualar las posiciones iniciales.",
       "chainBatch": "Raccord activado: {n} grupo(s) de planos del mismo escenario se generarán en orden, cada uno desde el último fotograma del anterior.",
       "chainPaused": "La toma anterior #{n} no se generó. Esta toma continúa desde su último fotograma, así que se pausó y no se envió. Cuando #{n} tenga vídeo, pulsa «Reintentar fallidos» para seguir en orden.",

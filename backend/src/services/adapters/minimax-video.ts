@@ -10,7 +10,9 @@
  * - audio_url      参考音频（≤3），混合总数 ≤12
  *
  * 注意:
- * - 文生视频 ratio 必填且不能为 adaptive；有首帧图（图生视频）时恒为 adaptive，省略 ratio
+ * - 文生视频 ratio 必填且不能为 adaptive；官方文档写有首帧图时恒为 adaptive，
+ *   但第三方中转（如 MiniMax-H3 转发站）有首帧也报「ratio is required」，所以一律带上项目画幅；
+ *   上游因 ratio 拒绝有首帧的请求时 fallbackRequest 依次改成 adaptive / 不带 ratio，并按主机记住
  * - H3 原生音画同步生成，官方文档无独立 generate_audio 开关，该字段忽略
  */
 import type {
@@ -34,6 +36,25 @@ const PROMPT_MAX_CHARS = 7000
 
 /** MiniMax 支持的宽高比 */
 const VALID_RATIOS = new Set(['16:9', '9:16', '1:1', '4:3', '3:4', '21:9'])
+
+/** 有首帧时 ratio 怎么传：项目画幅 → adaptive → 不传；按 baseUrl 记住上游接受的写法（本次运行内） */
+type FirstFrameRatioMode = 'project' | 'adaptive' | 'omit'
+const FIRST_FRAME_RATIO_ORDER: FirstFrameRatioMode[] = ['project', 'adaptive', 'omit']
+const firstFrameRatioMode = new Map<string, FirstFrameRatioMode>()
+
+function hostKey(config: AIConfig): string {
+  return String(config.baseUrl || '').trim().replace(/\/+$/, '').toLowerCase()
+}
+
+/** 测试用：清空记住的 ratio 写法 */
+export function resetMiniMaxRatioModes() {
+  firstFrameRatioMode.clear()
+}
+
+export function normalizeMiniMaxRatio(raw?: string | null): string {
+  const ratio = String(raw || '').trim()
+  return VALID_RATIOS.has(ratio) ? ratio : '16:9'
+}
 
 function parseUrlArray(raw?: string | null): string[] {
   if (!raw) return []
@@ -91,11 +112,10 @@ export class MiniMaxVideoAdapter implements VideoProviderAdapter {
       resolution: this.normalizeResolution(record.resolution),
     }
 
-    // 图生视频（有首帧）ratio 恒为 adaptive，省略；文生视频 ratio 必填
-    if (!firstFrame) {
-      const ratio = (record.aspectRatio || '').trim()
-      body.ratio = VALID_RATIOS.has(ratio) ? ratio : '16:9'
-    }
+    // ratio：文生视频必填；有首帧时第三方中转也要求必填（「ratio is required」），默认同样带项目画幅
+    const mode = firstFrame ? (firstFrameRatioMode.get(hostKey(config)) || 'project') : 'project'
+    if (mode === 'project') body.ratio = normalizeMiniMaxRatio(record.aspectRatio)
+    else if (mode === 'adaptive') body.ratio = 'adaptive'
 
     return {
       url: joinProviderUrl(config.baseUrl, '/v2', '/video_generation'),
@@ -105,6 +125,21 @@ export class MiniMaxVideoAdapter implements VideoProviderAdapter {
         'Authorization': `Bearer ${config.apiKey}`,
       },
       body,
+    }
+  }
+
+  /** 有首帧的请求因 ratio 被拒：换下一种 ratio 写法再交（项目画幅 → adaptive → 不传），并记住 */
+  async fallbackRequest(config: AIConfig, record: VideoGenerationRecord, status: number, bodyText: string) {
+    const firstFrame = (record.firstFrameUrl || record.imageUrl || '').trim()
+    if (!firstFrame || status < 400 || status >= 500 || !/ratio/i.test(String(bodyText || ''))) return null
+    const key = hostKey(config)
+    const current = firstFrameRatioMode.get(key) || 'project'
+    const next = FIRST_FRAME_RATIO_ORDER[(FIRST_FRAME_RATIO_ORDER.indexOf(current) + 1) % FIRST_FRAME_RATIO_ORDER.length]
+    firstFrameRatioMode.set(key, next)
+    const label = next === 'project' ? `ratio=${normalizeMiniMaxRatio(record.aspectRatio)}` : next === 'adaptive' ? 'ratio=adaptive' : '不带 ratio'
+    return {
+      request: this.buildGenerateRequest(config, record),
+      note: `MiniMax 上游不接受当前 ratio 写法（${String(bodyText).slice(0, 100)}），已改为${label}重新提交`,
     }
   }
 

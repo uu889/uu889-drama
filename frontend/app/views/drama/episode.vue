@@ -4778,18 +4778,32 @@ const previousFrameMode = computed(() => {
   if (refImageLimit.value <= 1) return 'first_frame'
   return 'reference'
 })
-async function resolvePreviousEndFrame(sb) {
+// 上一镜结尾帧 + 它已经连续接了几代（chain_depth）。按视频地址缓存，换了视频重新查
+async function resolvePreviousEndFrameInfo(sb) {
   if (!videoDirection.continuity || !videoDirection.chain_previous) return null
   const prev = previousShotInScene(sb)
-  if (!prev || !(prev.video_url || prev.videoUrl)) return null
-  if (prev.end_frame_url) return prev.end_frame_url
+  const video = prev && (prev.video_url || prev.videoUrl)
+  if (!video) return null
+  if (prev.end_frame_url && prev._chain_info?.video === video) return { url: prev.end_frame_url, ...prev._chain_info }
   try {
     const res = await storyboardAPI.endFrame(prev.id)
     prev.end_frame_url = res?.end_frame_url || null
-    return prev.end_frame_url
+    prev._chain_info = { video, depth: Number(res?.chain_depth) || 0, max: Number(res?.max_first_frame_generations) || 2 }
+    return prev.end_frame_url ? { url: prev.end_frame_url, ...prev._chain_info } : null
   } catch {
     return null
   }
+}
+/**
+ * 本镜怎么用上一镜结尾帧。结尾帧已经连续当了 max 代首帧时（每代都会把压缩块、锐化、偏色放大一点，
+ * 同场景连着十几镜会越接越糊越艳），这一镜不再拿它当首帧：能放参考图的厂商改作参考图，
+ * 否则只用文字接戏，画面从角色 / 场景原图重新起一代
+ */
+function chainFrameModeFor(info) {
+  if (!info?.url) return null
+  const mode = previousFrameMode.value
+  if (mode === 'first_frame' && info.depth >= info.max) return refImageLimit.value > 1 ? 'reference' : null
+  return mode
 }
 /** 右栏接戏状态说明 */
 const continuityStatus = computed(() => {
@@ -4800,9 +4814,14 @@ const continuityStatus = computed(() => {
   const n = String(sbNumber(prev)).padStart(2, '0')
   if (!videoDirection.chain_previous) return { kind: 'text', text: t('episode.direction.prevTextOnly', { n }) }
   if (!(prev.video_url || prev.videoUrl)) return { kind: 'waiting', text: t('episode.direction.prevNoVideo', { n }) }
+  const info = prev._chain_info?.video === (prev.video_url || prev.videoUrl) ? prev._chain_info : null
+  const mode = info ? chainFrameModeFor({ url: prev.end_frame_url || 'x', ...info }) : previousFrameMode.value
+  const reset = previousFrameMode.value === 'first_frame' && mode !== 'first_frame'
   return {
     kind: 'ready',
-    text: previousFrameMode.value === 'first_frame' ? t('episode.direction.prevAsFirst', { n }) : t('episode.direction.prevAsRef', { n }),
+    text: reset
+      ? t(mode === 'reference' ? 'episode.direction.prevResetRef' : 'episode.direction.prevResetText', { n, d: info.depth })
+      : mode === 'first_frame' ? t('episode.direction.prevAsFirst', { n }) : t('episode.direction.prevAsRef', { n }),
     image: prev.end_frame_url ? '/' + prev.end_frame_url : '',
   }
 })
@@ -4817,8 +4836,9 @@ function fitDurationToDialogue(sb) {
 
 async function genVid(sb, opts = {}) {
   // 接戏：同场景上一镜的结尾画面（作为首帧，或作为第 1 张参考图）
-  const endFrame = await resolvePreviousEndFrame(sb)
-  const frameMode = endFrame ? previousFrameMode.value : null
+  const endInfo = await resolvePreviousEndFrameInfo(sb)
+  const endFrame = endInfo?.url || null
+  const frameMode = chainFrameModeFor(endInfo)
   const extraRef = frameMode === 'reference' ? endFrame : null
   const referenceImages = getShotReferenceImages(sb, extraRef)
   // 参考素材来自分镜绑定的角色/场景/道具图片（+ 接戏帧）

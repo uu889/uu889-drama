@@ -1247,6 +1247,8 @@
       "prevTextOnly": "Continua das posições finais do plano #{n} (sem a imagem).",
       "prevNoVideo": "O plano #{n} ainda não tem vídeo: gere-o primeiro para emendar no seu último quadro.",
       "prevAsFirst": "Começa com o último quadro do plano #{n} como primeiro quadro.",
+      "prevResetRef": "O último quadro do plano #{n} já foi encadeado {d} vezes; este plano usa-o como imagem de referência 1 e recomeça das imagens originais (evita perda de qualidade acumulada).",
+      "prevResetText": "O último quadro do plano #{n} já foi encadeado {d} vezes; este plano encadeia só por texto e recomeça das imagens originais (evita perda de qualidade acumulada).",
       "prevAsRef": "Usa o último quadro do plano #{n} como referência 1 para igualar as posições iniciais.",
       "chainBatch": "Continuidade ativada: {n} grupo(s) de planos do mesmo cenário serão gerados em ordem, cada um a partir do último quadro do anterior.",
       "chainPaused": "A tomada anterior #{n} não foi gerada. Esta tomada continua a partir do último quadro dela, então foi pausada e não enviada. Quando #{n} tiver vídeo, clique em \"Repetir falhas\" para continuar em ordem.",

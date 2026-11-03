@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { MAX_FIRST_FRAME_GENERATIONS, videoChainDepth } from '../services/chain-depth.js'
 import { eq } from 'drizzle-orm'
 import { db, getInsertId, schema } from '../db/index.js'
 import { success, created, now, badRequest } from '../utils/response.js'
@@ -201,7 +202,9 @@ app.post('/:id/end-frame', async (c) => {
   if (!sb.videoUrl) return badRequest(c, '该镜头还没有视频')
   const path = await extractVideoEndFrame(sb.videoUrl)
   if (!path) return badRequest(c, '结尾帧提取失败（视频文件不存在或 FFmpeg 不可用）')
-  return success(c, { end_frame_url: path })
+  // 这个结尾帧已经连续接了几代：到上限时前端不再拿它当首帧（防止越接越糊）
+  const depth = await videoChainDepth(sb.videoUrl)
+  return success(c, { end_frame_url: path, chain_depth: depth, max_first_frame_generations: MAX_FIRST_FRAME_GENERATIONS })
 })
 
 // DELETE /storyboards/:id

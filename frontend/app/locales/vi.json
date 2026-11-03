@@ -1247,6 +1247,8 @@
       "prevTextOnly": "Nối từ vị trí kết thúc của cảnh #{n} (không dùng hình).",
       "prevNoVideo": "Cảnh #{n} chưa có video: hãy tạo nó trước để cảnh này nối từ khung hình cuối.",
       "prevAsFirst": "Mở đầu bằng khung hình cuối của cảnh #{n} làm khung hình đầu.",
+      "prevResetRef": "Khung cuối của cảnh #{n} đã được nối {d} lần; cảnh này dùng nó làm ảnh tham chiếu 1 và bắt đầu lại từ ảnh gốc (tránh chất lượng giảm dần).",
+      "prevResetText": "Khung cuối của cảnh #{n} đã được nối {d} lần; cảnh này chỉ nối bằng văn bản và bắt đầu lại từ ảnh gốc (tránh chất lượng giảm dần).",
       "prevAsRef": "Dùng khung hình cuối của cảnh #{n} làm ảnh tham chiếu 1 để vị trí mở đầu khớp.",
       "chainBatch": "Đã bật nối cảnh: {n} nhóm cảnh cùng bối cảnh sẽ được tạo lần lượt, mỗi cảnh nối từ khung hình cuối của cảnh trước.",
       "chainPaused": "Cảnh trước #{n} chưa tạo được. Cảnh này nối tiếp khung hình cuối của nó nên đã tạm dừng, chưa gửi. Khi #{n} có video, bấm «Thử lại mục lỗi» để tiếp tục theo thứ tự.",

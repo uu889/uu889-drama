@@ -1247,6 +1247,8 @@
       "prevTextOnly": "Schließt an das End-Blocking von Shot #{n} an (ohne dessen Bild).",
       "prevNoVideo": "Shot #{n} hat noch kein Video: erst generieren, dann kann dieser Shot an sein letztes Bild anschließen.",
       "prevAsFirst": "Beginnt mit dem letzten Bild von Shot #{n} als Startbild.",
+      "prevResetRef": "Das letzte Bild von Shot #{n} wurde bereits {d}-mal verkettet; dieser Shot nutzt es als Referenzbild 1 und startet neu aus den Quellbildern (verhindert sich aufschaukelnden Qualitätsverlust).",
+      "prevResetText": "Das letzte Bild von Shot #{n} wurde bereits {d}-mal verkettet; dieser Shot schließt nur per Text an und startet neu aus den Quellbildern (verhindert sich aufschaukelnden Qualitätsverlust).",
       "prevAsRef": "Nutzt das letzte Bild von Shot #{n} als Referenz 1, damit die Startpositionen passen.",
       "chainBatch": "Anschluss ist an: {n} Gruppe(n) von Shots derselben Szene werden nacheinander erzeugt, jeweils ab dem letzten Bild des vorigen.",
       "chainPaused": "Vorherige Einstellung #{n} wurde nicht erzeugt. Diese Einstellung schließt an ihr letztes Bild an und wurde daher pausiert, nicht gesendet. Sobald #{n} ein Video hat, mit „Fehlgeschlagene wiederholen“ der Reihe nach fortsetzen.",
