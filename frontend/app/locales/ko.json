@@ -34,7 +34,10 @@
   "layout": {
     "nav": {
       "projects": "프로젝트",
-      "settings": "설정"
+      "settings": "설정",
+      "oneClick": "원클릭",
+      "agents": "에이전트",
+      "workflows": "워크플로"
     },
     "banner": {
       "missing": "{types} 모델이 아직 설정되지 않아 AI 기능을 사용할 수 없습니다",
@@ -1522,6 +1525,81 @@
         "title": "언제든 다시 보기",
         "desc": "이 \"?\" 버튼으로 이 페이지의 가이드를 다시 재생할 수 있습니다. 즐거운 제작 되세요!"
       }
+    }
+  },
+  "catalog": {
+    "common": {
+      "new": "New",
+      "search": "Search",
+      "mine": "Mine",
+      "none": "Nothing here yet",
+      "source": "Source",
+      "copy": "Copy",
+      "copied": "Copied",
+      "stop": "Stop",
+      "edit": "Edit",
+      "customize": "Make my version",
+      "name": "Name",
+      "category": "Category",
+      "description": "Description",
+      "other": "Other",
+      "saved": "Saved",
+      "deleteConfirm": "Delete \"{name}\"? The built-in version will come back.",
+      "overrideHint": "Built-in templates are never changed: saving creates \"my version\" with the same ID; delete it to restore the built-in one.",
+      "emptyOutput": "The model returned nothing. Try another text model."
+    },
+    "agents": {
+      "title": "Agents",
+      "sub": "Creative assistants with system prompts and skills: screenwriting, hook review, storyboards… Send any result to One-click.",
+      "pick": "Pick an agent on the left to start",
+      "skill": "Skill",
+      "clear": "Clear chat",
+      "welcome": "Chat with \"{name}\", or start with an example below",
+      "placeholder": "Describe what you need. You can paste a script, a novel excerpt or a synopsis",
+      "enterHint": "Enter to send, Shift+Enter for a new line",
+      "send": "Send",
+      "newTitle": "New agent",
+      "editTitle": "Edit agent",
+      "instructions": "System prompt",
+      "starters": "Example prompts",
+      "startersHint": "One per line, shown in an empty chat"
+    },
+    "workflows": {
+      "title": "Workflows",
+      "sub": "Multi-step AI writing chains. Edit any step's result and continue from the next step, then hand it to One-click for images and video.",
+      "pick": "Pick a workflow on the left",
+      "stepCount": "{n} steps",
+      "hasHandoff": "Hands off to One-click",
+      "run": "Run",
+      "rerunFrom": "Rerun from here",
+      "rerunFromTitle": "Use the (possibly edited) results above and run again from this step",
+      "fillInput": "Please fill in \"{label}\"",
+      "finished": "Workflow finished",
+      "stopped": "Stopped",
+      "newTitle": "New workflow",
+      "editTitle": "Edit workflow",
+      "jsonHint": "Steps run in order. Use {'{{'}inputs.key{'}}'} for inputs and {'{{'}steps.stepId{'}}'} for earlier results; add handoff to send the result to One-click.",
+      "badJson": "Invalid JSON: {msg}"
+    },
+    "styles": {
+      "button": "Style library",
+      "title": "Style library",
+      "desc": "Visual styles collected from the template library. Add one to use it for new projects; edit it later under Settings → Style presets.",
+      "empty": "The style library is empty",
+      "mine": "My styles",
+      "library": "Style library (added when chosen)",
+      "import": "Add to my styles",
+      "imported": "Added \"{name}\"",
+      "useIt": "New project with it"
+    },
+    "handoff": {
+      "button": "Send to One-click",
+      "title": "Send to One-click",
+      "desc": "Create a project with this text as episode 1's source, then rewrite, extract characters and scenes, generate images, storyboard and video.",
+      "titlePlaceholder": "Defaults to the first line",
+      "content": "Episode 1 source",
+      "hint": "You can keep editing it in the studio, or add attachments.",
+      "submit": "Create and open"
     }
   }
 }

@@ -17,8 +17,16 @@
 
       <nav class="header-nav">
         <NuxtLink to="/" class="nav-link" :class="{ active: route.path === '/' }">
-          <LayoutGrid :size="15" :stroke-width="1.8" />
-          <span>{{ t('layout.nav.projects') }}</span>
+          <Sparkles :size="15" :stroke-width="1.8" />
+          <span>{{ t('layout.nav.oneClick') }}</span>
+        </NuxtLink>
+        <NuxtLink to="/agents" class="nav-link" :class="{ active: route.path === '/agents' }">
+          <Bot :size="15" :stroke-width="1.8" />
+          <span>{{ t('layout.nav.agents') }}</span>
+        </NuxtLink>
+        <NuxtLink to="/workflows" class="nav-link" :class="{ active: route.path === '/workflows' }">
+          <Workflow :size="15" :stroke-width="1.8" />
+          <span>{{ t('layout.nav.workflows') }}</span>
         </NuxtLink>
         <NuxtLink to="/settings" class="nav-link" :class="{ active: route.path === '/settings' }">
           <Settings :size="15" :stroke-width="1.8" />
@@ -56,7 +64,7 @@
 </template>
 
 <script setup>
-import { LayoutGrid, Settings, TriangleAlert, Github } from 'lucide-vue-next'
+import { Sparkles, Bot, Workflow, Settings, TriangleAlert, Github } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import { aiConfigAPI } from '~/composables/useApi'
 import brandLogo from '~/assets/brand-logo.png'
@@ -206,6 +214,16 @@ watch(locale, checkAiConfigs)
 .nav-link:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3.5px var(--button-focus);
+}
+
+/* 四个入口（一键生成 / 智能体 / 工作流 / 设置）窄屏时收紧 */
+@media (max-width: 980px) {
+  .header { gap: 16px; padding: 0 16px; }
+  .brand-text { display: none; }
+  .nav-link { padding: 0 10px; }
+}
+@media (max-width: 640px) {
+  .nav-link span { display: none; }
 }
 
 /* Config banner — AI 服务未配置引导 */

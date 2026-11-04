@@ -1,0 +1,15 @@
+{
+  "id": "toy-figure-pvc",
+  "name": "潮玩手办质感",
+  "prompt": "high-quality painted PVC collectible figure look, soft studio softbox lighting, smooth glossy and matte paint finishes, subtle seam-free sculpt, macro lens shallow depth of field, display base and clean backdrop, cute proportions, high detail, high definition; avoid photoreal humans, avoid harsh shadows",
+  "description": "手办摄影质感，适合萌系短片、品牌联名、萌宠拟人。",
+  "tags": [
+    "3D",
+    "潮玩",
+    "Q版"
+  ],
+  "source": {
+    "name": "ai-pose-gallery-zh · 画风预设",
+    "url": "https://github.com/anhao/ai-pose-gallery-zh"
+  }
+}

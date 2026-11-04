@@ -1,0 +1,66 @@
+{
+  "id": "script-to-storyboard-prompts",
+  "name": "剧本转分镜与视频提示词",
+  "description": "剧本 → 场景站位 → 分镜表 → 视频提示词（Seedance / H3 二选一）→ 保真审查",
+  "category": "分镜",
+  "tags": [
+    "分镜",
+    "提示词",
+    "Seedance",
+    "MiniMax H3"
+  ],
+  "source": {
+    "name": "drama-skills · storyboard；seedance2-skill；insane-minimax-h3-max-prompts",
+    "url": "https://github.com/zenstory-ai/drama-skills"
+  },
+  "inputs": [
+    {
+      "key": "script",
+      "label": "剧本",
+      "placeholder": "粘贴单集剧本",
+      "multiline": true
+    },
+    {
+      "key": "model",
+      "label": "视频模型",
+      "placeholder": "Seedance 2.0 / MiniMax H3 / Grok",
+      "multiline": false
+    },
+    {
+      "key": "max_seconds",
+      "label": "单镜上限（秒）",
+      "placeholder": "例如：15",
+      "multiline": false
+    }
+  ],
+  "steps": [
+    {
+      "id": "blocking",
+      "name": "场景站位",
+      "agent": "storyboard-director",
+      "prompt": "为下面剧本的每一场写场景站位：固定锚点、人物相对位置、轴线。\n\n{{inputs.script}}"
+    },
+    {
+      "id": "boards",
+      "name": "分镜表",
+      "agent": "storyboard-director",
+      "prompt": "按站位：\n{{steps.blocking}}\n\n把剧本拆成分镜，每段 ≤{{inputs.max_seconds}} 秒，写职责、起点→唯一动作→终点、台词、参考图槽位：\n\n{{inputs.script}}"
+    },
+    {
+      "id": "prompts",
+      "name": "视频提示词",
+      "prompt": "目标模型：{{inputs.model}}。把下面每个分镜写成该模型的视频提示词（Seedance 用 @图片N 写清用途并分时段；MiniMax H3 用画面 / 声景 / 配乐三段和 [Shot k] 切点；台词逐字），只导演不编剧：\n\n{{steps.boards}}"
+    },
+    {
+      "id": "check",
+      "name": "保真审查",
+      "agent": "qc-reviewer",
+      "prompt": "对照剧本检查提示词有没有新增、删除、改归属剧情事件，以及可生成性问题，给出需要改的条目：\n\n剧本：\n{{inputs.script}}\n\n提示词：\n{{steps.prompts}}"
+    }
+  ],
+  "handoff": {
+    "type": "one-click",
+    "content_step": "boards",
+    "aspect_ratio": "9:16"
+  }
+}

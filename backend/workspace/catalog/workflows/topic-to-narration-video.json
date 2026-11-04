@@ -1,0 +1,55 @@
+{
+  "id": "topic-to-narration-video",
+  "name": "主题成解说视频",
+  "description": "主题 → 分段旁白 → 每段配图提示词 → 配音字幕建议，一键生成解说短视频",
+  "category": "编导",
+  "tags": [
+    "解说",
+    "知识",
+    "图文视频"
+  ],
+  "source": {
+    "name": "Pixelle-Video；MoneyPrinterTurbo",
+    "url": "https://github.com/ATH-MaaS/Pixelle-Video"
+  },
+  "inputs": [
+    {
+      "key": "topic",
+      "label": "主题",
+      "placeholder": "例如：为什么我们总在深夜焦虑",
+      "multiline": false
+    },
+    {
+      "key": "segments",
+      "label": "段数",
+      "placeholder": "默认 8",
+      "multiline": false
+    }
+  ],
+  "steps": [
+    {
+      "id": "narration",
+      "name": "分段旁白",
+      "agent": "narration-video-director",
+      "prompt": "围绕「{{inputs.topic}}」写 {{inputs.segments}} 段旁白，共鸣→观点→深入→启发，每段 1–3 句、开场方式各不相同。"
+    },
+    {
+      "id": "visuals",
+      "name": "配图提示词",
+      "agent": "narration-video-director",
+      "prompt": "为每段旁白写一条英文配图提示词（场景 + 人物动作 + 情绪 + 象征元素），按段编号对齐：\n\n{{steps.narration}}"
+    },
+    {
+      "id": "package",
+      "name": "分镜包",
+      "agent": "narration-video-director",
+      "prompt": "把旁白和配图合成分镜表：每段一镜，写旁白、配图提示词、建议时长，以及音色、字幕和配乐建议：\n\n旁白：\n{{steps.narration}}\n\n配图：\n{{steps.visuals}}"
+    }
+  ],
+  "handoff": {
+    "type": "one-click",
+    "content_step": "package",
+    "style": "conceptual-metaphor",
+    "aspect_ratio": "9:16"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "id": "minimal-abstract",
+  "name": "极简抽象",
+  "prompt": "minimalist abstract art, clean geometric shapes, modern design composition, soft pastel color palette, balanced negative space, subtle paper grain, high detail, high definition; avoid clutter, avoid realistic humans",
+  "description": "几何图形 + 柔和色，适合现代感、艺术感的解说内容。",
+  "tags": [
+    "极简",
+    "解说"
+  ],
+  "source": {
+    "name": "Pixelle-Video · 配图风格",
+    "url": "https://github.com/ATH-MaaS/Pixelle-Video"
+  }
+}

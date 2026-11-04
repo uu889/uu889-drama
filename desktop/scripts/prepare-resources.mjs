@@ -30,7 +30,11 @@ console.log('resources/frontend ✓')
 
 // 2. workspace 模板（skills 技能 + prompts 提示词）
 const workspaceSrc = path.join(REPO, 'backend', 'workspace')
-fs.cpSync(workspaceSrc, path.join(RES, 'workspace-template'), { recursive: true })
+fs.cpSync(workspaceSrc, path.join(RES, 'workspace-template'), {
+  recursive: true,
+  // catalog-user/ 是开发机上用户自建的模板，不打进安装包
+  filter: (src) => !src.split(path.sep).includes('catalog-user'),
+})
 console.log('resources/workspace-template ✓')
 
 // 3. ffmpeg 二进制（macOS/Linux 用 ffmpeg-static 当前平台的产物；

@@ -1,0 +1,15 @@
+{
+  "id": "comic-guofeng-strip",
+  "name": "国风条漫",
+  "prompt": "Chinese guofeng vertical webcomic style, ink line art with varied line weight, layered traditional coloring in muted mineral pigments (cinnabar, malachite, ochre, indigo), white space participating in spatial layout, ornamental hanfu fabrics with clear patterns, soft diffuse light, misty layered landscape background, high detail, high definition; avoid western fantasy armor, avoid neon colors",
+  "description": "墨线粗细变化、分层设色、留白组织空间。",
+  "tags": [
+    "漫剧",
+    "国风",
+    "条漫"
+  ],
+  "source": {
+    "name": "Drama Skills · 漫剧关键帧词表",
+    "url": "https://github.com/zenstory-ai/drama-skills"
+  }
+}

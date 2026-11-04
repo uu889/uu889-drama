@@ -1,0 +1,15 @@
+{
+  "id": "comic-watercolor-narrative",
+  "name": "水彩叙事",
+  "prompt": "watercolor narrative comic style, visible paper texture, transparent layered washes, contours that partially bleed at the edges while faces and hands stay readable, gentle warm-cool contrast, soft daylight, airy composition with breathing room, high detail, high definition; avoid opaque digital fills, avoid harsh black outlines",
+  "description": "纸面纹理、透明色层、轮廓局部晕开；与「水彩绘本」相比更偏叙事分镜。",
+  "tags": [
+    "漫剧",
+    "水彩",
+    "治愈"
+  ],
+  "source": {
+    "name": "Drama Skills · 漫剧关键帧词表",
+    "url": "https://github.com/zenstory-ai/drama-skills"
+  }
+}

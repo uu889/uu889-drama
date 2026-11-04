@@ -1,0 +1,14 @@
+{
+  "id": "stick-figure-sketch",
+  "name": "简笔线描",
+  "prompt": "stick figure sketch style, black hand-drawn lines on a pure white background, minimalist expressive poses, simple symbolic props, generous white space, clear visual metaphor, high detail, high definition; avoid color fills, avoid detailed anatomy",
+  "description": "黑白线条、纯白底，适合知识解说与观点类短视频，生成快且稳定。",
+  "tags": [
+    "简笔",
+    "解说"
+  ],
+  "source": {
+    "name": "Pixelle-Video · 配图风格",
+    "url": "https://github.com/ATH-MaaS/Pixelle-Video"
+  }
+}

@@ -24,6 +24,7 @@ import settings from './routes/settings.js'
 import storage from './routes/storage.js'
 import serverUpdate from './routes/serverUpdate.js'
 import modelInstaller from './routes/modelInstaller.js'
+import catalog from './routes/catalog.js'
 import { resumeJobsOnStartup } from './services/model-installer/jobs.js'
 import { requestLogger, errorHandler } from './middleware/logger.js'
 import { db, schema } from './db/index.js'
@@ -72,6 +73,7 @@ api.route('/storage', storage)
 api.route('/settings', settings)
 api.route('/server-update', serverUpdate)
 api.route('/model-installer', modelInstaller)
+api.route('/catalog', catalog)
 
 app.route('/api/v1', api)
 

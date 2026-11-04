@@ -1,0 +1,15 @@
+{
+  "id": "form-ink-wash",
+  "name": "水墨笔触",
+  "prompt": "Chinese ink wash painting animation style, rice paper texture, ink density hierarchy guiding attention (the most important figure carries the darkest ink), dry brush flying-white strokes for speed, controlled bleeding for emotion, deliberate empty space as unknown or distance, identity contours that never bleed (hair bun direction, three main robe strokes, darkest mark at the waist), minimal strokes for necessary geography such as door, table, river bank, sparse muted color only where it carries meaning, high detail, high definition; avoid noisy jittering strokes everywhere, avoid ink swallowing faces or held props",
+  "description": "浓淡、干湿、飞白、洇化、留白、笔势各有叙事职责；适合古风、仙侠、意境片。",
+  "tags": [
+    "国风",
+    "水墨",
+    "形态卡"
+  ],
+  "source": {
+    "name": "Drama Skills · 制作形态卡",
+    "url": "https://github.com/zenstory-ai/drama-skills"
+  }
+}

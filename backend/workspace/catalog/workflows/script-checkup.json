@@ -1,0 +1,48 @@
+{
+  "id": "script-checkup",
+  "name": "剧本体检",
+  "description": "剧本 → 质量门 → 剧情保真与可生成性 → 修改优先级清单",
+  "category": "质检",
+  "tags": [
+    "质检",
+    "剧本",
+    "审查"
+  ],
+  "source": {
+    "name": "drama-skills · short-drama-review",
+    "url": "https://github.com/zenstory-ai/drama-skills"
+  },
+  "inputs": [
+    {
+      "key": "script",
+      "label": "剧本或分镜",
+      "placeholder": "粘贴剧本、分镜或提示词",
+      "multiline": true
+    }
+  ],
+  "steps": [
+    {
+      "id": "gates",
+      "name": "质量门",
+      "agent": "qc-reviewer",
+      "prompt": "按剧本质量门逐条检查，写通过与未通过：\n\n{{inputs.script}}"
+    },
+    {
+      "id": "generability",
+      "name": "可生成性",
+      "agent": "qc-reviewer",
+      "prompt": "检查同框人数、精巧动作、无受力运动、一镜多事、对白装不下等可生成性问题：\n\n{{inputs.script}}"
+    },
+    {
+      "id": "plan",
+      "name": "修改清单",
+      "agent": "qc-reviewer",
+      "prompt": "合并以下两份审查，按优先级给出修改清单，最该先改的三件事放最前：\n\n{{steps.gates}}\n\n{{steps.generability}}"
+    }
+  ],
+  "handoff": {
+    "type": "one-click",
+    "content_step": "plan",
+    "aspect_ratio": "9:16"
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "id": "novel-to-drama",
+  "name": "小说改编短剧",
+  "description": "小说原文 → 快评 → 分集大纲 → 第 1 集剧本 → 质检，交给一键生成",
+  "category": "编剧",
+  "tags": [
+    "小说",
+    "改编",
+    "短剧"
+  ],
+  "source": {
+    "name": "shuohao-skills · novel 系列；drama-skills",
+    "url": "https://github.com/eternityspring/shuohao-skills"
+  },
+  "inputs": [
+    {
+      "key": "novel",
+      "label": "小说原文",
+      "placeholder": "粘贴小说章节原文",
+      "multiline": true
+    },
+    {
+      "key": "plan",
+      "label": "集数与时长",
+      "placeholder": "例如：20 集，每集 2 分钟",
+      "multiline": false
+    },
+    {
+      "key": "genre",
+      "label": "题材",
+      "placeholder": "例如：都市逆袭、古装复仇",
+      "multiline": false
+    }
+  ],
+  "steps": [
+    {
+      "id": "assess",
+      "name": "改编快评",
+      "agent": "novel-adapter",
+      "prompt": "按题材「{{inputs.genre}}」快评下面的原文值不值得改、最强卖点、最大风险、建议集数，只基于原文判断：\n\n{{inputs.novel}}"
+    },
+    {
+      "id": "outline",
+      "name": "分集大纲",
+      "agent": "novel-adapter",
+      "prompt": "根据快评：\n{{steps.assess}}\n\n按「{{inputs.plan}}」写快版骨架（改编说明、人物表、场景表、爽点表）和分集梗概，每集写开场钩子 / 本集剧情 / 结尾悬念。原文：\n{{inputs.novel}}"
+    },
+    {
+      "id": "ep1",
+      "name": "第 1 集剧本",
+      "agent": "drama-screenwriter",
+      "prompt": "根据分集大纲写第 1 集完整剧本，冷开场钩子，控制在目标时长：\n\n{{steps.outline}}"
+    },
+    {
+      "id": "review",
+      "name": "剧本质检",
+      "agent": "qc-reviewer",
+      "prompt": "按剧本质量门审查下面的剧本，列出问题并直接给出修订后的完整剧本：\n\n{{steps.ep1}}"
+    }
+  ],
+  "handoff": {
+    "type": "one-click",
+    "content_step": "review",
+    "aspect_ratio": "9:16"
+  }
+}

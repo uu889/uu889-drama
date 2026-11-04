@@ -34,7 +34,10 @@
   "layout": {
     "nav": {
       "projects": "项目",
-      "settings": "设置"
+      "settings": "设置",
+      "oneClick": "一键生成",
+      "agents": "智能体",
+      "workflows": "工作流"
     },
     "banner": {
       "missing": "尚未配置{types}模型,AI 功能无法使用",
@@ -95,7 +98,7 @@
   },
   "index": {
     "hero": {
-      "title": "项目启动台",
+      "title": "一键生成",
       "sub": "从一个创意到一部短剧，AI 全流程为你代工",
       "projectCount": "{n} 个项目",
       "activeCount": "{n} 进行中",
@@ -1522,6 +1525,81 @@
         "title": "随时重看引导",
         "desc": "点这个「?」按钮可重新播放本页引导。祝创作顺利！"
       }
+    }
+  },
+  "catalog": {
+    "common": {
+      "new": "新建",
+      "search": "搜索",
+      "mine": "我的",
+      "none": "还没有内容",
+      "source": "出处",
+      "copy": "复制",
+      "copied": "已复制",
+      "stop": "停止",
+      "edit": "编辑",
+      "customize": "改成我的版本",
+      "name": "名称",
+      "category": "分类",
+      "description": "简介",
+      "other": "其他",
+      "saved": "已保存",
+      "deleteConfirm": "删除「{name}」？内置版本会恢复。",
+      "overrideHint": "内置模板不会被改动：保存后生成同 ID 的「我的版本」，删除我的版本即恢复内置。",
+      "emptyOutput": "模型没有输出内容，请换个文字模型再试"
+    },
+    "agents": {
+      "title": "智能体",
+      "sub": "带系统提示词和 Skill 的创作助手：编剧、钩子诊断、分镜……结果可以直接交给一键生成。",
+      "pick": "从左侧选一个智能体开始",
+      "skill": "Skill",
+      "clear": "清空对话",
+      "welcome": "和「{name}」聊聊，或者点下面的示例开始",
+      "placeholder": "输入你的需求，可以粘贴剧本、小说片段或梗概",
+      "enterHint": "Enter 发送，Shift+Enter 换行",
+      "send": "发送",
+      "newTitle": "新建智能体",
+      "editTitle": "编辑智能体",
+      "instructions": "系统提示词",
+      "starters": "示例提问",
+      "startersHint": "每行一个，显示在空对话里"
+    },
+    "workflows": {
+      "title": "工作流",
+      "sub": "按步骤串起来的多段 AI 创作：每步的结果可以修改后从下一步继续，最后交给一键生成出图出视频。",
+      "pick": "从左侧选一个工作流",
+      "stepCount": "{n} 步",
+      "hasHandoff": "可交给一键生成",
+      "run": "运行",
+      "rerunFrom": "从这步重跑",
+      "rerunFromTitle": "用上面各步（可改过）的结果，从这一步重新往下跑",
+      "fillInput": "请填写「{label}」",
+      "finished": "工作流已完成",
+      "stopped": "已停止",
+      "newTitle": "新建工作流",
+      "editTitle": "编辑工作流",
+      "jsonHint": "steps 按顺序执行；提示词里用 {'{{'}inputs.key{'}}'} 引用输入、{'{{'}steps.步骤id{'}}'} 引用前面步骤的结果；handoff 填了就能把结果交给一键生成。",
+      "badJson": "JSON 格式不对：{msg}"
+    },
+    "styles": {
+      "button": "风格库",
+      "title": "风格库",
+      "desc": "从模板库收集的视觉风格，加入后新建项目时可以选，也可以在设置 → 风格预设里修改。",
+      "empty": "风格库还是空的",
+      "mine": "我的风格",
+      "library": "风格库（选中后自动加入）",
+      "import": "加入我的风格",
+      "imported": "已加入「{name}」",
+      "useIt": "用它新建项目"
+    },
+    "handoff": {
+      "button": "交给一键生成",
+      "title": "交给一键生成",
+      "desc": "新建一个项目，把这段内容作为第一集的原始内容，接着改写剧本、提取角色场景、出图、拆分镜、生成视频。",
+      "titlePlaceholder": "不填就用内容第一行",
+      "content": "第一集原始内容",
+      "hint": "进入工作台后可以继续修改，也可以上传附件补充。",
+      "submit": "创建并打开"
     }
   }
 }

@@ -1,0 +1,15 @@
+{
+  "id": "manga-screentone",
+  "name": "日式黑白漫画网点",
+  "prompt": "Japanese black-and-white manga page style, precise G-pen line art, screentone shading with layered dot densities, strong black spotting, speed lines and focus lines, expressive panel-ready composition, high detail, high definition; avoid color, avoid gray airbrush gradients",
+  "description": "G 笔线稿 + 网点纸阴影；与「黑白漫画」相比更偏日漫原稿。",
+  "tags": [
+    "黑白",
+    "漫画",
+    "网点"
+  ],
+  "source": {
+    "name": "ai-pose-gallery-zh · 画风预设",
+    "url": "https://github.com/anhao/ai-pose-gallery-zh"
+  }
+}

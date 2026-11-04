@@ -47,10 +47,11 @@ temp/
 /CLAUDE.md
 /AGENTS.md
 
-# Agent workspace (skills/prompts 为策划模板保持跟踪，其余产出忽略)
+# Agent workspace (skills/prompts/catalog 为策划模板保持跟踪，其余产出（含 catalog-user/）忽略)
 backend/workspace/*
 !backend/workspace/skills/
 !backend/workspace/prompts/
+!backend/workspace/catalog/
 
 # Desktop (Electron) build artifacts
 desktop/node_modules/

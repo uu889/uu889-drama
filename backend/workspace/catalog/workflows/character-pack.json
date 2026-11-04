@@ -1,0 +1,48 @@
+{
+  "id": "character-pack",
+  "name": "角色设定包",
+  "description": "角色描述 → 字段拆分与差异化 → 锚点与派生参考图提示词 → 锁面短语",
+  "category": "美术",
+  "tags": [
+    "角色",
+    "参考图",
+    "一致性"
+  ],
+  "source": {
+    "name": "shuohao-skills · character-refs",
+    "url": "https://github.com/eternityspring/shuohao-skills"
+  },
+  "inputs": [
+    {
+      "key": "characters",
+      "label": "角色描述",
+      "placeholder": "每行一个角色，一句话描述即可",
+      "multiline": true
+    },
+    {
+      "key": "form",
+      "label": "制作形态",
+      "placeholder": "Q 版 / 二维动画 / 国漫 / 实拍",
+      "multiline": false
+    }
+  ],
+  "steps": [
+    {
+      "id": "fields",
+      "name": "设定字段",
+      "agent": "character-designer",
+      "prompt": "按制作形态「{{inputs.form}}」把下面每个角色拆成设定字段，标注推断项，并写出每人与其他人的结构差异：\n\n{{inputs.characters}}"
+    },
+    {
+      "id": "prompts",
+      "name": "参考图提示词",
+      "agent": "character-designer",
+      "prompt": "为每个角色写正面全身锚点、大头照、侧面、背面四条英文提示词（纯白底，不写角色名和画风词），附一条锁面短语：\n\n{{steps.fields}}"
+    }
+  ],
+  "handoff": {
+    "type": "one-click",
+    "content_step": "prompts",
+    "aspect_ratio": "3:4"
+  }
+}

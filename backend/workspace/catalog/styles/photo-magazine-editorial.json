@@ -1,0 +1,14 @@
+{
+  "id": "photo-magazine-editorial",
+  "name": "日韩杂志画报",
+  "prompt": "Japanese and Korean fashion magazine editorial photography, clean minimal studio backdrop, refined muted color grading, flattering soft key light, emphasis on outfit tailoring and styling, poised model posture, high detail, high definition; avoid busy backgrounds, avoid harsh flash",
+  "description": "干净极简、突出人物颜值与服装剪裁，适合都市甜宠、霸总题材定妆。",
+  "tags": [
+    "写实",
+    "时尚"
+  ],
+  "source": {
+    "name": "ai-pose-gallery-zh · 画风预设",
+    "url": "https://github.com/anhao/ai-pose-gallery-zh"
+  }
+}

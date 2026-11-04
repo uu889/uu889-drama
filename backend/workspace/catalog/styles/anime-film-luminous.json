@@ -1,0 +1,14 @@
+{
+  "id": "anime-film-luminous",
+  "name": "动画电影光感",
+  "prompt": "theatrical anime film look, clear high-saturation light, delicate volumetric light shafts, luminous hair highlights, detailed skies with layered clouds, dense lens-flare-free atmospheric glow, clean vivid anime colors, meticulous background art, high detail, high definition; avoid muddy shadows, avoid flat lighting",
+  "description": "清澈高饱和光影、细腻体积光，适合青春、恋爱、治愈。",
+  "tags": [
+    "二次元",
+    "动画电影"
+  ],
+  "source": {
+    "name": "ai-pose-gallery-zh · 画风预设",
+    "url": "https://github.com/anhao/ai-pose-gallery-zh"
+  }
+}

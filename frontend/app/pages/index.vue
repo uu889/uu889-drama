@@ -12,6 +12,10 @@
         <span class="tag tag-accent">{{ t('index.hero.styleCount', { n: stylePresets.length }) }}</span>
       </div>
       <div class="head-actions">
+        <button class="btn" @click="openStyleLibrary">
+          <Palette :size="14" :stroke-width="1.8" />
+          {{ t('catalog.styles.button') }}
+        </button>
         <button class="btn btn-icon tour-help-btn" :title="t('tour.helpTitle')" @click="startTour('index', INDEX_TOUR, t)">
           <CircleHelp :size="15" :stroke-width="1.8" />
         </button>
@@ -186,6 +190,41 @@
         </form>
       </div>
     </div>
+    <!-- 风格库：模板库里的视觉风格，加入后新建项目时可选 -->
+    <div v-if="styleLib.open" class="overlay" @click.self="styleLib.open = false">
+      <div class="dialog style-lib-dialog">
+        <div class="dialog-head">
+          <div class="modal-icon"><Palette :size="18" :stroke-width="1.8" /></div>
+          <div class="dialog-head-copy">
+            <h2 class="dialog-title">{{ t('catalog.styles.title') }}</h2>
+            <p class="dialog-desc">{{ t('catalog.styles.desc') }}</p>
+          </div>
+        </div>
+        <div class="dialog-body style-lib-body">
+          <input v-model.trim="styleLib.keyword" class="input" :placeholder="t('catalog.common.search')" />
+          <div v-if="styleLib.loading" class="dim">{{ t('common.loading') }}</div>
+          <div v-else-if="!filteredLibStyles.length" class="dim">{{ t('catalog.styles.empty') }}</div>
+          <div v-else class="style-lib-grid">
+            <div v-for="s in filteredLibStyles" :key="s.id" class="style-lib-card">
+              <div class="style-lib-name">{{ s.name }}</div>
+              <p v-if="s.description" class="style-lib-desc">{{ s.description }}</p>
+              <p class="style-lib-prompt">{{ s.prompt }}</p>
+              <div class="style-lib-foot">
+                <span v-for="tag in s.tags" :key="tag" class="tag">{{ tag }}</span>
+                <a v-if="s.source?.url" :href="s.source.url" target="_blank" rel="noopener" class="style-lib-src">{{ s.source.name || t('catalog.common.source') }}</a>
+                <span v-else-if="s.source?.name" class="style-lib-src">{{ s.source.name }}</span>
+                <button v-if="s.imported" class="btn btn-sm" @click="useLibStyle(s)">{{ t('catalog.styles.useIt') }}</button>
+                <button v-else class="btn btn-sm btn-primary" :disabled="styleLib.busy === s.id" @click="importLibStyle(s)">{{ t('catalog.styles.import') }}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="dialog-foot">
+          <button type="button" class="btn" @click="styleLib.open = false">{{ t('common.close') }}</button>
+        </div>
+      </div>
+    </div>
+
     <ConfirmDialog
       :open="!!dramaToDelete"
       :title="t('index.deleteDialog.title')"
@@ -201,7 +240,8 @@
 import { toast } from 'vue-sonner'
 import { toastError } from '~/composables/useToast'
 import { useI18n } from 'vue-i18n'
-import { Clock, CircleHelp } from 'lucide-vue-next'
+import { Clock, CircleHelp, Palette } from 'lucide-vue-next'
+import { catalogAPI } from '~/composables/useCatalog'
 import { dramaAPI, stylePresetAPI } from '~/composables/useApi'
 import BaseSelect from '~/components/BaseSelect.vue'
 import { startTour, autoTour } from '~/composables/useTour'
@@ -223,8 +263,50 @@ const dramaToDelete = ref(null)
 const deletingDrama = ref(false)
 const form = ref({ title: '', style: '', aspect_ratio: '16:9' })
 const stylePresets = ref([])
-const styleSelectOptions = computed(() => stylePresets.value.map(p => ({ label: p.name, value: p.value })))
-const selectedStyleDesc = computed(() => stylePresets.value.find(p => p.value === form.value.style)?.description || '')
+// 风格库（模板库 catalog/styles）里还没加入的风格也能直接选，建项目时自动加入
+const libStyles = ref([])
+const styleSelectOptions = computed(() => {
+  const mine = stylePresets.value.map(p => ({ label: p.name, value: p.value }))
+  const have = new Set(mine.map(o => o.value))
+  const lib = libStyles.value.filter(s => !have.has(s.id)).map(s => ({ label: s.name, value: s.id }))
+  if (!lib.length) return mine
+  return [{ label: t('catalog.styles.mine'), options: mine }, { label: t('catalog.styles.library'), options: lib }].filter(g => g.options.length)
+})
+const selectedStyleDesc = computed(() => stylePresets.value.find(p => p.value === form.value.style)?.description
+  || libStyles.value.find(s => s.id === form.value.style)?.description || '')
+
+const styleLib = ref({ open: false, loading: false, keyword: '', busy: '' })
+const filteredLibStyles = computed(() => {
+  const k = styleLib.value.keyword.toLowerCase()
+  return libStyles.value.filter(s => !k || [s.name, s.description, ...(s.tags || [])].join(' ').toLowerCase().includes(k))
+})
+async function loadLibStyles() {
+  try { libStyles.value = (await catalogAPI.styles()) || [] } catch { libStyles.value = [] }
+}
+async function openStyleLibrary() {
+  styleLib.value.open = true
+  styleLib.value.loading = true
+  await loadLibStyles()
+  styleLib.value.loading = false
+}
+async function importLibStyle(s) {
+  styleLib.value.busy = s.id
+  try {
+    await catalogAPI.importStyle(s.id)
+    s.imported = true
+    stylePresets.value = (await stylePresetAPI.list()) || []
+    toast.success(t('catalog.styles.imported', { name: s.name }))
+  } catch (e) {
+    toastError(e)
+  } finally {
+    styleLib.value.busy = ''
+  }
+}
+function useLibStyle(s) {
+  form.value.style = s.id
+  styleLib.value.open = false
+  showCreate.value = true
+}
 // 常量数组 label 渲染时求值（语言切换即时生效），value 为逻辑值
 const aspectRatioOptions = computed(() => ([
   { label: t('index.ratio.landscape'), value: '16:9' },
@@ -290,7 +372,7 @@ const filteredDramas = computed(() => {
 async function load() {
   loading.value = true
   try {
-    const [res, presets] = await Promise.all([dramaAPI.list(), stylePresetAPI.list()])
+    const [res, presets] = await Promise.all([dramaAPI.list(), stylePresetAPI.list(), loadLibStyles()])
     dramas.value = res.items || []
     stylePresets.value = presets || []
     if (!form.value.style && stylePresets.value.length) {
@@ -306,6 +388,12 @@ async function load() {
 async function create() {
   if (!form.value.title?.trim()) return
   try {
+    // 选的是风格库里还没加入的风格：先加入我的风格（生图时按 style_presets 取提示词）
+    if (form.value.style && !stylePresets.value.some(p => p.value === form.value.style)
+      && libStyles.value.some(s => s.id === form.value.style)) {
+      await catalogAPI.importStyle(form.value.style)
+      stylePresets.value = (await stylePresetAPI.list()) || []
+    }
     const d = await dramaAPI.create(form.value)
     showCreate.value = false
     navigateTo(`/drama/${d.id}`)
@@ -615,6 +703,16 @@ onMounted(() => setTimeout(() => autoTour('index', INDEX_TOUR, t), 600))
 .empty-desc { font-size: 12px; color: var(--text-3); max-width: 240px; line-height: 1.6; }
 
 .create-dialog { width: 460px; max-width: calc(100vw - 32px); }
+.style-lib-dialog { width: 860px; max-width: calc(100vw - 32px); max-height: calc(100vh - 48px); display: flex; flex-direction: column; }
+.style-lib-body { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; min-height: 0; }
+.style-lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.style-lib-card { border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px; display: flex; flex-direction: column; gap: 6px; background: var(--surface-raised); }
+.style-lib-name { font-size: 13.5px; font-weight: 650; color: var(--text-0); }
+.style-lib-desc { font-size: 12px; color: var(--text-2); line-height: 1.5; }
+.style-lib-prompt { font-size: 11.5px; color: var(--text-3); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.style-lib-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: auto; padding-top: 4px; }
+.style-lib-foot .btn { margin-left: auto; }
+.style-lib-src { font-size: 11px; color: var(--text-3); }
 .dialog-head-copy { display: flex; flex-direction: column; gap: 2px; }
 .dialog-desc { font-size: 12.5px; color: var(--text-3); }
 .modal-icon {

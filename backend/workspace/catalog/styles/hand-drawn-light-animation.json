@@ -1,0 +1,15 @@
+{
+  "id": "hand-drawn-light-animation",
+  "name": "手绘光影动画",
+  "prompt": "hand-drawn 2D animation with painterly light, warm evening glow through windows, soft color-pencil and gouache textures, gentle bloom on light sources, quiet everyday settings such as trams, kitchens and laundromats, cozy color temperature contrast between warm interiors and blue dusk, high detail, high definition; avoid harsh digital lines, avoid oversaturated neon",
+  "description": "黄昏电车、深夜洗衣房式的温暖日常，适合情感短片、片头片尾。",
+  "tags": [
+    "手绘",
+    "光影",
+    "治愈"
+  ],
+  "source": {
+    "name": "MiniMax H3 Max 提示词库",
+    "url": "https://github.com/VulcanEon/insane-minimax-h3-max-prompts"
+  }
+}

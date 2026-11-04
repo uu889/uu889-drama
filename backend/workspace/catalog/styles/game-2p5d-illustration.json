@@ -1,0 +1,14 @@
+{
+  "id": "game-2p5d-illustration",
+  "name": "2.5D 游戏原画",
+  "prompt": "2.5D semi-realistic game character key art, high-precision painted rendering, refined facial features, luxurious fabric and metal materials with crisp specular highlights, dramatic rim light, ornate costume details, atmospheric fantasy background, high detail, high definition; avoid flat cel shading, avoid photoreal skin",
+  "description": "唯美厚涂光影、华丽布料金属，适合玄幻、仙侠、乙女向。",
+  "tags": [
+    "2.5D",
+    "游戏原画"
+  ],
+  "source": {
+    "name": "ai-pose-gallery-zh · 画风预设",
+    "url": "https://github.com/anhao/ai-pose-gallery-zh"
+  }
+}
