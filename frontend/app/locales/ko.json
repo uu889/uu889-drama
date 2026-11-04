@@ -28,7 +28,8 @@
     "serviceType": {
       "text": "텍스트",
       "image": "이미지",
-      "video": "영상"
+      "video": "영상",
+      "voice": "음성"
     }
   },
   "layout": {
@@ -294,11 +295,15 @@
       "meta": {
         "text": "대본 재작성, 캐릭터·장면 추출, 스토리보드 분해 등 Agent 텍스트 기능",
         "image": "캐릭터 이미지, 장면 이미지, 샷 이미지 등 정지 이미지 생성",
-        "video": "샷 영상 직접 생성: aiask.me Grok 영상, 로컬 ComfyUI, Seedance 등"
+        "video": "샷 영상 직접 생성: aiask.me Grok 영상, 로컬 ComfyUI, Seedance 등",
+        "voice": "Dialogue voice-over and voice cloning: aiask.me (edge-tts / gpt-sovits), local edge-tts / GPT-SoVITS, Volcengine Doubao speech"
       },
       "quickModelSaved": "자동 저장됨: 기본 {type} 모델 {model}",
       "quickModelPicked": "{type} 모델 {model} 선택됨. 키를 입력하고 적용하면 반영됩니다",
-      "quickPickHint": "클릭하면 선택되고 자동 저장됩니다"
+      "quickPickHint": "클릭하면 선택되고 자동 저장됩니다",
+      "quickKeyInvalid": "aiask.me rejected this key ({status}); nothing was saved. Check that it was copied completely and is not expired or disabled.",
+      "quickAppliedMore": "aiask.me quick setup saved; {n} other aiask.me configs now use the new key too",
+      "quickKeyUnverified": "Could not reach aiask.me; the key was saved but not verified. Click Test later to confirm"
     },
     "styles": {
       "title": "스타일 프리셋",
@@ -1522,6 +1527,74 @@
         "title": "언제든 다시 보기",
         "desc": "이 \"?\" 버튼으로 이 페이지의 가이드를 다시 재생할 수 있습니다. 즐거운 제작 되세요!"
       }
+    }
+  },
+  "voice": {
+    "defaultVoice": "Default voice",
+    "defaultVoiceHint": "Empty = recommended voice; pick from the list or type a voice ID",
+    "defaultSpeed": "Default speed",
+    "defaultSpeedHint": "0.5–2×, empty = 1×",
+    "optional": "optional",
+    "volcAppIdHint": "Legacy console: App ID here and the access token as API Key. New console: API Key only, leave this empty",
+    "edgeCommand": "edge-tts command",
+    "edgeCommandHint": "Used when Base URL is empty; give the full path if it is not on PATH",
+    "edgeBaseUrlPlaceholder": "empty = local edge-tts CLI, or http://127.0.0.1:5050",
+    "preview": "Preview",
+    "previewBtn": "Preview",
+    "previewHint": "Synthesizes a line with the current form (no need to save first)",
+    "previewCloneHint": "gpt-sovits / GPT-SoVITS needs a cloned voice: add one below first",
+    "useDefaultVoice": "Default voice",
+    "presetVoices": "Preset voices",
+    "clonedVoices": "Cloned voices",
+    "noClones": "No cloned voices yet",
+    "textRequired": "Enter some text",
+    "needClone": "Pick a cloned voice first (create one below)",
+    "useTryListen": "The local edge-tts CLI has no endpoint to test: use Preview below",
+    "cloneTitle": "Cloned voices",
+    "cloneSovitsDesc": "Upload a 3–10 s reference clip plus its exact transcript; shared by aiask.me gpt-sovits and local GPT-SoVITS",
+    "cloneVolcDesc": "Upload a recording to Volcengine voice cloning; usable once training finishes",
+    "status": {
+      "ready": "Ready",
+      "training": "Training",
+      "failed": "Failed"
+    },
+    "refresh": "Refresh",
+    "deleteConfirm": "Delete cloned voice \"{name}\"? The reference audio is deleted too",
+    "cloneName": "Voice name",
+    "cloneNamePlaceholder": "e.g. Lin Fan (lead)",
+    "speakerId": "Volcengine voice ID",
+    "cloneResource": "Clone resource",
+    "recording": "Recording",
+    "refAudio": "Reference audio",
+    "duration": "{s} s",
+    "refLang": "Reference language",
+    "lang": {
+      "zh": "Chinese",
+      "en": "English",
+      "ja": "Japanese",
+      "ko": "Korean",
+      "yue": "Cantonese",
+      "auto": "Auto (mixed)"
+    },
+    "refText": "Reference text",
+    "refTextPlaceholder": "Exactly what is said in the reference audio",
+    "refTextHint": "Must match the audio word for word, otherwise the cloned voice drifts and drops words",
+    "consent": "This is my own voice, or I have the speaker's permission; it will not be used to impersonate anyone",
+    "saveFirst": "Save this voice config (App ID / key) before uploading to Volcengine",
+    "uploadTrain": "Upload & train",
+    "addClone": "Add cloned voice",
+    "uploaded": "Uploaded; Volcengine is training, click Refresh later",
+    "cloneAdded": "Added cloned voice \"{name}\"",
+    "tooShort": "too short, needs {min}–{max} s",
+    "tooLong": "too long, needs {min}–{max} s; trim it to one sentence",
+    "tooShortVolc": "too short, 10–30 s recommended",
+    "err": {
+      "name": "Enter a voice name",
+      "audio": "Upload an audio file",
+      "size": "Audio must be 10 MB or less",
+      "refText": "Enter the reference text (what is said in the clip)",
+      "speaker": "Enter the Volcengine voice ID (starts with S_)",
+      "consent": "Confirm you have permission to use this voice"
     }
   }
 }

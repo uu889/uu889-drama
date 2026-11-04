@@ -306,6 +306,25 @@ export const sqliteSchemaStatements = [
   )`,
   `CREATE INDEX IF NOT EXISTS idx_episode_attachments_episode ON episode_attachments(episode_id)`,
 
+  // 克隆音色库：GPT-SoVITS（aiask.me gpt-sovits / 本地）存参考音频 + 参考文本；火山声音复刻存 speaker_id 与训练状态
+  `CREATE TABLE IF NOT EXISTS voice_clones (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    family TEXT NOT NULL,
+    config_id INTEGER,
+    name TEXT NOT NULL,
+    speaker_id TEXT,
+    resource_id TEXT,
+    ref_audio_path TEXT,
+    ref_text TEXT,
+    ref_lang TEXT,
+    duration REAL,
+    status TEXT NOT NULL DEFAULT 'ready',
+    error_msg TEXT,
+    demo_url TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+
   // 应用级全局设置（key-value，如 AI 内容语言 content_language）
   `CREATE TABLE IF NOT EXISTS app_settings (
     key TEXT PRIMARY KEY,
@@ -437,5 +456,22 @@ export function initSqliteSchema(sqlite: Database.Database) {
   for (const [value, prompt] of Object.entries(REMOVED_SEED_PROMPTS)) {
     const res = removeSeed.run(value, prompt)
     if (res.changes > 0) console.log(`🗑️ 风格预设「${value}」已下架`)
+  }
+  upgradeAiaskTextModels(sqlite)
+}
+
+/**
+ * aiask.me 文字模型清单换代：模型列表还是旧版快捷配置原样（用户没改过顺序 / 默认）的，换成新版清单（gpt-6-astra 为默认）。
+ * 用户挑过默认模型或增删过模型的不动。
+ */
+export const AIASK_TEXT_MODELS = ['gpt-6-astra', 'gpt-6.1-terra', 'gpt-6.1-sol', 'mercury-3', 'claude-haiku-5-5', 'claude-opus-5-5', 'deepseek-v4.1-flash', 'deepseek-v4-pro']
+export const LEGACY_AIASK_TEXT_MODEL_LISTS = [
+  ['deepseek-v4.1-flash', 'deepseek-v4-pro', 'gpt-6.1-sol', 'claude-haiku-5-5', 'gpt-6-astra', 'claude-opus-5-5'],
+]
+export function upgradeAiaskTextModels(sqlite: Database.Database) {
+  const update = sqlite.prepare(`UPDATE ai_service_configs SET model = ?, updated_at = ? WHERE provider = 'aiask' AND service_type = 'text' AND model = ?`)
+  for (const legacy of LEGACY_AIASK_TEXT_MODEL_LISTS) {
+    const res = update.run(JSON.stringify(AIASK_TEXT_MODELS), new Date().toISOString(), JSON.stringify(legacy))
+    if (res.changes > 0) console.log(`🔤 aiask.me 文字模型清单已更新（${res.changes} 条配置，默认 ${AIASK_TEXT_MODELS[0]}）`)
   }
 }

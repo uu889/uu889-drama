@@ -28,7 +28,8 @@
     "serviceType": {
       "text": "Văn bản",
       "image": "Hình ảnh",
-      "video": "Video"
+      "video": "Video",
+      "voice": "Giọng nói"
     }
   },
   "layout": {
@@ -294,11 +295,15 @@
       "meta": {
         "text": "Khả năng văn bản: viết lại kịch bản, trích xuất tài nguyên, chia phân cảnh",
         "image": "Tạo ảnh tĩnh: nhân vật, cảnh và cảnh quay",
-        "video": "Tạo video trực tiếp cho cảnh quay: video Grok của aiask.me, ComfyUI cục bộ, Seedance và nhiều hơn nữa"
+        "video": "Tạo video trực tiếp cho cảnh quay: video Grok của aiask.me, ComfyUI cục bộ, Seedance và nhiều hơn nữa",
+        "voice": "Dialogue voice-over and voice cloning: aiask.me (edge-tts / gpt-sovits), local edge-tts / GPT-SoVITS, Volcengine Doubao speech"
       },
       "quickModelSaved": "Đã tự lưu: mô hình {type} mặc định là {model}",
       "quickModelPicked": "Đã chọn mô hình {type} {model}; có hiệu lực sau khi nhập key và áp dụng",
-      "quickPickHint": "Nhấp để dùng, tự động lưu"
+      "quickPickHint": "Nhấp để dùng, tự động lưu",
+      "quickKeyInvalid": "aiask.me rejected this key ({status}); nothing was saved. Check that it was copied completely and is not expired or disabled.",
+      "quickAppliedMore": "aiask.me quick setup saved; {n} other aiask.me configs now use the new key too",
+      "quickKeyUnverified": "Could not reach aiask.me; the key was saved but not verified. Click Test later to confirm"
     },
     "styles": {
       "title": "Phong cách mẫu",
@@ -1522,6 +1527,74 @@
         "title": "Xem lại bất cứ lúc nào",
         "desc": "Nhấn nút \"?\" này để xem lại hướng dẫn của trang. Chúc bạn sáng tạo vui vẻ!"
       }
+    }
+  },
+  "voice": {
+    "defaultVoice": "Default voice",
+    "defaultVoiceHint": "Empty = recommended voice; pick from the list or type a voice ID",
+    "defaultSpeed": "Default speed",
+    "defaultSpeedHint": "0.5–2×, empty = 1×",
+    "optional": "optional",
+    "volcAppIdHint": "Legacy console: App ID here and the access token as API Key. New console: API Key only, leave this empty",
+    "edgeCommand": "edge-tts command",
+    "edgeCommandHint": "Used when Base URL is empty; give the full path if it is not on PATH",
+    "edgeBaseUrlPlaceholder": "empty = local edge-tts CLI, or http://127.0.0.1:5050",
+    "preview": "Preview",
+    "previewBtn": "Preview",
+    "previewHint": "Synthesizes a line with the current form (no need to save first)",
+    "previewCloneHint": "gpt-sovits / GPT-SoVITS needs a cloned voice: add one below first",
+    "useDefaultVoice": "Default voice",
+    "presetVoices": "Preset voices",
+    "clonedVoices": "Cloned voices",
+    "noClones": "No cloned voices yet",
+    "textRequired": "Enter some text",
+    "needClone": "Pick a cloned voice first (create one below)",
+    "useTryListen": "The local edge-tts CLI has no endpoint to test: use Preview below",
+    "cloneTitle": "Cloned voices",
+    "cloneSovitsDesc": "Upload a 3–10 s reference clip plus its exact transcript; shared by aiask.me gpt-sovits and local GPT-SoVITS",
+    "cloneVolcDesc": "Upload a recording to Volcengine voice cloning; usable once training finishes",
+    "status": {
+      "ready": "Ready",
+      "training": "Training",
+      "failed": "Failed"
+    },
+    "refresh": "Refresh",
+    "deleteConfirm": "Delete cloned voice \"{name}\"? The reference audio is deleted too",
+    "cloneName": "Voice name",
+    "cloneNamePlaceholder": "e.g. Lin Fan (lead)",
+    "speakerId": "Volcengine voice ID",
+    "cloneResource": "Clone resource",
+    "recording": "Recording",
+    "refAudio": "Reference audio",
+    "duration": "{s} s",
+    "refLang": "Reference language",
+    "lang": {
+      "zh": "Chinese",
+      "en": "English",
+      "ja": "Japanese",
+      "ko": "Korean",
+      "yue": "Cantonese",
+      "auto": "Auto (mixed)"
+    },
+    "refText": "Reference text",
+    "refTextPlaceholder": "Exactly what is said in the reference audio",
+    "refTextHint": "Must match the audio word for word, otherwise the cloned voice drifts and drops words",
+    "consent": "This is my own voice, or I have the speaker's permission; it will not be used to impersonate anyone",
+    "saveFirst": "Save this voice config (App ID / key) before uploading to Volcengine",
+    "uploadTrain": "Upload & train",
+    "addClone": "Add cloned voice",
+    "uploaded": "Uploaded; Volcengine is training, click Refresh later",
+    "cloneAdded": "Added cloned voice \"{name}\"",
+    "tooShort": "too short, needs {min}–{max} s",
+    "tooLong": "too long, needs {min}–{max} s; trim it to one sentence",
+    "tooShortVolc": "too short, 10–30 s recommended",
+    "err": {
+      "name": "Enter a voice name",
+      "audio": "Upload an audio file",
+      "size": "Audio must be 10 MB or less",
+      "refText": "Enter the reference text (what is said in the clip)",
+      "speaker": "Enter the Volcengine voice ID (starts with S_)",
+      "consent": "Confirm you have permission to use this voice"
     }
   }
 }

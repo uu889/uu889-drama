@@ -174,7 +174,8 @@
                   </div>
                   <div class="config-sub mono truncate">{{ c.base_url || t('settings.ai.noBaseUrl') }}</div>
                 </div>
-                <button v-if="st.type === 'text' || ['aiask', 'xai', 'veo', 'runway', 'comfyui', 'sdwebui', 'fooocus'].includes(c.provider)" class="btn btn-ghost btn-sm" @click="testExistingCfg(c)">{{ t('settings.ai.test') }}</button>
+                <button v-if="st.type === 'voice'" class="btn btn-ghost btn-sm" @click="startEditCfg(c)">{{ t('voice.previewBtn') }}</button>
+                <button v-else-if="st.type === 'text' || ['aiask', 'xai', 'veo', 'runway', 'comfyui', 'sdwebui', 'fooocus'].includes(c.provider)" class="btn btn-ghost btn-sm" @click="testExistingCfg(c)">{{ t('settings.ai.test') }}</button>
                 <label class="config-switch" :class="{ busy: togglingCfgIds.includes(c.id) }" @click.prevent="toggleCfg(c)">
                   <input type="checkbox" class="sr-only" :checked="!!c.is_active" tabindex="0" @keydown.space.prevent="toggleCfg(c)" @keydown.enter.prevent="toggleCfg(c)">
                   <span class="switch" :class="{ on: c.is_active }"></span>
@@ -557,7 +558,7 @@
             <span class="field-label">API Key <span v-if="isLocalForm" class="dim">({{ t('settings.cfg.local.apiKeyOptional') }})</span></span>
             <input v-model="cfgForm.api_key" class="input" type="password" :placeholder="isLocalForm ? t('settings.cfg.local.apiKeyPlaceholder') : 'sk-...'" />
           </label>
-          <label class="field"><span class="field-label">Base URL</span><input v-model="cfgForm.base_url" class="input" :placeholder="LOCAL_BASE_URLS[cfgForm.provider] || 'https://...'" /></label>
+          <label class="field"><span class="field-label">Base URL</span><input v-model="cfgForm.base_url" class="input" :placeholder="cfgForm.provider === 'edgetts' ? t('voice.edgeBaseUrlPlaceholder') : LOCAL_BASE_URLS[cfgForm.provider] || 'https://...'" /></label>
           <div class="field">
             <span class="field-label">{{ t('settings.cfg.models') }}</span>
             <div v-if="cfgForm.models.length" class="model-chips">
@@ -581,6 +582,8 @@
             </div>
             <span class="field-hint">{{ t('settings.cfg.modelsHint') }}</span>
           </div>
+          <!-- ===== 语音模型：默认音色 / 试听 / 克隆音色 ===== -->
+          <VoiceConfigPanel v-if="cfgForm.service_type === 'voice'" :form="cfgForm" :config-id="cfgEditId" />
           <!-- ===== 本地服务：ComfyUI ===== -->
           <template v-if="isComfyForm">
             <div class="field">
@@ -1046,6 +1049,7 @@ import { Plus, Pencil, Trash2, FileText, ChevronDown, Check, Loader2, Bot, Cpu, 
 import BaseSelect from '~/components/BaseSelect.vue'
 import StyleModelsPanel from '~/components/StyleModelsPanel.vue'
 import ModelInstallerPanel from '~/components/ModelInstallerPanel.vue'
+import VoiceConfigPanel from '~/components/VoiceConfigPanel.vue'
 import { toast } from 'vue-sonner'
 import { toastError } from '~/composables/useToast'
 import { useI18n } from 'vue-i18n'
@@ -1082,11 +1086,11 @@ const AIASK_SITE_URL = 'https://aiask.me'
 const aiaskApiKey = ref('')
 const aiaskSaving = ref(false)
 // 本地服务（ComfyUI / SD WebUI / Fooocus）专属参数存后端 settings JSON，接口上以顶层字段读写
-const LOCAL_SETTING_FIELDS = ['max_concurrent', 'max_duration', 'max_prompt_bytes', 'moderation_retries', 'restart_every', 'comfy_start_command', 'comfyui_workflow', 'comfyui_template', 'comfyui_fps', 'comfyui_steps', 'comfyui_cfg', 'comfyui_negative_prompt', 'prompt_template', 'image_base_size', 'image_steps', 'image_cfg_scale', 'image_sampler', 'image_negative_prompt', 'fooocus_performance', 'fooocus_styles']
+const LOCAL_SETTING_FIELDS = ['max_concurrent', 'max_duration', 'max_prompt_bytes', 'moderation_retries', 'restart_every', 'comfy_start_command', 'comfyui_workflow', 'comfyui_template', 'comfyui_fps', 'comfyui_steps', 'comfyui_cfg', 'comfyui_negative_prompt', 'prompt_template', 'image_base_size', 'image_steps', 'image_cfg_scale', 'image_sampler', 'image_negative_prompt', 'fooocus_performance', 'fooocus_styles', 'default_voice', 'default_speed', 'volc_app_id', 'edge_tts_command']
 // 布尔设置单独处理：自动绑定默认开；中文翻译默认值按服务类型（本地生图开、ComfyUI 视频关）
 const EMPTY_CFG_FORM = { name: '', provider: '', api_key: '', base_url: '', models: [], service_type: 'text', priority: 0, temperature: '', ...Object.fromEntries(LOCAL_SETTING_FIELDS.map(k => [k, ''])), comfyui_auto_bind: true, free_vram_between: '', auto_restart_comfy: true, oom_lower_resolution: true, prompt_translate: true, style_models_enabled: false, style_models: {}, model_install: null, style_models_auto_download: false, download_prefer_mirror: false, civitai_token: '', hf_token: '' }
 const cfgForm = reactive({ ...EMPTY_CFG_FORM })
-const LOCAL_BASE_URLS = { comfyui: 'http://127.0.0.1:8188', sdwebui: 'http://127.0.0.1:7860', fooocus: 'http://127.0.0.1:8888' }
+const LOCAL_BASE_URLS = { comfyui: 'http://127.0.0.1:8188', sdwebui: 'http://127.0.0.1:7860', fooocus: 'http://127.0.0.1:8888', gptsovits: 'http://127.0.0.1:9880', edgetts: 'http://127.0.0.1:5050' }
 const FOOOCUS_PERFORMANCE = ['Speed', 'Quality', 'Extreme Speed', 'Lightning', 'Hyper-SD']
 const isLocalForm = computed(() => !!LOCAL_BASE_URLS[cfgForm.provider])
 const isComfyForm = computed(() => cfgForm.provider === 'comfyui' && ['image', 'video'].includes(cfgForm.service_type))
@@ -1291,17 +1295,19 @@ const serviceTypes = computed(() => [
   { type: 'text', label: t('common.serviceType.text') },
   { type: 'image', label: t('common.serviceType.image') },
   { type: 'video', label: t('common.serviceType.video') },
+  { type: 'voice', label: t('common.serviceType.voice') },
 ])
-const providers = ['aiask', 'xai', 'gemini', 'openai', 'claude', 'deepseek', 'qwen', 'volcengine', 'minimax', 'aliyun', 'veo', 'runway', 'comfyui', 'sdwebui', 'fooocus']
+const providers = ['aiask', 'xai', 'gemini', 'openai', 'claude', 'deepseek', 'qwen', 'volcengine', 'minimax', 'aliyun', 'veo', 'runway', 'comfyui', 'sdwebui', 'fooocus', 'edgetts', 'gptsovits']
 const providerSelectOptions = computed(() => providers.map(p => ({ label: p, value: p })))
 const serviceMeta = computed(() => ({
   text: { label: t('common.serviceType.text'), desc: t('settings.ai.meta.text') },
   image: { label: t('common.serviceType.image'), desc: t('settings.ai.meta.image') },
   video: { label: t('common.serviceType.video'), desc: t('settings.ai.meta.video') },
+  voice: { label: t('common.serviceType.voice'), desc: t('settings.ai.meta.voice') },
 }))
 const providerPresets = {
   text: {
-    aiask: { label: 'aiask.me', baseUrl: AIASK_SITE_URL, models: ['deepseek-v4.1-flash', 'deepseek-v4-pro', 'gpt-6.1-sol', 'claude-haiku-5-5', 'gpt-6-astra', 'claude-opus-5-5'] },
+    aiask: { label: 'aiask.me', baseUrl: AIASK_SITE_URL, models: ['gpt-6-astra', 'gpt-6.1-terra', 'gpt-6.1-sol', 'mercury-3', 'claude-haiku-5-5', 'claude-opus-5-5', 'deepseek-v4.1-flash', 'deepseek-v4-pro'] },
     gemini: { label: 'Gemini 官方', baseUrl: 'https://generativelanguage.googleapis.com', models: ['gemini-3.8-flash', 'gemini-3.1-pro-preview', 'gemini-3-flash-preview'] },
     openai: { label: 'OpenAI 官方', baseUrl: 'https://api.openai.com', models: ['deepseek-v4-pro', 'gpt-5.6-terra'] },
     deepseek: { label: 'DeepSeek 官方', baseUrl: 'https://api.deepseek.com', models: ['deepseek-v4-pro', 'deepseek-v4-flash'] },
@@ -1331,22 +1337,31 @@ const providerPresets = {
     volcengine: { label: 'Seedance 2.0 官方', baseUrl: 'https://ark.cn-beijing.volces.com', models: ['doubao-seedance-2-0-mini-260615', 'doubao-seedance-2-0-fast-260128', 'doubao-seedance-2-0-260128'] },
     minimax: { label: 'MiniMax H3 官方', baseUrl: 'https://api.minimaxi.com', models: ['MiniMax-H3'] },
   },
+  // 语音模型：aiask.me（edge-tts / gpt-sovits 声音克隆）、本机 edge-tts（Base URL 留空走命令行）/ GPT-SoVITS、火山豆包语音（模型 = 资源 ID）
+  voice: {
+    aiask: { label: 'aiask.me 语音', baseUrl: AIASK_SITE_URL, models: ['edge-tts', 'gpt-sovits'] },
+    edgetts: { label: '本机 edge-tts', baseUrl: '', models: ['edge-tts'] },
+    gptsovits: { label: '本机 GPT-SoVITS（声音克隆）', baseUrl: 'http://127.0.0.1:9880', models: ['gpt-sovits'] },
+    volcengine: { label: '火山引擎豆包语音', baseUrl: 'https://openspeech.bytedance.com', models: ['seed-tts-2.0', 'seed-tts-1.0', 'seed-icl-2.0', 'seed-icl-1.0'] },
+  },
 }
 // 名称持久化进 DB，用固定英文名，不随界面语言漂移；写入后同类型下优先级最高即成默认
 // 可快速选择的模型：首位为默认
-const AIASK_TEXT_MODELS = ['deepseek-v4.1-flash', 'deepseek-v4-pro', 'gpt-6.1-sol', 'claude-haiku-5-5', 'gpt-6-astra', 'claude-opus-5-5']
+const AIASK_TEXT_MODELS = ['gpt-6-astra', 'gpt-6.1-terra', 'gpt-6.1-sol', 'mercury-3', 'claude-haiku-5-5', 'claude-opus-5-5', 'deepseek-v4.1-flash', 'deepseek-v4-pro']
 const AIASK_IMAGE_MODELS = ['gpt-image-2.5-sunburst', 'gpt-image-2.5-flare']
 const AIASK_VIDEO_MODELS = ['grok-imagine-video-1.5', 'grok-imagine-video-1.5-lite']
+const AIASK_VOICE_MODELS = ['edge-tts', 'gpt-sovits']
 const aiaskQuickConfigs = [
   { service_type: 'text', provider: 'aiask', name: 'aiask.me Text', base_url: AIASK_SITE_URL, model: AIASK_TEXT_MODELS, priority: 100 },
   { service_type: 'image', provider: 'aiask', name: 'aiask.me Image', base_url: AIASK_SITE_URL, model: AIASK_IMAGE_MODELS, priority: 100 },
   { service_type: 'video', provider: 'aiask', name: 'aiask.me Grok Video', base_url: AIASK_SITE_URL, model: AIASK_VIDEO_MODELS, priority: 100 },
+  { service_type: 'voice', provider: 'aiask', name: 'aiask.me Voice', base_url: AIASK_SITE_URL, model: AIASK_VOICE_MODELS, priority: 100 },
 ]
 // 还没配置过 aiask.me 时点选的模型，一键配置时作为默认写入
-const aiaskPicks = reactive({ text: '', image: '', video: '' })
+const aiaskPicks = reactive({ text: '', image: '', video: '', voice: '' })
 const aiaskPicking = ref(false)
 function aiaskExistingCfg(preset) {
-  return cfgs.value.find(c => c.name === preset.name || (c.service_type === preset.service_type && c.provider === preset.provider && c.base_url === preset.base_url))
+  return aiaskQuickExisting(preset)
 }
 function aiaskSelectedModel(preset) {
   const existing = aiaskExistingCfg(preset)
@@ -1458,13 +1473,34 @@ async function toggleCfg(c) {
   }
 }
 async function delCfg(id) { await aiConfigAPI.del(id); toast.success(t('index.deleted')); loadCfgs() }
+/** 粘贴的 Key 去掉「Bearer 」前缀、换行和空格（含全角空格） */
+function cleanAiaskKey(raw) {
+  return String(raw || '').replace(/^\s*bearer\s+/i, '').replace(/[\s\u3000\u200b]+/g, '')
+}
+/** Base URL 是不是 aiask.me（https://aiask.me、https://aiask.me/、https://aiask.me/v1、www.aiask.me 都算） */
+function isAiaskHost(url) {
+  try { return /(^|\.)aiask\.me$/i.test(new URL(String(url || '').trim()).hostname) } catch { return false }
+}
+function aiaskQuickExisting(preset) {
+  return cfgs.value.find(c => c.name === preset.name)
+    || cfgs.value.find(c => c.service_type === preset.service_type && c.provider === preset.provider && isAiaskHost(c.base_url))
+}
 async function applyAiaskQuickConfig() {
-  const apiKey = aiaskApiKey.value.trim()
+  const apiKey = cleanAiaskKey(aiaskApiKey.value)
   if (!apiKey) { toast.warning(t('settings.ai.apiKeyRequired')); return }
   aiaskSaving.value = true
   try {
+    // 先验证 Key：401 / 403 说明 Key 不对，不写入（避免把能用的旧 Key 覆盖掉）
+    const probe = await aiConfigAPI.test({ service_type: 'text', provider: 'aiask', base_url: AIASK_SITE_URL, api_key: apiKey, model: [AIASK_TEXT_MODELS[0]] }).catch(() => null)
+    if (probe && [401, 403].includes(probe.status)) {
+      toast.error(t('settings.ai.quickKeyInvalid', { status: probe.status }))
+      return
+    }
+    // 用最新的配置列表判断「已有 / 新建」，避免页面数据过期时重复新建
+    await loadCfgs()
+    const touched = new Set()
     for (const preset of aiaskQuickConfigs) {
-      const existing = cfgs.value.find(c => c.name === preset.name || (c.service_type === preset.service_type && c.provider === preset.provider && c.base_url === preset.base_url))
+      const existing = aiaskQuickExisting(preset)
       // 同类型里优先级最高的启用配置即默认：写入后要成为默认，优先级需高于其它配置
       const others = cfgs.value.filter(c => c.service_type === preset.service_type && c.id !== existing?.id)
       const topPriority = Math.max(preset.priority, ...others.map(c => (c.priority || 0) + 1))
@@ -1474,17 +1510,24 @@ async function applyAiaskQuickConfig() {
         const payload = { api_key: apiKey, is_active: true, model: aiaskModelList(preset, current[0] || aiaskPicks[preset.service_type] || preset.model[0], current) }
         if ((existing.priority || 0) < topPriority) payload.priority = topPriority
         await aiConfigAPI.update(existing.id, payload)
+        touched.add(existing.id)
       } else {
-        await aiConfigAPI.create({ ...preset, model: aiaskModelList(preset, aiaskPicks[preset.service_type] || preset.model[0]), api_key: apiKey, priority: topPriority })
+        const row = await aiConfigAPI.create({ ...preset, model: aiaskModelList(preset, aiaskPicks[preset.service_type] || preset.model[0]), api_key: apiKey, priority: topPriority })
+        if (row?.id) touched.add(row.id)
       }
     }
-    toast.success(t('settings.ai.quickApplied'))
+    // 其它 aiask.me 配置（手动加的、地址写成 /v1 的、工作台里某集锁定的）也换成新 Key，否则那些集还在用旧 Key
+    const stale = cfgs.value.filter(c => c.provider === 'aiask' && isAiaskHost(c.base_url) && !touched.has(c.id) && c.api_key !== apiKey)
+    for (const c of stale) await aiConfigAPI.update(c.id, { api_key: apiKey })
+    toast.success(stale.length ? t('settings.ai.quickAppliedMore', { n: stale.length }) : t('settings.ai.quickApplied'))
+    if (probe && !probe.reachable) toast.warning(t('settings.ai.quickKeyUnverified'))
     aiaskApiKey.value = ''
-    await loadCfgs()
   } catch (e) {
     toastError(e)
   } finally {
     aiaskSaving.value = false
+    // 中途失败时前面几条可能已写入：总是刷新列表，界面与数据库一致
+    await loadCfgs()
   }
 }
 function startAddCfg(t) {
@@ -1531,6 +1574,11 @@ function startEditCfg(c) {
   cfgDialog.value = true
 }
 async function testCfgPayload(payload) {
+  // 本机 edge-tts 命令行方式没有接口可测：用下方「试听」
+  if (payload.service_type === 'voice' && payload.provider === 'edgetts' && !String(payload.base_url || '').trim()) {
+    toast(t('voice.useTryListen'))
+    return
+  }
   cfgTesting.value = true
   try {
     cfgTestResult.value = await aiConfigAPI.test(payload)
@@ -1614,6 +1662,15 @@ function providerSettingsPayload() {
   if (isSdForm.value) return { image_negative_prompt: text(cfgForm.image_negative_prompt), image_sampler: text(cfgForm.image_sampler), ...promptParams(), ...imageParams() }
   if (isFooocusForm.value) return { image_negative_prompt: text(cfgForm.image_negative_prompt), fooocus_performance: text(cfgForm.fooocus_performance), fooocus_styles: text(cfgForm.fooocus_styles), ...promptParams() }
   if (isAiaskVideoForm.value) return { max_concurrent: num(cfgForm.max_concurrent) }
+  if (cfgForm.service_type === 'voice') {
+    // 语音：默认音色 / 语速；火山 App ID（旧版控制台）；edge-tts 命令（Base URL 留空时）
+    return {
+      default_voice: text(cfgForm.default_voice),
+      default_speed: num(cfgForm.default_speed),
+      ...(cfgForm.provider === 'volcengine' ? { volc_app_id: text(cfgForm.volc_app_id) } : {}),
+      ...(cfgForm.provider === 'edgetts' ? { edge_tts_command: text(cfgForm.edge_tts_command) } : {}),
+    }
+  }
   return {}
 }
 // ===== 配置弹窗：只能主动关闭；有未保存的修改时先确认 =====
