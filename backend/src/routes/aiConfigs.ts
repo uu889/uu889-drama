@@ -73,16 +73,27 @@ const STYLE_MODEL_RULES: Record<string, SettingRule> = {
   hf_token: { kind: 'text', max: 200 },
 }
 
+/** 语音模型（services/voice）：默认音色、默认语速 */
+const VOICE_RULES: Record<string, SettingRule> = {
+  default_voice: { kind: 'text', max: 120 },
+  default_speed: { kind: 'number', min: 0.5, max: 2 },
+}
+
 const PROVIDER_SETTING_RULES: Record<string, Record<string, SettingRule>> = {
   // aiask.me Grok 视频：同时提交给上游的视频数（不设 = 2，见 gpu-queue.ts cloudLaneLimit）
   aiask: {
     ...QUEUE_RULES,
     ...VIDEO_LIMIT_RULES,
+    ...VOICE_RULES,
   },
+  // 本地 edge-tts：Base URL 留空时调用的命令（默认 edge-tts，可填完整路径）
+  edgetts: { ...VOICE_RULES, edge_tts_command: { kind: 'text', max: 500 } },
+  gptsovits: { ...VOICE_RULES },
   xai: { ...VIDEO_LIMIT_RULES },
   veo: { ...VIDEO_LIMIT_RULES },
   runway: { ...VIDEO_LIMIT_RULES },
-  volcengine: { ...VIDEO_LIMIT_RULES },
+  // 火山：视频上限；语音（豆包语音合成 / 声音复刻）的 App ID（旧版控制台，新版 API Key 不用填）
+  volcengine: { ...VIDEO_LIMIT_RULES, ...VOICE_RULES, volc_app_id: { kind: 'text', max: 64 } },
   minimax: { ...VIDEO_LIMIT_RULES },
   aliyun: { ...VIDEO_LIMIT_RULES },
   comfyui: {
@@ -301,6 +312,25 @@ function buildProbe(serviceType: string, provider: string, baseUrl: string, mode
       url: joinProviderUrl(baseUrl || 'http://127.0.0.1:8888', '', '/v1/engines/all-models'),
       headers: localAuthHeaders(apiKey),
       body: undefined,
+    }
+  }
+
+  if (serviceType === 'voice') {
+    // 语音：aiask.me 看 /v1/models；本地 GPT-SoVITS GET /tts（缺参数返回 400 即说明服务在）；
+    // edge-tts 服务看 /v1/models；火山空请求体探测鉴权（不会合成计费）
+    if (p === 'gptsovits') {
+      return { method: 'GET', url: joinProviderUrl(baseUrl || 'http://127.0.0.1:9880', '', '/tts'), headers: bearerHeaders(apiKey), body: undefined }
+    }
+    if (p === 'edgetts') {
+      return { method: 'GET', url: joinProviderUrl(baseUrl, '/v1', '/models'), headers: bearerHeaders(apiKey), body: undefined }
+    }
+    if (p === 'volcengine') {
+      return {
+        method: 'POST',
+        url: joinProviderUrl(baseUrl || 'https://openspeech.bytedance.com', '', '/api/v3/tts/unidirectional'),
+        headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey || '', 'X-Api-Resource-Id': m || 'seed-tts-1.0' },
+        body: {},
+      }
     }
   }
 

@@ -184,6 +184,32 @@ export const modelInstallerAPI = {
   remove: (id: string) => api.del(`/model-installer/jobs/${id}`),
 }
 
+/** 语音模型：试听合成、克隆音色库（后端 /voices） */
+export const speechAPI = {
+  meta: () => api.get('/voices/meta'),
+  /** body: { config_id? | config?, text, voice?, clone_id?, speed?, text_lang? } → { url, duration } */
+  tts: (body: any) => api.post<{ url: string; duration: number | null; voice: string }>('/voices/tts', body),
+  clones: (family?: string) => api.get<any[]>(`/voices/clones${family ? `?family=${family}` : ''}`),
+  /** 新建克隆音色（multipart）；校验不过时抛出的 Error 带 errors / warnings */
+  createClone: async (data: Record<string, any>, file: File | null) => {
+    const fd = new FormData()
+    for (const [k, v] of Object.entries(data)) if (v !== undefined && v !== null && v !== '') fd.append(k, String(v))
+    if (file) fd.append('audio', file)
+    const resp = await fetch(`${BASE}/voices/clones`, { method: 'POST', body: fd })
+    const json = await resp.json().catch(() => ({}))
+    if (!resp.ok || (json.code && json.code >= 400)) {
+      const err: any = new Error(json.message || `${resp.status}`)
+      err.errors = json.errors || []
+      err.warnings = json.warnings || []
+      throw err
+    }
+    return json.data
+  },
+  refreshClone: (id: number) => api.post(`/voices/clones/${id}/refresh`),
+  updateClone: (id: number, d: any) => api.put(`/voices/clones/${id}`, d),
+  deleteClone: (id: number) => api.del(`/voices/clones/${id}`),
+}
+
 export const aiConfigAPI = {
   list: (t?: string) => api.get(`/ai-configs${t ? `?service_type=${t}` : ''}`),
   create: (d: any) => api.post('/ai-configs', d),

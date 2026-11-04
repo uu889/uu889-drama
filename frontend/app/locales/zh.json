@@ -28,7 +28,8 @@
     "serviceType": {
       "text": "文本",
       "image": "图片",
-      "video": "视频"
+      "video": "视频",
+      "voice": "语音"
     }
   },
   "layout": {
@@ -279,7 +280,7 @@
       "desc": "先用推荐模板快速落配置，再按服务类型微调。工作台创建集时会锁定所选图片和视频能力。",
       "quickTitle": "aiask.me 快捷配置",
       "recommended": "推荐",
-      "quickDesc": "输入 aiask.me API Key，一次写入文本、图片、视频（Grok）三条推荐配置。",
+      "quickDesc": "输入 aiask.me API Key，一次写入文本、图片、视频（Grok）、语音四条推荐配置。",
       "getKey": "前往 aiask.me 获取 Key",
       "applyQuick": "写入 aiask.me 配置",
       "manualTitle": "手动模板",
@@ -297,11 +298,15 @@
       "meta": {
         "text": "剧本改写、角色场景提取、分镜拆解等 Agent 文本能力",
         "image": "角色图、场景图与镜头图等静态图像生成",
-        "video": "镜头视频直出生成：aiask.me Grok 视频、本地 ComfyUI、Seedance 等"
+        "video": "镜头视频直出生成：aiask.me Grok 视频、本地 ComfyUI、Seedance 等",
+        "voice": "台词配音与声音克隆：aiask.me（edge-tts / gpt-sovits）、本机 edge-tts / GPT-SoVITS、火山引擎豆包语音"
       },
       "quickModelSaved": "已自动保存：默认{type}模型 {model}",
       "quickModelPicked": "已选{type}模型 {model}，填入 Key 点「写入 aiask.me 配置」后生效",
-      "quickPickHint": "点击选用，自动保存"
+      "quickPickHint": "点击选用，自动保存",
+      "quickKeyInvalid": "aiask.me 拒绝了这个 Key（{status}），没有写入。请检查 Key 是否复制完整、是否已过期或被禁用。",
+      "quickAppliedMore": "aiask.me 快捷配置已写入，另有 {n} 条 aiask.me 配置也换成了新 Key",
+      "quickKeyUnverified": "暂时连不上 aiask.me，Key 已写入但还没验证，请稍后点「测试」确认"
     },
     "styles": {
       "title": "风格预设",
@@ -1600,6 +1605,74 @@
       "content": "第一集原始内容",
       "hint": "进入工作台后可以继续修改，也可以上传附件补充。",
       "submit": "创建并打开"
+    }
+  },
+  "voice": {
+    "defaultVoice": "默认音色",
+    "defaultVoiceHint": "不填用推荐音色；可从列表选，也可直接填音色 ID",
+    "defaultSpeed": "默认语速",
+    "defaultSpeedHint": "0.5~2 倍，不填 = 1 倍",
+    "optional": "可选",
+    "volcAppIdHint": "旧版控制台填 App ID，API Key 处填 Access Token；新版控制台只填 API Key，这里留空",
+    "edgeCommand": "edge-tts 命令",
+    "edgeCommandHint": "Base URL 留空时调用本机命令行；不在 PATH 里时填 edge-tts 的完整路径",
+    "edgeBaseUrlPlaceholder": "留空 = 本机 edge-tts 命令；或 http://127.0.0.1:5050",
+    "preview": "试听",
+    "previewBtn": "试听",
+    "previewHint": "用当前表单（不必先保存）合成一句话，听到声音说明配置正确",
+    "previewCloneHint": "gpt-sovits / GPT-SoVITS 需要先在下方「克隆音色」上传参考音频，再选它试听",
+    "useDefaultVoice": "默认音色",
+    "presetVoices": "预置音色",
+    "clonedVoices": "克隆音色",
+    "noClones": "还没有克隆音色",
+    "textRequired": "请输入要合成的文字",
+    "needClone": "请先选择一个克隆音色（没有就先在下方创建）",
+    "useTryListen": "本机 edge-tts 命令行方式没有接口可测，请用下方「试听」检查",
+    "cloneTitle": "克隆音色",
+    "cloneSovitsDesc": "上传 3~10 秒参考录音 + 原话文本，aiask.me gpt-sovits 与本机 GPT-SoVITS 共用",
+    "cloneVolcDesc": "上传录音到火山声音复刻训练专属音色，训练完成后可用",
+    "status": {
+      "ready": "可用",
+      "training": "训练中",
+      "failed": "失败"
+    },
+    "refresh": "刷新状态",
+    "deleteConfirm": "删除克隆音色「{name}」？参考音频也会删除",
+    "cloneName": "音色名称",
+    "cloneNamePlaceholder": "如：林凡（男主）",
+    "speakerId": "火山音色 ID",
+    "cloneResource": "复刻资源",
+    "recording": "录音",
+    "refAudio": "参考音频",
+    "duration": "时长 {s} 秒",
+    "refLang": "参考语言",
+    "lang": {
+      "zh": "中文",
+      "en": "英语",
+      "ja": "日语",
+      "ko": "韩语",
+      "yue": "粤语",
+      "auto": "自动（多语混说）"
+    },
+    "refText": "参考文本",
+    "refTextPlaceholder": "参考音频里说的原话，一字不差",
+    "refTextHint": "必须与音频内容完全一致，否则克隆出的声音会跑调、吞字",
+    "consent": "我确认这是我本人的声音，或已获得声音主人的授权，不会用于冒充他人",
+    "saveFirst": "火山声音复刻需要先保存这条语音配置（App ID / Key）再上传",
+    "uploadTrain": "上传并训练",
+    "addClone": "添加克隆音色",
+    "uploaded": "已上传，火山正在训练，稍后点「刷新状态」",
+    "cloneAdded": "已添加克隆音色「{name}」",
+    "tooShort": "太短，需要 {min}~{max} 秒",
+    "tooLong": "太长，需要 {min}~{max} 秒，请剪出其中一句",
+    "tooShortVolc": "太短，建议 10~30 秒",
+    "err": {
+      "name": "请填写音色名称",
+      "audio": "请上传音频",
+      "size": "音频不能超过 10MB",
+      "refText": "请填写参考文本：参考音频里说的原话",
+      "speaker": "请填写火山控制台里的音色 ID（S_ 开头）",
+      "consent": "请勾选声音授权确认"
     }
   }
 }

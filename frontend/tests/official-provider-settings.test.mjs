@@ -28,7 +28,7 @@ test('settings page exposes official provider templates only', () => {
   assert.doesNotMatch(useApi, /huobaoPreset/i)
   assert.doesNotMatch(useApi, /\/huobao-preset/)
 
-  assert.match(settingsPage, /const providers = \['aiask', 'xai', 'gemini', 'openai', 'claude', 'deepseek', 'qwen', 'volcengine', 'minimax', 'aliyun', 'veo', 'runway', 'comfyui', 'sdwebui', 'fooocus'\]/)
+  assert.match(settingsPage, /const providers = \['aiask', 'xai', 'gemini', 'openai', 'claude', 'deepseek', 'qwen', 'volcengine', 'minimax', 'aliyun', 'veo', 'runway', 'comfyui', 'sdwebui', 'fooocus', 'edgetts', 'gptsovits'\]/)
   assert.match(settingsPage, /https:\/\/generativelanguage\.googleapis\.com/)
   assert.match(settingsPage, /https:\/\/api\.openai\.com/)
   assert.match(settingsPage, /https:\/\/ark\.cn-beijing\.volces\.com/)
@@ -77,7 +77,8 @@ test('settings page offers official default model IDs', () => {
 })
 
 test('text configs and aiask / ComfyUI configs expose the connection test button', () => {
-  assert.match(settingsPage, /v-if="st\.type === 'text' \|\| \['aiask', 'xai', 'veo', 'runway', 'comfyui', 'sdwebui', 'fooocus'\]\.includes\(c\.provider\)" class="btn btn-ghost btn-sm" @click="testExistingCfg\(c\)">\{\{ t\('settings\.ai\.test'\) \}\}/)
+  assert.match(settingsPage, /v-if="st\.type === 'voice'" class="btn btn-ghost btn-sm" @click="startEditCfg\(c\)"/)
+  assert.match(settingsPage, /v-else-if="st\.type === 'text' \|\| \['aiask', 'xai', 'veo', 'runway', 'comfyui', 'sdwebui', 'fooocus'\]\.includes\(c\.provider\)" class="btn btn-ghost btn-sm" @click="testExistingCfg\(c\)">\{\{ t\('settings\.ai\.test'\) \}\}/)
 })
 
 test('settings page offers the supported official provider presets', () => {
@@ -99,14 +100,20 @@ test('settings page offers the supported official provider presets', () => {
   assert.doesNotMatch(settingsPage, /audio:\s*\{/)
 })
 
-test('aiask.me quick config writes text, image and Grok video configs', () => {
+test('aiask.me quick config writes text, image, Grok video and voice configs', () => {
   const quickStart = settingsPage.indexOf('const aiaskQuickConfigs = [')
   assert.notEqual(quickStart, -1)
   const quickConfigs = settingsPage.slice(quickStart, settingsPage.indexOf('\n]', quickStart) + 2)
-  for (const type of ['text', 'image', 'video']) {
+  for (const type of ['text', 'image', 'video', 'voice']) {
     assert.match(quickConfigs, new RegExp(`service_type: '${type}', provider: 'aiask'.*base_url: AIASK_SITE_URL`))
   }
-  assert.match(quickConfigs, /model: \['grok-imagine-video-1\.5'\]/)
+  assert.match(settingsPage, /const AIASK_TEXT_MODELS = \['gpt-6-astra', 'gpt-6\.1-terra', 'gpt-6\.1-sol', 'mercury-3', 'claude-haiku-5-5', 'claude-opus-5-5', 'deepseek-v4\.1-flash', 'deepseek-v4-pro'\]/)
+  assert.match(settingsPage, /const AIASK_VIDEO_MODELS = \['grok-imagine-video-1\.5'/)
+  assert.match(settingsPage, /const AIASK_VOICE_MODELS = \['edge-tts', 'gpt-sovits'\]/)
+  // 快捷设置换 Key：先验证、清理粘贴的 Key、地址写法不同的 aiask.me 配置也要换
+  assert.match(settingsPage, /function cleanAiaskKey/)
+  assert.match(settingsPage, /function isAiaskHost/)
+  assert.match(settingsPage, /quickKeyInvalid/)
 })
 
 test('ComfyUI video configs expose workflow / fps / negative prompt fields', () => {

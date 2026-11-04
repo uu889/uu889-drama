@@ -16,7 +16,7 @@ export interface ProviderGuide {
   links: Array<[string, string]>
 }
 
-type ServiceType = 'text' | 'image' | 'video'
+type ServiceType = 'text' | 'image' | 'video' | 'voice'
 type GuideTable = Partial<Record<ServiceType, Record<string, ProviderGuide>>>
 
 /** 各服务类型在 UU889-Drama 里的用途 */
@@ -25,11 +25,13 @@ export const SERVICE_USAGE: Record<'zh' | 'en', Record<ServiceType, string>> = {
     text: '文字模型负责：小说改写成剧本、提取角色 / 场景 / 道具、拆分镜、为每张图和每段视频写提示词。启用多个配置时，优先级最高的为默认，工作台里可按集切换。',
     image: '图片模型负责：角色定妆照、场景图、道具图、分镜首帧 / 尾帧。生成后自动下载回 UU889-Drama，写回对应的角色 / 场景 / 分镜。',
     video: '视频模型负责：把每个分镜生成视频（提示词 + 首帧 / 尾帧 / 参考图 + 时长 / 比例 / 分辨率），完成后下载回来，可在「导出」里用 FFmpeg 拼成整集。',
+    voice: '语音模型负责：把台词 / 旁白转成语音（文字转语音），或用一段参考录音克隆出角色的声音。可选 aiask.me（edge-tts / gpt-sovits）、本机 edge-tts / GPT-SoVITS、火山引擎豆包语音（含声音复刻）。',
   },
   en: {
     text: 'Text models rewrite novels into scripts, extract characters / scenes / props, break down storyboards and write the prompts for every image and video. With several active configs, the highest priority one is the default; each episode can switch.',
     image: 'Image models render character portraits, scenes, props and storyboard first / last frames. Results are downloaded back into UU889-Drama and attached to the right character / scene / shot.',
     video: 'Video models turn each storyboard shot into a clip (prompt + first / last frame / references + duration / ratio / resolution). Clips are downloaded back and can be merged into a full episode with FFmpeg in Export.',
+    voice: 'Voice models turn dialogue / narration into speech (text-to-speech), or clone a character voice from a short reference recording. Options: aiask.me (edge-tts / gpt-sovits), local edge-tts / GPT-SoVITS, Volcengine Doubao speech (with voice cloning).',
   },
 }
 
@@ -50,9 +52,9 @@ const zh: GuideTable = {
         '登录 https://aiask.me ，在「API 令牌」里创建一个 Key（以 sk- 开头）。',
         '点上方「aiask.me」预设，自动填好 Base URL 与推荐模型。',
         '把 Key 粘贴到 API Key，点「测试连接」看到 200 即可保存。',
-        '也可以在 AI 服务页顶部用「aiask.me 一键配置」，一次写入文字 + 图片 + 视频三套配置。',
+        '也可以在 AI 服务页顶部用「aiask.me 一键配置」，一次写入文字 + 图片 + 视频 + 语音四套配置。',
       ],
-      fields: [['Base URL', 'https://aiask.me'], ['API Key', 'sk-…'], ['模型', '首位为默认，如 deepseek-v4.1-flash、deepseek-v4-pro、gpt-6.1-sol、claude-haiku-5-5、gpt-6-astra、claude-opus-5-5']],
+      fields: [['Base URL', 'https://aiask.me'], ['API Key', 'sk-…'], ['模型', '首位为默认：gpt-6-astra（默认）、gpt-6.1-terra、gpt-6.1-sol、mercury-3、claude-haiku-5-5、claude-opus-5-5、deepseek-v4.1-flash、deepseek-v4-pro']],
       tips: zhOpenAICompatTips,
       links: [['aiask.me', 'https://aiask.me']],
     },
@@ -320,14 +322,70 @@ const zh: GuideTable = {
       links: [['ComfyUI Wan 2.2 教程', 'https://docs.comfy.org/tutorials/video/wan/wan2_2'], ['Wan 2.2 模型下载', 'https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged']],
     },
   },
+  voice: {
+    aiask: {
+      summary: 'aiask.me 语音：edge-tts（微软预置音色，便宜快速）与 gpt-sovits（声音克隆，用 3~10 秒参考录音模仿角色声音）。和文字 / 图片 / 视频共用同一个 Key。',
+      steps: [
+        '点上方「aiask.me」预设，或用 AI 服务页顶部「aiask.me 一键配置」直接写入。',
+        '模型首位为默认：edge-tts 用下面的「默认音色」；gpt-sovits 需要先在「克隆音色」里上传参考音频。',
+        '点「试听」合成一句话，听到声音即可保存。',
+      ],
+      fields: [['Base URL', 'https://aiask.me'], ['API Key', '与文字模型同一个 sk-…'], ['模型', 'edge-tts（默认）/ gpt-sovits']],
+      tips: [
+        'gpt-sovits 参考音频必须 3~10 秒、只有一个人说话、没有背景音乐；参考文本必须和音频里说的话一字不差，否则声音会跑调、吞字。',
+        'gpt-sovits 单次合成不超过 1000 字，长台词请按句分段。',
+        '只克隆你本人或已获授权的声音。',
+      ],
+      links: [['aiask.me', 'https://aiask.me']],
+    },
+    edgetts: {
+      summary: '本机 edge-tts：免费的微软在线朗读，几十种中文 / 方言 / 外语音色。',
+      steps: [
+        '命令行方式：`pip install edge-tts`，Base URL 留空即可（找不到命令时在「edge-tts 命令」里填完整路径）。',
+        '服务方式：运行 openai-edge-tts（Docker：travisvn/openai-edge-tts，默认端口 5050），Base URL 填 http://127.0.0.1:5050，API Key 填它的 API_KEY。',
+        '选默认音色，点「试听」。',
+      ],
+      fields: [['Base URL', '留空 = 命令行；或 http://127.0.0.1:5050'], ['模型', 'edge-tts'], ['音色', '如 zh-CN-XiaoxiaoNeural、zh-CN-YunxiNeural']],
+      tips: ['edge-tts 需要能访问微软语音服务（speech.platform.bing.com）。', '完整音色列表：edge-tts --list-voices。'],
+      links: [['edge-tts', 'https://github.com/rany2/edge-tts'], ['openai-edge-tts', 'https://github.com/travisvn/openai-edge-tts']],
+    },
+    gptsovits: {
+      summary: '本机 GPT-SoVITS：用 3~10 秒参考录音克隆声音，离线运行。',
+      steps: [
+        '在 GPT-SoVITS 目录运行 `python api_v2.py -a 127.0.0.1 -p 9880`（整合包可用 go-api 启动脚本）。',
+        'Base URL 填 http://127.0.0.1:9880，点「测试连接」。',
+        '在「克隆音色」里上传参考音频、填参考文本，保存后点「试听」。',
+      ],
+      fields: [['Base URL', 'http://127.0.0.1:9880'], ['模型', 'gpt-sovits'], ['API Key', '一般不用填']],
+      tips: [
+        '参考音频必须 3~10 秒（GPT-SoVITS 会直接拒绝超出范围的音频），一个人说话，无背景音乐和混响。',
+        '参考文本要与音频内容一字不差；参考语言选音频里说的语言。',
+        '参考音频按本机路径传给 GPT-SoVITS，所以 GPT-SoVITS 需要和 UU889-Drama 在同一台电脑上。',
+        '换训练好的模型：在 GPT-SoVITS 里调用 /set_gpt_weights 与 /set_sovits_weights。',
+      ],
+      links: [['GPT-SoVITS', 'https://github.com/RVC-Boss/GPT-SoVITS']],
+    },
+    volcengine: {
+      summary: '火山引擎豆包语音合成大模型：大量高质量预置音色，以及声音复刻（上传录音训练专属音色）。',
+      steps: [
+        '在火山引擎「豆包语音」控制台开通语音合成大模型（声音复刻需另外购买音色，得到 S_ 开头的音色 ID）。',
+        '新版控制台：把 API Key 填进 API Key，App ID 留空；旧版控制台：填 App ID 与 Access Token。',
+        '模型填资源 ID：seed-tts-2.0 / seed-tts-1.0 用预置音色；seed-icl-2.0 / seed-icl-1.0 用复刻音色。',
+        '预置音色在「默认音色」里选或直接填音色 ID；复刻音色在「克隆音色」里上传录音，训练完成后可用。',
+      ],
+      fields: [['Base URL', 'https://openspeech.bytedance.com'], ['API Key', '新版 API Key / 旧版 Access Token'], ['App ID', '旧版控制台才需要'], ['模型', 'seed-tts-2.0 / seed-tts-1.0 / seed-icl-2.0 / seed-icl-1.0']],
+      tips: ['音色和资源 ID 要匹配：复刻音色只能用 seed-icl-*，预置音色只能用 seed-tts-*（选复刻音色时会自动切换）。', '声音复刻录音建议 10~30 秒，≤10MB，安静环境。', '只克隆你本人或已获授权的声音。'],
+      links: [['豆包语音文档', 'https://docs.volcengine.com/docs/lake-ai-service/text-to-speech-doubao-speech-large-model?lang=zh'], ['豆包语音控制台', 'https://console.volcengine.com/speech/app']],
+    },
+  },
 }
 
 const en: GuideTable = {
   text: {
     aiask: {
       summary: 'aiask.me is an OpenAI-compatible gateway: one key for GPT / DeepSeek / Gemini text models.',
-      steps: ['Sign in at https://aiask.me and create a key (starts with sk-).', 'Click the "aiask.me" preset to fill Base URL and models.', 'Paste the key, click Test, save once you see 200.', 'Or use the "aiask.me quick setup" at the top of the AI page to create text + image + video configs at once.'],
-      fields: [['Base URL', 'https://aiask.me'], ['API Key', 'sk-…'], ['Models', 'first one is the default, e.g. deepseek-v4.1-flash']],
+      steps: ['Sign in at https://aiask.me and create a key (starts with sk-).', 'Click the "aiask.me" preset to fill Base URL and models.', 'Paste the key, click Test, save once you see 200.', 'Or use the "aiask.me quick setup" at the top of the AI page to create text + image + video + voice configs at once.'],
+      fields: [['Base URL', 'https://aiask.me'], ['API Key', 'sk-…'], ['Models', 'first one is the default: gpt-6-astra (default), gpt-6.1-terra, gpt-6.1-sol, mercury-3, claude-haiku-5-5, claude-opus-5-5, deepseek-v4.1-flash, deepseek-v4-pro']],
       tips: enOpenAICompatTips,
       links: [['aiask.me', 'https://aiask.me']],
     },
@@ -471,6 +529,12 @@ const en: GuideTable = {
       tips: ['Frames = duration × FPS aligned to 4n+1 (5 s at 16 fps = 81); 480p / 720p / 1080p map to width / height by ratio.', 'MiniMax H3 is fixed at 24 fps with frames snapped to 17k+5 (5 s = 124); short edge up to 768 (1344×768 at 16:9), so 1080p renders at 768p. H3 has no negative prompt — describe dialogue / SFX / music in the prompt.', 'Output must be mp4 (SaveVideo or VHS_VideoCombine h264-mp4).', 'Detailed progress uses ComfyUI\'s WebSocket (/ws); behind a proxy without WebSocket only queue / elapsed time is shown.', 'Out of memory: lower resolution / duration, use fp8 / GGUF, or --lowvram.', '"Visual style → models": the style comes mainly from the first frame (render it with the style image model); Wan 2.2 I2V 14B adds a Wan 14B style LoRA on the low-noise model. 5B / MiniMax H3 get no LoRA.', '"One-click model download" also fetches the template base models (diffusion / text encoder / VAE, ~34 GB for 14B); remote downloads run on the remote machine and finish even if UU889-Drama is closed.'],
       links: [['ComfyUI Wan 2.2 guide', 'https://docs.comfy.org/tutorials/video/wan/wan2_2'], ['Wan 2.2 models', 'https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged']],
     },
+  },
+  voice: {
+    aiask: { summary: 'aiask.me speech: edge-tts (Microsoft preset voices) and gpt-sovits (voice cloning from a 3–10 s reference clip). Same key as text / image / video.', steps: ['Click the aiask.me preset or use the quick setup at the top.', 'edge-tts uses the default voice below; gpt-sovits needs a cloned voice first.', 'Click Preview to synthesize a line, then save.'], fields: [['Base URL', 'https://aiask.me'], ['Models', 'edge-tts (default) / gpt-sovits']], tips: ['gpt-sovits reference audio must be 3–10 s, one speaker, no music; the reference text must match the audio word for word.', 'Clone only your own voice or voices you are authorized to use.'], links: [['aiask.me', 'https://aiask.me']] },
+    edgetts: { summary: 'Local edge-tts: free Microsoft online voices.', steps: ['CLI: pip install edge-tts and leave Base URL empty.', 'Server: run openai-edge-tts (port 5050) and set Base URL to http://127.0.0.1:5050.'], fields: [['Base URL', 'empty = CLI, or http://127.0.0.1:5050'], ['Voice', 'e.g. zh-CN-XiaoxiaoNeural']], tips: ['List voices with edge-tts --list-voices.'], links: [['edge-tts', 'https://github.com/rany2/edge-tts'], ['openai-edge-tts', 'https://github.com/travisvn/openai-edge-tts']] },
+    gptsovits: { summary: 'Local GPT-SoVITS voice cloning (api_v2.py).', steps: ['Run python api_v2.py -a 127.0.0.1 -p 9880.', 'Base URL http://127.0.0.1:9880, then add a cloned voice and preview.'], fields: [['Base URL', 'http://127.0.0.1:9880'], ['Models', 'gpt-sovits']], tips: ['Reference audio must be 3–10 s and the reference text must match it exactly.', 'The reference file is passed by local path, so GPT-SoVITS must run on the same computer.'], links: [['GPT-SoVITS', 'https://github.com/RVC-Boss/GPT-SoVITS']] },
+    volcengine: { summary: 'Volcengine Doubao speech: preset voices and voice cloning.', steps: ['Enable Doubao speech synthesis in the Volcengine console.', 'New console: API Key only. Legacy console: App ID + access token.', 'Model = resource ID: seed-tts-* for preset voices, seed-icl-* for cloned voices.'], fields: [['Base URL', 'https://openspeech.bytedance.com'], ['Models', 'seed-tts-2.0 / seed-tts-1.0 / seed-icl-2.0 / seed-icl-1.0']], tips: ['Clone recordings: 10–30 s, ≤10 MB.'], links: [['Doubao speech docs', 'https://docs.volcengine.com/docs/lake-ai-service/text-to-speech-doubao-speech-large-model?lang=zh']] },
   },
 }
 
