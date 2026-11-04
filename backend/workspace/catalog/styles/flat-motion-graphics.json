@@ -1,0 +1,15 @@
+{
+  "id": "flat-motion-graphics",
+  "name": "扁平动态图形",
+  "prompt": "flat motion graphics illustration, bold vector shapes, consistent 2px rounded outlines, limited brand-like palette of four colors with one accent, clean iconography, isometric or front-on simple scenes, plenty of space for on-screen text, high detail, high definition; avoid gradients and textures, avoid photographic elements",
+  "description": "矢量扁平、留足文字位，适合产品讲解、数据科普、MG 动画。",
+  "tags": [
+    "扁平",
+    "MG动画",
+    "解说"
+  ],
+  "source": {
+    "name": "OpenMontage · 风格 playbook（仅借鉴思路）",
+    "url": "https://github.com/calesthio/OpenMontage"
+  }
+}

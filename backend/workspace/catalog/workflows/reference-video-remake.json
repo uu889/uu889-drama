@@ -1,0 +1,54 @@
+{
+  "id": "reference-video-remake",
+  "name": "参考视频复刻改编",
+  "description": "参考视频描述 → 结构与运镜拆解 → 换成自己的人物与故事 → Seedance 参考生成提示词",
+  "category": "分镜",
+  "tags": [
+    "复刻",
+    "运镜",
+    "参考视频"
+  ],
+  "source": {
+    "name": "seedance2-skill · 参考视频复刻",
+    "url": "https://github.com/dexhunter/seedance2-skill"
+  },
+  "inputs": [
+    {
+      "key": "reference",
+      "label": "参考视频描述",
+      "placeholder": "逐段描述参考视频的画面、运镜、节奏",
+      "multiline": true
+    },
+    {
+      "key": "story",
+      "label": "我们的内容",
+      "placeholder": "要换成的人物、场景和故事",
+      "multiline": true
+    }
+  ],
+  "steps": [
+    {
+      "id": "breakdown",
+      "name": "结构拆解",
+      "agent": "benchmark-analyst",
+      "prompt": "拆解参考视频的段落结构、每段运镜、节奏点和转场，只写手法不写具体内容：\n\n{{inputs.reference}}"
+    },
+    {
+      "id": "adapt",
+      "name": "改编分镜",
+      "agent": "storyboard-director",
+      "prompt": "沿用下面的结构和运镜，换成我们的内容写分镜：\n\n结构：\n{{steps.breakdown}}\n\n我们的内容：\n{{inputs.story}}"
+    },
+    {
+      "id": "prompts",
+      "name": "Seedance 提示词",
+      "agent": "seedance-prompter",
+      "prompt": "把分镜写成 Seedance 2.0 提示词，@视频1 只用于运镜和节奏，人物与场景用 @图片N：\n\n{{steps.adapt}}"
+    }
+  ],
+  "handoff": {
+    "type": "one-click",
+    "content_step": "adapt",
+    "aspect_ratio": "9:16"
+  }
+}

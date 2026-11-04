@@ -1,0 +1,15 @@
+{
+  "id": "comic-retro-hk",
+  "name": "复古港漫",
+  "prompt": "retro Hong Kong martial-arts comic style, dense contour lines and cross-hatching, high-contrast color blocks, muscular dynamic anatomy, dramatic foreshortening, printed halftone grain, speed lines and impact bursts, saturated reds and golds against deep shadows, high detail, high definition; avoid soft pastel palette, avoid clean minimalist rendering",
+  "description": "密集轮廓与排线、高反差色块、印刷颗粒，适合打戏、江湖、帮派。",
+  "tags": [
+    "漫剧",
+    "港漫",
+    "动作"
+  ],
+  "source": {
+    "name": "Drama Skills · 漫剧关键帧词表",
+    "url": "https://github.com/zenstory-ai/drama-skills"
+  }
+}

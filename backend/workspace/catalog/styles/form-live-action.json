@@ -1,0 +1,15 @@
+{
+  "id": "form-live-action",
+  "name": "实拍短剧",
+  "prompt": "photorealistic live-action vertical short drama still, real actors with natural skin texture, costume state described precisely (sleeve rolled to the forearm, second button undone), practical motivated light with a visible source and direction, blinds or windows shaping the light, matte and glossy surfaces reacting differently, believable set dressing, cinematic but natural color relationships, 35mm lens look, shallow depth of field on dialogue, high detail, high definition; avoid plastic AI skin sheen, avoid adjective-only lighting like cinematic or atmospheric",
+  "description": "用日常经验让观众直接读懂处境；光写来源与方向，造型写可比较的状态。",
+  "tags": [
+    "实拍",
+    "写实",
+    "形态卡"
+  ],
+  "source": {
+    "name": "Drama Skills · 制作形态卡",
+    "url": "https://github.com/zenstory-ai/drama-skills"
+  }
+}

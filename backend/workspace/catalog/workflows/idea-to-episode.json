@@ -1,0 +1,54 @@
+{
+  "id": "idea-to-episode",
+  "name": "一句话创意成剧",
+  "description": "一句话创意 → 人物与爽点设计 → 单集剧本 → 去 AI 味润色，交给一键生成",
+  "category": "编剧",
+  "tags": [
+    "创意",
+    "短剧",
+    "单集"
+  ],
+  "source": {
+    "name": "drama-skills · short-drama-write",
+    "url": "https://github.com/zenstory-ai/drama-skills"
+  },
+  "inputs": [
+    {
+      "key": "idea",
+      "label": "一句话创意",
+      "placeholder": "例如：外卖员在高档餐厅被羞辱，亮出集团董事身份",
+      "multiline": false
+    },
+    {
+      "key": "duration",
+      "label": "单集时长",
+      "placeholder": "例如：90 秒",
+      "multiline": false
+    }
+  ],
+  "steps": [
+    {
+      "id": "design",
+      "name": "人物与爽点",
+      "agent": "drama-screenwriter",
+      "prompt": "把创意「{{inputs.idea}}」展开：主要人物（≤4 人，各自欲望与秘密）、冲突、3 个爽点和集尾钩子。"
+    },
+    {
+      "id": "script",
+      "name": "单集剧本",
+      "agent": "drama-screenwriter",
+      "prompt": "按下面的设计写一集 {{inputs.duration}} 的短剧剧本，第一拍就是钩子：\n\n{{steps.design}}"
+    },
+    {
+      "id": "polish",
+      "name": "去 AI 味润色",
+      "agent": "drama-screenwriter",
+      "prompt": "只改对白和动作描写去掉 AI 味（套话、排比、总结性台词），不改剧情事件，输出完整剧本：\n\n{{steps.script}}"
+    }
+  ],
+  "handoff": {
+    "type": "one-click",
+    "content_step": "polish",
+    "aspect_ratio": "9:16"
+  }
+}

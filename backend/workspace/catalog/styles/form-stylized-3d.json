@@ -1,0 +1,15 @@
+{
+  "id": "form-stylized-3d",
+  "name": "风格化三维",
+  "prompt": "stylized 3D animated feature look, appealing exaggerated proportions with stable silhouettes, material zones with clear roughness differences, believable weight and contact (feet planted on surfaces, hands gripping specific parts of objects), soft global illumination with motivated key light and volumetric haze, consistent light direction within a scene, camera at stable height respecting the action axis, rich but controlled color palette, high detail, high definition; avoid floating feet and clipping, avoid drifting into photoreal live action, avoid unmotivated camera moves",
+  "description": "重量与空间说话；接触点、光向、轴线逐镜一致。",
+  "tags": [
+    "三维",
+    "卡通渲染",
+    "形态卡"
+  ],
+  "source": {
+    "name": "Drama Skills · 制作形态卡",
+    "url": "https://github.com/zenstory-ai/drama-skills"
+  }
+}

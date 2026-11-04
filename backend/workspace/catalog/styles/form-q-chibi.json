@@ -1,0 +1,15 @@
+{
+  "id": "form-q-chibi",
+  "name": "Q版表达",
+  "prompt": "chibi super-deformed cartoon style, consistent head-to-body ratio per character, big readable color blocks with one exaggerated signature mark per character (glasses, ahoge, apron, badge), simple rounded shapes, flat fills with two-step shading and a few indicator highlights, one saturated accent color reserved for the danger or key object while the rest stays desaturated, simplified background keeping only causal props, clean crisp edges, high detail, high definition; avoid realistic textures, avoid every element bouncing",
+  "description": "大头小身、色块与放大记号做身份锚点；一镜只讲一个因果，适合规则科普与轻喜剧。",
+  "tags": [
+    "Q版",
+    "形态卡",
+    "知识短片"
+  ],
+  "source": {
+    "name": "Drama Skills · 制作形态卡",
+    "url": "https://github.com/zenstory-ai/drama-skills"
+  }
+}

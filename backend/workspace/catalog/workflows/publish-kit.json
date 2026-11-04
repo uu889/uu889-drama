@@ -1,0 +1,48 @@
+{
+  "id": "publish-kit",
+  "name": "发布素材包",
+  "description": "剧本 → 平台标题 / 简介 / 标签 → 金句长图选句 → AI 内容标注提醒",
+  "category": "运营",
+  "tags": [
+    "发布",
+    "标题",
+    "金句"
+  ],
+  "source": {
+    "name": "native-subtitle-quote-image；Y2A-Auto（思路）",
+    "url": "https://github.com/chengyi-ai/native-subtitle-quote-image"
+  },
+  "inputs": [
+    {
+      "key": "script",
+      "label": "本集剧本",
+      "placeholder": "粘贴剧本",
+      "multiline": true
+    },
+    {
+      "key": "platform",
+      "label": "发布平台",
+      "placeholder": "抖音 / 快手 / B 站 / 视频号",
+      "multiline": false
+    }
+  ],
+  "steps": [
+    {
+      "id": "meta",
+      "name": "标题简介标签",
+      "agent": "growth-operator",
+      "prompt": "为「{{inputs.platform}}」写 5 个标题、1 段简介、10 个标签和分区建议，不剧透结局：\n\n{{inputs.script}}"
+    },
+    {
+      "id": "quotes",
+      "name": "金句选句",
+      "agent": "growth-operator",
+      "prompt": "从剧本里挑 3–5 句连续的冲突或情绪台词做金句长图，写出处场次：\n\n{{inputs.script}}"
+    }
+  ],
+  "handoff": {
+    "type": "one-click",
+    "content_step": "meta",
+    "aspect_ratio": "9:16"
+  }
+}

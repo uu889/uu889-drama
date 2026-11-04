@@ -1,0 +1,14 @@
+{
+  "id": "claymation",
+  "name": "黏土定格",
+  "prompt": "handmade claymation stop-motion look, visible fingerprints and tool marks in plasticine, slightly irregular shapes, miniature practical sets, soft studio lighting with small-scale depth of field, tactile matte surfaces, charming exaggerated expressions, high detail, high definition; avoid glossy CGI surfaces, avoid perfectly smooth geometry",
+  "description": "手作质感、微缩布景，适合喜剧、儿童向、品牌趣味短片。",
+  "tags": [
+    "黏土",
+    "定格动画"
+  ],
+  "source": {
+    "name": "MiniMax H3 Max 提示词库",
+    "url": "https://github.com/VulcanEon/insane-minimax-h3-max-prompts"
+  }
+}

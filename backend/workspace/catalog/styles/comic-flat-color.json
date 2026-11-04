@@ -1,0 +1,14 @@
+{
+  "id": "comic-flat-color",
+  "name": "平涂漫画",
+  "prompt": "flat-color comic style, simplified generalized forms, limited color steps per surface, weak surface texture, bold shape design, clear color coding for each character, minimal but readable background, graphic composition with strong negative space, high detail, high definition; avoid photographic texture, avoid gradient-heavy rendering",
+  "description": "形体概括、有限色阶，信息读得快、出图稳定。",
+  "tags": [
+    "漫剧",
+    "平涂"
+  ],
+  "source": {
+    "name": "Drama Skills · 漫剧关键帧词表",
+    "url": "https://github.com/zenstory-ai/drama-skills"
+  }
+}

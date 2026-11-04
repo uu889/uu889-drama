@@ -1,0 +1,54 @@
+{
+  "id": "comic-to-motion",
+  "name": "漫画转动态漫",
+  "description": "漫画页描述 → 分格阅读顺序 → 逐格动态化分镜 → Seedance 提示词",
+  "category": "分镜",
+  "tags": [
+    "漫画",
+    "动态漫",
+    "Seedance"
+  ],
+  "source": {
+    "name": "seedance2-skill · 漫画演绎",
+    "url": "https://github.com/dexhunter/seedance2-skill"
+  },
+  "inputs": [
+    {
+      "key": "pages",
+      "label": "漫画页描述",
+      "placeholder": "逐页逐格描述画面、对白和音效字",
+      "multiline": true
+    },
+    {
+      "key": "style",
+      "label": "画风",
+      "placeholder": "例如：日漫赛璐璐、国漫厚涂",
+      "multiline": false
+    }
+  ],
+  "steps": [
+    {
+      "id": "panels",
+      "name": "分格整理",
+      "agent": "storyboard-director",
+      "prompt": "按从左到右、从上到下（日漫从右到左请注明）整理分格顺序，每格写画面、人物、对白：\n\n{{inputs.pages}}"
+    },
+    {
+      "id": "motion",
+      "name": "动态化分镜",
+      "agent": "storyboard-director",
+      "prompt": "把每格变成一个 2–5 秒镜头：起点、一个动作、终点、运镜、台词与音效，保持「{{inputs.style}}」画风：\n\n{{steps.panels}}"
+    },
+    {
+      "id": "prompts",
+      "name": "Seedance 提示词",
+      "agent": "seedance-prompter",
+      "prompt": "把动态化分镜写成 Seedance 2.0 提示词，@图片N 为对应漫画格（首帧），全程不生成字幕：\n\n{{steps.motion}}"
+    }
+  ],
+  "handoff": {
+    "type": "one-click",
+    "content_step": "motion",
+    "aspect_ratio": "9:16"
+  }
+}

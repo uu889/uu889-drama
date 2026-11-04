@@ -1,0 +1,15 @@
+{
+  "id": "cartoon-2d-in-3d",
+  "name": "2D 卡片角色 · 3D 彩绘世界",
+  "prompt": "flat 2D cartoon character cards with bean-shaped heads, stick limbs and thick plum-colored variable-width ink outlines standing inside a colorful painted 3D storybook town, black ink lines on buildings and terrain, muted brick, cream and ochre houses, saturated blue sky fading to a brighter horizon, horizon-colored distance fog, depth of field focused on the eyes of the front character, gliding camera feel, cool tint only in shadows, high detail, high definition; avoid photoreal textures, avoid lemon or lavender lit faces, avoid outlines on wall joins",
+  "description": "扁平角色 + 彩绘 3D 世界 + 景深 + 滑行镜头，适合真实趣闻、历史小故事、科普动画。",
+  "tags": [
+    "卡通",
+    "2D+3D",
+    "科普"
+  ],
+  "source": {
+    "name": "claude-animated-shorts",
+    "url": "https://github.com/mromidev/claude-animated-shorts"
+  }
+}

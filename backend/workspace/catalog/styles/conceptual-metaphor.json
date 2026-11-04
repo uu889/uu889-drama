@@ -1,0 +1,14 @@
+{
+  "id": "conceptual-metaphor",
+  "name": "概念隐喻",
+  "prompt": "conceptual visual metaphor illustration, symbolic elements turning abstract ideas into concrete scenes (paths for choices, chains for constraints, doors for opportunity), surreal yet clean composition, thoughtful moody lighting, restrained palette, high detail, high definition; avoid literal stock-photo depictions, avoid text in image",
+  "description": "用象征把抽象观点画出来，适合深度思考、心理学、成长类内容。",
+  "tags": [
+    "隐喻",
+    "解说"
+  ],
+  "source": {
+    "name": "Pixelle-Video · 配图风格",
+    "url": "https://github.com/ATH-MaaS/Pixelle-Video"
+  }
+}

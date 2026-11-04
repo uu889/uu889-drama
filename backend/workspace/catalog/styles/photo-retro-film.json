@@ -1,0 +1,15 @@
+{
+  "id": "photo-retro-film",
+  "name": "复古胶片写真",
+  "prompt": "35mm film photography look, subtle film grain, soft warm vintage tones, slightly lifted blacks, natural street light and window light, candid cinematic breathing feel, period-appropriate wardrobe, high detail, high definition; avoid digital oversharpening, avoid neon modern signage",
+  "description": "富士胶片质感，适合年代剧、回忆杀、港风。",
+  "tags": [
+    "写实",
+    "胶片",
+    "年代"
+  ],
+  "source": {
+    "name": "ai-pose-gallery-zh · 画风预设",
+    "url": "https://github.com/anhao/ai-pose-gallery-zh"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "id": "comic-cel-frame",
+  "name": "赛璐璐动画帧",
+  "prompt": "anime cel animation keyframe, clean confident outlines, flat even color fills, restrained number of hard-edged shadow layers, crisp highlight shapes, readable silhouettes against a simplified painted background, strong focal character with clear eye line, high detail, high definition; avoid painterly texture on characters, avoid muddy gradients",
+  "description": "清晰轮廓、平整色块、层数克制的硬边阴影。",
+  "tags": [
+    "漫剧",
+    "赛璐璐"
+  ],
+  "source": {
+    "name": "Drama Skills · 漫剧关键帧词表",
+    "url": "https://github.com/zenstory-ai/drama-skills"
+  }
+}

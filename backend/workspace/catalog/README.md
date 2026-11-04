@@ -1,11 +1,22 @@
-# 模板库（catalog）
+# 模板目录（catalog）
+
+一键生成 / 智能体 / 工作流三个板块的数据源。来源调研见 `docs/reference-research.md`。
+
+- `styles/<id>.json`：视觉风格（30）
+- `skills/<id>/SKILL.md`：skill（22）
+- `agents/<id>/AGENT.md`：智能体模板（14），`skills` 引用上面的 skill id
+- `workflows/<id>.json`：工作流模板（12），步骤 `agent` 引用智能体 id，`handoff.style` 引用风格 id
+
+全部条目为中文原创整理，每条带 `source` 注明思路来源；AGPL / GPL / 无许可证的来源只借鉴思路，未复制原文。
+
+## 文件格式
 
 「一键生成 / 智能体 / 工作流」三个板块的内容。丢文件进来就会出现在界面上，不用改代码。
 用户在界面里新建 / 修改的版本存到同级的 `catalog-user/`（同 id 优先），这里的内置版不会被改。
 
 id（文件名 / 目录名）一律小写字母、数字、连字符。每项都请写出处（source），以便标注来源和许可。
 
-## 视觉风格 `styles/<id>.json`（一键生成）
+### 视觉风格 `styles/<id>.json`（一键生成）
 
 ```json
 { "id": "ink-wash", "name": "水墨国风", "prompt": "生图风格提示词片段", "description": "一句话说明",
@@ -14,11 +25,11 @@ id（文件名 / 目录名）一律小写字母、数字、连字符。每项都
 
 在「一键生成 → 风格库」点「加入我的风格」后进入风格预设（style_presets），新建项目时可选。
 
-## Skill `skills/<id>/SKILL.md`
+### Skill `skills/<id>/SKILL.md`
 
 frontmatter：`name` / `description` / `source` / `source_url`，正文为 skill 全文。
 
-## 智能体 `agents/<id>/AGENT.md`
+### 智能体 `agents/<id>/AGENT.md`
 
 ```markdown
 ---
@@ -26,7 +37,7 @@ name: 短剧编剧
 description: 一句话说明
 category: 编剧
 icon: pen
-skills: [short-drama-hooks]
+skills: [episode-script-craft]
 starters: [示例提问 1, 示例提问 2]
 source: 出处
 source_url: https://...
@@ -37,7 +48,7 @@ source_url: https://...
 
 运行时系统提示词 = 正文 + 所列 skill 全文 + 内容语言指令。
 
-## 工作流 `workflows/<id>.json`
+### 工作流 `workflows/<id>.json`
 
 ```json
 {

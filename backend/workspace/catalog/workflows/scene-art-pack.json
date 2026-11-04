@@ -1,0 +1,54 @@
+{
+  "id": "scene-art-pack",
+  "name": "场景道具美术包",
+  "description": "剧本 → 主场景与叙事道具清单 → 锚点与光照状态 → 白板图提示词 → 视觉定调",
+  "category": "美术",
+  "tags": [
+    "场景",
+    "道具",
+    "定调"
+  ],
+  "source": {
+    "name": "shuohao-skills · novel-art；drama-skills · look-development",
+    "url": "https://github.com/eternityspring/shuohao-skills"
+  },
+  "inputs": [
+    {
+      "key": "script",
+      "label": "剧本",
+      "placeholder": "粘贴剧本或分集大纲",
+      "multiline": true
+    },
+    {
+      "key": "episodes",
+      "label": "总集数",
+      "placeholder": "例如：20",
+      "multiline": false
+    }
+  ],
+  "steps": [
+    {
+      "id": "list",
+      "name": "场景道具清单",
+      "agent": "scene-prop-designer",
+      "prompt": "从剧本里列主场景（≤4+⌈{{inputs.episodes}}÷10⌉ 个，可合并的合并）和叙事道具（≤8 件），写每项出现在哪几场：\n\n{{inputs.script}}"
+    },
+    {
+      "id": "bible",
+      "name": "美术设定",
+      "agent": "scene-prop-designer",
+      "prompt": "为清单里每个场景写一致性锚点、空间布局、光照状态和白板图提示词；每件道具写外观锚点、尺度、状态变体：\n\n{{steps.list}}"
+    },
+    {
+      "id": "look",
+      "name": "视觉定调",
+      "agent": "scene-prop-designer",
+      "prompt": "基于设定给出全剧视觉定调：统一画风句、每个场景的光线句、三类代表帧：\n\n{{steps.bible}}"
+    }
+  ],
+  "handoff": {
+    "type": "one-click",
+    "content_step": "bible",
+    "aspect_ratio": "16:9"
+  }
+}
