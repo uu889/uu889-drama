@@ -1,0 +1,18 @@
+{
+  "id": "topic-to-drama",
+  "name": "主题一句话 → 短剧剧本",
+  "description": "输入一个主题或梗，依次产出人物设定、分集大纲、第一集剧本，并交给一键生成继续出图出视频",
+  "category": "编剧",
+  "tags": ["原创", "竖屏"],
+  "source": { "name": "UU889-Drama" },
+  "inputs": [
+    { "key": "topic", "label": "主题 / 梗", "placeholder": "例如：被豪门退婚的女孩其实是首富失散的女儿", "multiline": true },
+    { "key": "episodes", "label": "计划集数", "placeholder": "例如：10", "required": false, "default": "10" }
+  ],
+  "steps": [
+    { "id": "characters", "name": "人物设定", "agent": "drama-screenwriter", "prompt": "主题：{{inputs.topic}}\n\n为这部竖屏短剧设计 3~5 个主要人物：姓名、年龄、身份、外貌（适合生图的具体描述）、性格、和主角的关系。用列表输出。" },
+    { "id": "outline", "name": "分集大纲", "agent": "drama-screenwriter", "prompt": "主题：{{inputs.topic}}\n\n人物：\n{{steps.characters}}\n\n写 {{inputs.episodes}} 集的分集大纲，每集 2~3 句话，每集结尾都要有悬念。" },
+    { "id": "script", "name": "第一集剧本", "agent": "drama-screenwriter", "prompt": "人物：\n{{steps.characters}}\n\n分集大纲：\n{{steps.outline}}\n\n按大纲写第一集完整剧本（1~2 分钟）。" }
+  ],
+  "handoff": { "type": "one-click", "content_step": "script", "aspect_ratio": "9:16" }
+}

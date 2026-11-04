@@ -27,7 +27,7 @@ const REPO_ROOT = path.resolve(DESKTOP_ROOT, '..')
 const BACKEND_BUNDLE = path.join(DESKTOP_ROOT, 'build', 'backend.mjs')
 
 /** workspace 模板版本：内置模板更新时递增，触发向用户目录补缺失文件 */
-const TEMPLATE_VERSION = '9'
+const TEMPLATE_VERSION = '10'
 /**
  * 更新过的内置 skill 目录：升级时用新版覆盖（用户改过的旧文件先备份成 *.bak-v<旧版本>）。
  * v5：分镜拆解按台词定时长 / 站位接戏，视频提示词无台词段标「无人说话」
@@ -35,6 +35,7 @@ const TEMPLATE_VERSION = '9'
  * v7：分镜拆解 / 视频提示词补「动作符合物理」写法（防穿模、漂浮、变形）
  * v8：视频提示词写明生成时自动附加的导演指令（含【画质】），篇幅留给本镜画面
  * v9：分镜拆解限制每段台词 ≤ 50 字，长台词 / 独白按句拆到连续段落，引号成对
+ * v10：新增模板库 catalog/（一键生成风格 / 智能体 / 工作流），每次升级整体覆盖；用户版在 catalog-user/ 不动
  */
 const UPDATED_SKILL_DIRS = [
   'storyboard-breaker',
@@ -158,6 +159,10 @@ function syncWorkspaceTemplate(templateDir: string, destDir: string) {
   if (previous === TEMPLATE_VERSION) return
   fs.cpSync(templateDir, destDir, { recursive: true, force: false, errorOnExist: false })
   fs.cpSync(path.join(templateDir, 'prompts'), path.join(destDir, 'prompts'), { recursive: true, force: true })
+  // 模板库内置内容随版本整体覆盖（用户自建 / 改过的在 catalog-user/，不受影响）
+  if (fs.existsSync(path.join(templateDir, 'catalog'))) {
+    fs.cpSync(path.join(templateDir, 'catalog'), path.join(destDir, 'catalog'), { recursive: true, force: true })
+  }
   // 老用户升级：更新过的内置 skill 用新版覆盖，内容不同的旧文件先备份
   if (previous) {
     for (const rel of UPDATED_SKILL_DIRS) {

@@ -1,0 +1,16 @@
+{
+  "id": "novel-to-drama",
+  "name": "小说片段 → 短剧剧本",
+  "description": "把一段小说改成短剧剧本，先诊断节奏再改写，最后交给一键生成",
+  "category": "改编",
+  "tags": ["小说改编"],
+  "source": { "name": "UU889-Drama" },
+  "inputs": [
+    { "key": "novel", "label": "小说片段", "placeholder": "粘贴一章或一段小说原文", "multiline": true }
+  ],
+  "steps": [
+    { "id": "diagnose", "name": "节奏诊断", "agent": "hook-doctor", "prompt": "下面是要改编成短剧的小说片段，指出适合作为开头钩子、反转和集尾悬念的情节点：\n\n{{inputs.novel}}" },
+    { "id": "script", "name": "改写剧本", "agent": "drama-screenwriter", "prompt": "小说原文：\n{{inputs.novel}}\n\n改编建议：\n{{steps.diagnose}}\n\n按改编建议把小说改成一集短剧剧本。" }
+  ],
+  "handoff": { "type": "one-click", "content_step": "script", "aspect_ratio": "9:16" }
+}
