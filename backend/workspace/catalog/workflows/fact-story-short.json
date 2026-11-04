@@ -1,0 +1,55 @@
+{
+  "id": "fact-story-short",
+  "name": "冷知识动画短片",
+  "description": "选题核查 → 节拍脚本 → 分镜（画面反应对齐旁白）→ 配音稿",
+  "category": "编导",
+  "tags": [
+    "冷知识",
+    "动画",
+    "科普"
+  ],
+  "source": {
+    "name": "claude-animated-shorts",
+    "url": "https://github.com/mromidev/claude-animated-shorts"
+  },
+  "inputs": [
+    {
+      "key": "fact",
+      "label": "冷知识或真实事件",
+      "placeholder": "例如：士兵齐步走踩塌铁桥",
+      "multiline": false
+    },
+    {
+      "key": "sources",
+      "label": "已知来源（可选）",
+      "placeholder": "粘贴链接或资料",
+      "multiline": true
+    }
+  ],
+  "steps": [
+    {
+      "id": "verify",
+      "name": "事实核查",
+      "agent": "fact-short-director",
+      "prompt": "核查「{{inputs.fact}}」：写清时间、地点、经过、物理原理和可信来源；不确定的地方标出来。已知资料：\n{{inputs.sources}}"
+    },
+    {
+      "id": "script",
+      "name": "节拍脚本",
+      "agent": "fact-short-director",
+      "prompt": "按 Hook → Setting → 升级 → Snap → 冷面双句 → 原理与类比 → 后果 → 回扣写 55–70 秒旁白脚本，全部原创：\n\n{{steps.verify}}"
+    },
+    {
+      "id": "boards",
+      "name": "分镜",
+      "agent": "fact-short-director",
+      "prompt": "把脚本拆成镜头，每镜写画面、动作（写受力）、对应旁白、时长，画面反应落在对应词之前：\n\n{{steps.script}}"
+    }
+  ],
+  "handoff": {
+    "type": "one-click",
+    "content_step": "boards",
+    "style": "cartoon-2d-in-3d",
+    "aspect_ratio": "9:16"
+  }
+}

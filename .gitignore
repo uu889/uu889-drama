@@ -51,6 +51,7 @@ temp/
 backend/workspace/*
 !backend/workspace/skills/
 !backend/workspace/prompts/
+!backend/workspace/catalog/
 
 # Desktop (Electron) build artifacts
 desktop/node_modules/

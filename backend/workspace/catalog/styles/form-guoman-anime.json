@@ -1,0 +1,15 @@
+{
+  "id": "form-guoman-anime",
+  "name": "国漫二次元",
+  "prompt": "high-finish Chinese donghua anime style, refined faces where each character differs in enumerable structure (jaw line, eye shape, pupil highlight shape, hair layering and gradient position, signature accessory), layered cel and soft-painted shading, warm key light with cool rim reflection, visible pupil and hair identity colors preserved under atmosphere color, painted background one notch less detailed than characters, glow particles and light bloom on emotional beats, high detail, high definition; avoid characters looking alike, avoid atmosphere color swallowing hair and eye colors",
+  "description": "高完成度单帧撑情绪；角色差异要逐条写结构，防止全剧人物趋同。",
+  "tags": [
+    "国漫",
+    "二次元",
+    "形态卡"
+  ],
+  "source": {
+    "name": "Drama Skills · 制作形态卡",
+    "url": "https://github.com/zenstory-ai/drama-skills"
+  }
+}

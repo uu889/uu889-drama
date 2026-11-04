@@ -1,0 +1,14 @@
+{
+  "id": "cyberpunk-neon",
+  "name": "赛博朋克霓虹",
+  "prompt": "cyberpunk sci-fi visual style, rainy night streets, dual-tone neon rim light in magenta and cyan, wet reflective surfaces, holographic signage, futuristic materials with specular reflections, dense atmospheric haze, cinematic composition, high detail, high definition; avoid daylight pastoral scenes, avoid flat lighting",
+  "description": "雨夜霓虹冷暖双色轮廓光，适合科幻、末世、黑客题材。",
+  "tags": [
+    "科幻",
+    "霓虹"
+  ],
+  "source": {
+    "name": "ai-pose-gallery-zh · 画风预设",
+    "url": "https://github.com/anhao/ai-pose-gallery-zh"
+  }
+}

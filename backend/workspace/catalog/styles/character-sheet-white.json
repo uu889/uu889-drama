@@ -1,0 +1,14 @@
+{
+  "id": "character-sheet-white",
+  "name": "角色设定集纯白底",
+  "prompt": "standard character design sheet, full-body standing pose on a pure white seamless background, even diffuse lighting without cast shadows, clearly shows complete costume structure, accessories and footwear, neutral expression, front view centered, high detail, high definition; avoid props in the background, avoid dramatic lighting, avoid text labels",
+  "description": "纯白底、均匀漫反射布光，专门用于出角色参考图（锚点）。",
+  "tags": [
+    "设定图",
+    "资产"
+  ],
+  "source": {
+    "name": "ai-pose-gallery-zh · 画风预设",
+    "url": "https://github.com/anhao/ai-pose-gallery-zh"
+  }
+}

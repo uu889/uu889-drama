@@ -1,0 +1,60 @@
+{
+  "id": "benchmark-to-rhythm",
+  "name": "对标拆解定节奏",
+  "description": "对标作品字幕 / 描述 → 测量 → 机制提炼 → 本项目节奏档案",
+  "category": "分析",
+  "tags": [
+    "对标",
+    "拉片",
+    "节奏"
+  ],
+  "source": {
+    "name": "drama-skills · short-drama-breakdown",
+    "url": "https://github.com/zenstory-ai/drama-skills"
+  },
+  "inputs": [
+    {
+      "key": "material",
+      "label": "对标材料",
+      "placeholder": "粘贴对标作品的字幕、台词或逐镜描述",
+      "multiline": true
+    },
+    {
+      "key": "question",
+      "label": "本轮问题",
+      "placeholder": "例如：为什么它前 3 秒留得住人？",
+      "multiline": false
+    },
+    {
+      "key": "ours",
+      "label": "我们的剧本（可选）",
+      "placeholder": "粘贴本项目剧本做对照",
+      "multiline": true
+    }
+  ],
+  "steps": [
+    {
+      "id": "measure",
+      "name": "测量",
+      "agent": "benchmark-analyst",
+      "prompt": "围绕问题「{{inputs.question}}」测量：集长、首个钩子秒数、平均镜长、对白密度、反转次数、集尾方式。观察与解释分开写：\n\n{{inputs.material}}"
+    },
+    {
+      "id": "mechanisms",
+      "name": "机制提炼",
+      "agent": "benchmark-analyst",
+      "prompt": "从测量结果提炼可迁移机制，写适用条件、失效边界、不得复制的部分：\n\n{{steps.measure}}"
+    },
+    {
+      "id": "profile",
+      "name": "节奏档案与对照",
+      "agent": "benchmark-analyst",
+      "prompt": "给出本项目的节奏档案建议；若下面提供了我们的剧本，再出差距表：\n\n机制：\n{{steps.mechanisms}}\n\n我们的剧本：\n{{inputs.ours}}"
+    }
+  ],
+  "handoff": {
+    "type": "one-click",
+    "content_step": "profile",
+    "aspect_ratio": "9:16"
+  }
+}

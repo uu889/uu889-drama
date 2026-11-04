@@ -1,0 +1,14 @@
+{
+  "id": "pixel-art",
+  "name": "像素风",
+  "prompt": "retro pixel art game scene, crisp limited palette, clean pixel clusters without anti-aliasing, readable character sprites with clear silhouettes, dithering for gradients, tile-based background, punchy pixel effects for fire, magic and impacts acted as wind-up, release, contact freeze and recovery, high detail, high definition; avoid blurry upscaling, avoid smooth gradients",
+  "description": "限定色板、抖动渐变，适合游戏梗、系统流、复古风短剧。",
+  "tags": [
+    "像素",
+    "游戏"
+  ],
+  "source": {
+    "name": "pixelfx",
+    "url": "https://github.com/patch-gg/pixelfx"
+  }
+}

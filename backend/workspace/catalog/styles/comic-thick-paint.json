@@ -1,0 +1,14 @@
+{
+  "id": "comic-thick-paint",
+  "name": "厚涂漫画",
+  "prompt": "thick-paint digital comic illustration, visible confident brush strokes, volume built by value rather than outlines, soft and hard edges changing with material (hard on metal and jaw lines, soft on cloth and hair), rich ambient occlusion, dramatic directional light, painterly background with depth, high detail, high definition; avoid flat cel fills, avoid over-smoothed plastic skin",
+  "description": "可见笔触、以明暗塑造体积，适合玄幻、权谋、氛围重的戏。",
+  "tags": [
+    "漫剧",
+    "厚涂"
+  ],
+  "source": {
+    "name": "Drama Skills · 漫剧关键帧词表",
+    "url": "https://github.com/zenstory-ai/drama-skills"
+  }
+}

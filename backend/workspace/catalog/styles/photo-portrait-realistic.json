@@ -1,0 +1,14 @@
+{
+  "id": "photo-portrait-realistic",
+  "name": "写实人像写真",
+  "prompt": "realistic commercial portrait photography, 85mm portrait lens, natural soft light, true-to-life skin pores and fabric weave detail, accurate color, gentle background separation, editorial sharpness on the eyes, high detail, high definition; avoid plastic skin, avoid over-retouching",
+  "description": "商业摄影级质感，适合实拍感角色定妆照。",
+  "tags": [
+    "写实",
+    "人像"
+  ],
+  "source": {
+    "name": "ai-pose-gallery-zh · 画风预设",
+    "url": "https://github.com/anhao/ai-pose-gallery-zh"
+  }
+}

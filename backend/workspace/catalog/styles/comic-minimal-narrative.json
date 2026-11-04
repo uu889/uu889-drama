@@ -1,0 +1,14 @@
+{
+  "id": "comic-minimal-narrative",
+  "name": "极简叙事漫画",
+  "prompt": "minimalist narrative comic style, restrained thin lines, large areas of white space, very few color layers with one accent color, simple geometric staging, characters reduced to essential shapes with expressive posture, high detail, high definition; avoid cluttered backgrounds, avoid heavy shading",
+  "description": "克制线条、大面积留白，适合情感独白、心理戏、文艺向。",
+  "tags": [
+    "漫剧",
+    "极简"
+  ],
+  "source": {
+    "name": "Drama Skills · 漫剧关键帧词表",
+    "url": "https://github.com/zenstory-ai/drama-skills"
+  }
+}

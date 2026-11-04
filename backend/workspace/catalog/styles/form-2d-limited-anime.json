@@ -1,0 +1,15 @@
+{
+  "id": "form-2d-limited-anime",
+  "name": "二维动态漫",
+  "prompt": "2D limited-animation motion comic style, strong silhouettes and clean consistent line weight, fixed flat color blocks with a hard-edged shadow zone per character, painted background plate kept simpler than characters, clear foreground subject separation, effects layer (speed lines, glows, impact flashes) kept distinct from characters, color relationships of base, shadow and highlight instead of physical lighting terms, high detail, high definition; avoid 3D render terms, avoid subsurface scattering, avoid outlines appearing and disappearing",
+  "description": "剪影 + 线条 + 固定色块做识别；只让承担因果的那一层动，其余定帧，成本低、信息密度高。",
+  "tags": [
+    "二维",
+    "限动画",
+    "形态卡"
+  ],
+  "source": {
+    "name": "Drama Skills · 制作形态卡",
+    "url": "https://github.com/zenstory-ai/drama-skills"
+  }
+}
