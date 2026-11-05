@@ -120,6 +120,19 @@ test('aiask grok video: create / poll / download lifecycle', () => {
   assert.deepEqual(adapter.parseGenerateResponse({ id: 'vid_1', object: 'video', status: 'in_progress' }), { isAsync: true, taskId: 'vid_1' })
   assert.deepEqual(adapter.parseGenerateResponse({ video: { id: 'vid_2', status: 'in_progress' } }), { isAsync: true, taskId: 'vid_2' })
   assert.throws(() => adapter.parseGenerateResponse({ status: 'in_progress' }))
+  // 网关常见包装：{ code, data }、data 数组、task_id / video_id、data 直接是 ID
+  assert.deepEqual(adapter.parseGenerateResponse({ code: 0, msg: 'ok', data: { task_id: 'vid_3', status: 'queued' } }), { isAsync: true, taskId: 'vid_3' })
+  assert.deepEqual(adapter.parseGenerateResponse({ code: 'success', data: [{ video_id: 'vid_4' }] }), { isAsync: true, taskId: 'vid_4' })
+  assert.deepEqual(adapter.parseGenerateResponse({ success: true, data: 'task_abc123' }), { isAsync: true, taskId: 'task_abc123' })
+  assert.deepEqual(adapter.parseGenerateResponse({ result: { request_id: 'req_5' } }), { isAsync: true, taskId: 'req_5' })
+  assert.deepEqual(adapter.parseGenerateResponse({ data: { status: 'completed', url: 'https://cdn.x/v.mp4' } }), { isAsync: false, videoUrl: 'https://cdn.x/v.mp4' })
+  // 200 里的报错要原样显示，找不到 ID 时带上上游原文
+  assert.throws(() => adapter.parseGenerateResponse({ code: 400, msg: 'model not supported' }), /model not supported/)
+  assert.throws(() => adapter.parseGenerateResponse({ error: { message: 'insufficient quota' } }), /insufficient quota/)
+  assert.throws(() => adapter.parseGenerateResponse({ object: 'video' }), /上游返回：\{"object":"video"\}/)
+  // 包装过的轮询响应也认得
+  assert.equal(adapter.parsePollResponse({ code: 0, data: { id: 'vid_3', status: 'queued' } }).status, 'pending')
+  assert.deepEqual(adapter.parsePollResponse({ code: 0, data: { task_id: 'vid_3', status: 'completed' } }), { status: 'completed', videoUrl: '/v1/videos/vid_3/content', duration: undefined })
 
   assert.equal(adapter.buildPollRequest(aiask, 'vid_1').url, 'https://aiask.me/v1/videos/vid_1')
   assert.equal(adapter.parsePollResponse({ id: 'vid_1', status: 'in_progress', queue: { position: 3 } }).status, 'processing')

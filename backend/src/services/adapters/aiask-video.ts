@@ -129,10 +129,72 @@ export function normalizeAiaskResolution(resolution: string | null | undefined, 
  * 有的顶层就是任务、video 只是成片信息（{ status: 'done', video: { url } }）：
  * 只有顶层没有 status 时才取内层，否则顶层的状态会被忽略、任务一直轮询到超时
  */
+const ENVELOPE_KEYS = ['video', 'data', 'result', 'output', 'task', 'response'] as const
+const TASK_ID_KEYS = ['id', 'task_id', 'taskId', 'video_id', 'videoId', 'job_id', 'jobId', 'request_id', 'requestId', 'generation_id', 'generationId'] as const
+
+function asObject(value: any): any {
+  if (typeof value === 'string') {
+    const text = value.trim()
+    if (!text.startsWith('{') && !text.startsWith('[')) return null
+    try { value = JSON.parse(text) } catch { return null }
+  }
+  if (Array.isArray(value)) value = value[0]
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : null
+}
+
+/**
+ * 网关常把视频对象包一层：{ video: {...} }、{ code, msg, data: {...} }、{ data: [{...}] }、{ result: {...} }……
+ * 顶层没有 status / id 时逐层往里找（最多 3 层），找到带 status 或 id 的那层。
+ */
 function unwrapVideo(result: any): any {
-  const inner = result?.video
-  if (result?.status == null && inner && typeof inner === 'object' && !Array.isArray(inner)) return inner
-  return result
+  let current = asObject(result) ?? result
+  for (let depth = 0; depth < 3; depth++) {
+    if (!current || typeof current !== 'object') break
+    const hasOwn = current.status != null || TASK_ID_KEYS.some((k) => current[k] != null && typeof current[k] !== 'object')
+    let inner: any = null
+    for (const key of ENVELOPE_KEYS) {
+      inner = asObject(current[key])
+      if (inner) break
+    }
+    // 外层只是信封（{ code: 0, data: {...} }，或 status / id 都在里面那层）才往里走
+    if (!inner || (hasOwn && current.status != null)) break
+    if (hasOwn && !(inner.status != null || TASK_ID_KEYS.some((k) => inner[k] != null))) break
+    current = inner
+  }
+  return current
+}
+
+/** 任务 ID：视频对象上的各种写法，找不到再看最外层 */
+function findTaskId(result: any): string | null {
+  for (const obj of [unwrapVideo(result), asObject(result)]) {
+    if (!obj) continue
+    for (const key of TASK_ID_KEYS) {
+      const value = obj[key]
+      if ((typeof value === 'string' && value.trim()) || typeof value === 'number') return String(value).trim()
+    }
+  }
+  // { code: 0, data: "task_xxx" }：data 直接就是任务 ID
+  const top = asObject(result)
+  for (const key of ['data', 'result'] as const) {
+    const value = top?.[key]
+    if (typeof value === 'string' && /^[\w.:-]{6,128}$/.test(value.trim())) return value.trim()
+  }
+  return null
+}
+
+/** 200 但其实是报错的响应体：{ error }、{ code: 非 0, msg }、{ success: false, message } */
+function responseError(result: any): string | null {
+  const obj = asObject(result)
+  if (!obj) return typeof result === 'string' && result.trim() ? result.trim().slice(0, 300) : null
+  const err = obj.error ?? unwrapVideo(obj)?.error
+  if (err) return typeof err === 'string' ? err : String(err.message || err.code || JSON.stringify(err)).slice(0, 300)
+  const code = obj.code
+  const failedCode = code != null && code !== 0 && code !== 200 && code !== '0' && code !== '200' && code !== 'success'
+  if (obj.success === false || failedCode) {
+    const msg = obj.msg ?? obj.message ?? obj.detail
+    return `${code != null ? `[${code}] ` : ''}${typeof msg === 'string' ? msg : JSON.stringify(obj).slice(0, 300)}`
+  }
+  return null
 }
 
 export class AiaskVideoAdapter implements VideoProviderAdapter {
@@ -233,10 +295,17 @@ export class AiaskVideoAdapter implements VideoProviderAdapter {
   }
 
   parseGenerateResponse(result: any): VideoGenResponse {
+    const id = findTaskId(result)
+    if (id) return { isAsync: true, taskId: id }
+    // 没有任务 ID 但直接给了成片（同步返回）
     const video = unwrapVideo(result)
-    const id = video?.id ?? video?.task_id ?? result?.id ?? result?.task_id
-    if (id != null && String(id)) return { isAsync: true, taskId: String(id) }
-    throw new Error('aiask 视频接口未返回任务 ID')
+    const direct = video?.content_url || video?.video?.url || video?.video_url || video?.url
+    if (typeof direct === 'string' && /^(https?:)?\/\//.test(direct)) return { isAsync: false, videoUrl: direct }
+    const err = responseError(result)
+    if (err) throw new Error(`aiask 视频接口报错：${err}`)
+    let body = ''
+    try { body = typeof result === 'string' ? result : JSON.stringify(result) } catch { body = String(result) }
+    throw new Error(`aiask 视频接口未返回任务 ID（上游返回：${body.slice(0, 300) || '空'}）`)
   }
 
   buildPollRequest(config: AIConfig, taskId: string): ProviderRequest {
@@ -274,7 +343,8 @@ export class AiaskVideoAdapter implements VideoProviderAdapter {
     const video = unwrapVideo(result)
     const direct = video?.content_url || video?.video?.url || video?.video_url || video?.url
     if (typeof direct === 'string' && direct) return direct
-    return video?.id != null ? `/v1/videos/${encodeURIComponent(String(video.id))}/content` : null
+    const id = findTaskId(result)
+    return id ? `/v1/videos/${encodeURIComponent(id)}/content` : null
   }
 
   /** 轮询间隔：默认 10 秒；AIASK_VIDEO_POLL_MS 可调（测试用） */
