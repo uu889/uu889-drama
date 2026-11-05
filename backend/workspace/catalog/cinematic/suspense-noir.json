@@ -1,0 +1,110 @@
+{
+  "name": "冷峻悬疑 · 黑色电影",
+  "description": "低照度、硬光百叶窗、冷绿黄调的悬疑惊悚",
+  "category": "悬疑惊悚",
+  "spec": {
+    "visual": {
+      "style_ids": [
+        "fincher",
+        "suspense"
+      ],
+      "style_anchor": "每一个阴影里都可能藏着人",
+      "camera_ids": [
+        "alexa-35"
+      ],
+      "lens_ids": [
+        "zeiss-master"
+      ],
+      "focal_ids": [
+        "40mm",
+        "135mm"
+      ],
+      "film_ids": [
+        "bleach-bypass"
+      ],
+      "aspect_id": "2.39:1",
+      "palette_id": "noir",
+      "palette": [
+        {
+          "name": "深黑阴影",
+          "hex": "#0D0D0F",
+          "percent": 55
+        },
+        {
+          "name": "烟灰",
+          "hex": "#5E6066",
+          "percent": 30
+        },
+        {
+          "name": "冷白高光",
+          "hex": "#D9DDE3",
+          "percent": 15
+        }
+      ],
+      "tone_notes": "整体偏冷绿，暗部压到几乎全黑"
+    },
+    "lighting": {
+      "key_light_id": "top",
+      "key_light": "头顶一盏冷白硬光照下，眼窝深陷",
+      "ratio_id": "8:1",
+      "terminator": "明暗交界线锐利，切开半张脸，制造悬疑",
+      "fill": "不补光，暗部保持深沉",
+      "dynamic": "百叶窗条纹阴影横切人物",
+      "materials": "皮革有磨损折痕与油光，金属有划痕与环境反射",
+      "constraint_ids": [
+        "no-smoothing",
+        "no-plastic",
+        "no-morph",
+        "no-extra-people",
+        "hdr"
+      ]
+    },
+    "storyboard": {
+      "enabled": true,
+      "segment_seconds": 3.5,
+      "shot_size_ids": [
+        "ls",
+        "ms",
+        "ecu",
+        "insert"
+      ],
+      "angle_ids": [
+        "high",
+        "dutch",
+        "pov",
+        "through-object"
+      ],
+      "layer_ids": [
+        "fg",
+        "mg-subject",
+        "mg-back",
+        "bg"
+      ],
+      "technique_ids": [
+        "deep-focus",
+        "negative-space",
+        "silhouette",
+        "rack-focus"
+      ],
+      "move_ids": [
+        "slow-dolly-in",
+        "static",
+        "dolly-zoom",
+        "tilt"
+      ],
+      "performance_ids": [
+        "pupil-contract",
+        "jaw-clench",
+        "adam-apple",
+        "fist-tighten"
+      ],
+      "atmosphere_ids": [
+        "dust-motes",
+        "smoke",
+        "breath-fog"
+      ],
+      "sound": "",
+      "notes": ""
+    }
+  }
+}

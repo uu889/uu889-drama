@@ -1,0 +1,104 @@
+{
+  "name": "霓虹雨夜 · 赛博朋克",
+  "description": "变形镜头蓝色光带、洋红电光蓝、湿漉漉的高科技低生活",
+  "category": "科幻",
+  "spec": {
+    "visual": {
+      "style_ids": [
+        "villeneuve",
+        "cyberpunk"
+      ],
+      "style_anchor": "巨型全息广告下的渺小个体",
+      "camera_ids": [
+        "red-v-raptor"
+      ],
+      "lens_ids": [
+        "laowa-proteus"
+      ],
+      "focal_ids": [
+        "24mm",
+        "40mm"
+      ],
+      "film_ids": [
+        "cinestill-800t"
+      ],
+      "aspect_id": "2.39:1",
+      "palette_id": "cyber-neon",
+      "palette": [
+        {
+          "name": "夜色深蓝黑",
+          "hex": "#0B0F2A",
+          "percent": 55
+        },
+        {
+          "name": "霓虹洋红",
+          "hex": "#FF2E88",
+          "percent": 25
+        },
+        {
+          "name": "电光青蓝",
+          "hex": "#00E5FF",
+          "percent": 20
+        }
+      ],
+      "tone_notes": "高光带红色光晕"
+    },
+    "lighting": {
+      "key_light_id": "neon",
+      "key_light": "洋红与青蓝两色霓虹从左右分打脸部",
+      "ratio_id": "4:1",
+      "terminator": "两种色光在鼻梁处交汇",
+      "fill": "湿地面反射霓虹提亮下巴",
+      "dynamic": "全息广告闪烁让人物身上的颜色不断变换",
+      "materials": "雨水在机能夹克上成珠滑落，金属义体有划痕反光",
+      "constraint_ids": [
+        "4k-film",
+        "no-plastic",
+        "no-motion-artifacts",
+        "hands"
+      ]
+    },
+    "storyboard": {
+      "enabled": true,
+      "segment_seconds": 3,
+      "shot_size_ids": [
+        "els",
+        "ms",
+        "cu"
+      ],
+      "angle_ids": [
+        "low-hero",
+        "aerial",
+        "worm"
+      ],
+      "layer_ids": [
+        "fg",
+        "mg-subject",
+        "bg"
+      ],
+      "technique_ids": [
+        "shallow-dof",
+        "reflection",
+        "silhouette"
+      ],
+      "move_ids": [
+        "fpv-dive",
+        "drone-reveal",
+        "steadicam",
+        "slow-motion"
+      ],
+      "performance_ids": [
+        "pupil-contract",
+        "side-glance",
+        "jaw-clench"
+      ],
+      "atmosphere_ids": [
+        "rain",
+        "smoke",
+        "lens-flare"
+      ],
+      "sound": "",
+      "notes": ""
+    }
+  }
+}

@@ -1,0 +1,204 @@
+{
+  "name": "寒江孤舟 · 写实新国风武侠",
+  "description": "徐克导演美学：清冷苍茫水墨意境与江湖市井黑色幽默反差；乌篷船、女侠与两名被缚强盗的完整示例",
+  "category": "古装武侠",
+  "spec": {
+    "visual": {
+      "style_ids": [
+        "tsui-hark",
+        "neo-wuxia"
+      ],
+      "style_anchor": "清冷苍茫水墨意境与江湖市井黑色幽默反差",
+      "camera_ids": [
+        "alexa-65",
+        "venice-2"
+      ],
+      "lens_ids": [
+        "zeiss-supreme",
+        "panavision-c"
+      ],
+      "focal_ids": [
+        "35mm",
+        "85mm"
+      ],
+      "film_ids": [
+        "vision3-500t",
+        "35mm-grain",
+        "live-action"
+      ],
+      "camera_notes": "",
+      "aspect_id": "16:9-anamorphic",
+      "palette_id": "cold-river",
+      "palette": [
+        {
+          "name": "寒江青黛色",
+          "hex": "#1B333E",
+          "percent": 60
+        },
+        {
+          "name": "迷雾灰白与船木枯褐",
+          "hex": "#8B9DA5",
+          "percent": 30
+        },
+        {
+          "name": "粗麻暗棕与古铜微光",
+          "hex": "#4A2E1B",
+          "percent": 10
+        }
+      ],
+      "tone_notes": "船木枯褐 #3D352E 作为第二辅色"
+    },
+    "characters": [
+      {
+        "name": "女侠",
+        "gender": "女侠",
+        "age": "20岁左右",
+        "style": "清冷飒爽",
+        "face": "鹅蛋脸",
+        "hair": "高盘凌乱丸子头，额前与鬓角散落湿润碎发，右耳戴古银耳环",
+        "outfit": "外披赤褐色破边粗麻围巾披风，内穿灰褐色多层交领粗麻长袍，系深棕宽腰封，脚踩绑腿棕色皮靴",
+        "accessories": "左腰固定悬挂古朴汉剑与竹制梆笛",
+        "details": ""
+      },
+      {
+        "name": "矮胖强盗",
+        "gender": "男强盗",
+        "age": "35岁",
+        "style": "滑稽矮胖",
+        "face": "圆脸双下巴，八字胡，眉毛高挑呈斗鸡眼喜剧神态",
+        "hair": "",
+        "outfit": "身穿打满方格补丁的黑色破旧粗布短打，腰系麻绳",
+        "accessories": "双手手腕被粗麻绳死死捆绑，嘴塞麻布团",
+        "details": ""
+      },
+      {
+        "name": "高瘦强盗",
+        "gender": "男强盗",
+        "age": "35岁",
+        "style": "滑稽高瘦",
+        "face": "颧骨高耸双颊凹陷，额头布满深纹，山羊胡",
+        "hair": "头系黑布条",
+        "outfit": "穿黑色破旧无袖短打与七分裤",
+        "accessories": "手腕缠护腕并被粗麻绳捆绑",
+        "details": ""
+      },
+      {
+        "name": "船家",
+        "gender": "老船夫",
+        "age": "50岁",
+        "style": "饱经风霜",
+        "face": "古铜色皮肤布满皱纹",
+        "hair": "头裹米白粗布巾",
+        "outfit": "穿灰蓝色褪色交领粗布衣裤，腰系粗麻绳",
+        "accessories": "双手稳握长竹篙",
+        "details": ""
+      }
+    ],
+    "scene": {
+      "name": "寒江乌篷船",
+      "environment": "浓雾弥漫的苍茫寒江上，一艘斑驳木质乌篷船顺水缓行。",
+      "zones": [
+        {
+          "area": "船头侧（靠前）",
+          "content": "女侠斜坐于乌篷前口边缘（上半身隐入篷内阴影，下半身长袍、皮靴及左腰侧的剑与梆笛探出篷外甲板）"
+        },
+        {
+          "area": "船中乌篷内（被弧形竹篾篷顶严密遮挡的内部空间）",
+          "content": "女侠右侧（往船尾方向）依次并排坐着背靠乌篷内壁的矮胖强盗与高瘦强盗"
+        },
+        {
+          "area": "船尾侧（最后方露天甲板）",
+          "content": "老船家站立撑篙划船"
+        }
+      ],
+      "surroundings": "翻涌的冷色江雾与深青色水面"
+    },
+    "props": [
+      {
+        "name": "女侠配剑",
+        "description": "乌木剑鞘配浮雕兽面古铜装具，剑格嵌黑曜石，剑柄缠深蓝丝绳，垂挂白玉环与深蓝剑穗",
+        "placement": "全程固定于女侠左腰"
+      },
+      {
+        "name": "梆笛",
+        "description": "紫褐色斑驳老竹笛，缠墨绿丝线",
+        "placement": "全程别于女侠左腰侧"
+      },
+      {
+        "name": "塞嘴麻布",
+        "description": "细麻绳紧扎的脏旧粗麻布团，纤维粗糙带污渍",
+        "placement": "塞于矮胖强盗嘴中"
+      }
+    ],
+    "lighting": {
+      "key_light_id": "side-back-45",
+      "key_light": "江面漫射天光自船篷开口呈45度侧逆光切入篷内",
+      "ratio_id": "3:1",
+      "terminator": "沿女侠高挺鼻梁与下颌线柔化过渡，篷内强盗面部在幽暗环境与侧光切割下呈现强烈肌理反差",
+      "fill": "江水冷调漫反射提亮阴影侧，皮肤具真实次表面散射（SSS），发丝带江雾水汽轮廓光",
+      "dynamic": "船体随水波微晃，竹编篷顶的阴影在人物面部与衣褶间缓慢游移",
+      "materials": "natural skin micro-pores 真实皮肤毛孔与汗渍，粗麻毛边随江风微颤，浓稠江雾具备真实流体体积感与惯性重力",
+      "constraint_ids": [
+        "4k-film",
+        "no-smoothing",
+        "no-plastic",
+        "inertia",
+        "no-motion-artifacts"
+      ],
+      "constraints": ""
+    },
+    "storyboard": {
+      "enabled": true,
+      "segment_seconds": 3,
+      "shot_size_ids": [
+        "els",
+        "mls",
+        "mcu",
+        "cu"
+      ],
+      "angle_ids": [
+        "top-down",
+        "ots",
+        "profile",
+        "low-hero"
+      ],
+      "layer_ids": [
+        "fg",
+        "fg-left",
+        "mg-subject",
+        "mg-left",
+        "mg-right",
+        "bg-right",
+        "bg"
+      ],
+      "technique_ids": [
+        "fg-blur",
+        "rack-focus",
+        "shallow-dof"
+      ],
+      "move_ids": [
+        "top-down-spiral",
+        "handheld-breath",
+        "lateral-tracking",
+        "slow-dolly-in",
+        "whip-pan"
+      ],
+      "performance_ids": [
+        "eye-corner-lift",
+        "mouth-curl",
+        "lips-press",
+        "cheek-twitch",
+        "nostril-flare",
+        "sleeve-slide"
+      ],
+      "atmosphere_ids": [
+        "mist-flow",
+        "fabric-wind",
+        "tassel-sway",
+        "shadow-drift"
+      ],
+      "sound": "不需要配乐，不需要背景音乐，不要氛围音，仅保留同期声",
+      "notes": "动作真实、现场实拍效果、严禁增加画面和动作特效"
+    }
+  }
+}

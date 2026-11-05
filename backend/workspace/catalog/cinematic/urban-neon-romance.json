@@ -1,0 +1,105 @@
+{
+  "name": "霓虹都市 · 王家卫式情感",
+  "description": "暧昧霓虹、抽帧手持、暖红墨绿的都市孤独感",
+  "category": "都市情感",
+  "spec": {
+    "visual": {
+      "style_ids": [
+        "wong-kar-wai",
+        "urban-romance"
+      ],
+      "style_anchor": "人潮里的孤独与错过",
+      "camera_ids": [
+        "alexa-mini-lf"
+      ],
+      "lens_ids": [
+        "canon-k35"
+      ],
+      "focal_ids": [
+        "35mm",
+        "85mm"
+      ],
+      "film_ids": [
+        "cinestill-800t",
+        "35mm-grain"
+      ],
+      "aspect_id": "1.85:1",
+      "palette_id": "wkw-neon",
+      "palette": [
+        {
+          "name": "墨绿暗部",
+          "hex": "#0F3B2E",
+          "percent": 50
+        },
+        {
+          "name": "旗袍暗红",
+          "hex": "#8E1B24",
+          "percent": 30
+        },
+        {
+          "name": "钨丝灯暖黄",
+          "hex": "#E3A857",
+          "percent": 20
+        }
+      ],
+      "tone_notes": "高反差、暗部浓郁"
+    },
+    "lighting": {
+      "key_light_id": "neon",
+      "key_light": "街边霓虹招牌从侧面打亮人物，另一侧被路灯暖光勾边",
+      "ratio_id": "4:1",
+      "terminator": "明暗交界线锐利，半张脸沉在阴影里",
+      "fill": "霓虹招牌的彩色溢光落在阴影侧",
+      "dynamic": "车窗外路灯光一道道扫过脸庞",
+      "materials": "雨后湿润的柏油路反光，丝绸衬衫柔滑反光",
+      "constraint_ids": [
+        "no-smoothing",
+        "no-plastic",
+        "no-text",
+        "24fps"
+      ]
+    },
+    "storyboard": {
+      "enabled": true,
+      "segment_seconds": 3,
+      "shot_size_ids": [
+        "mcu",
+        "cu",
+        "ecu"
+      ],
+      "angle_ids": [
+        "through-object",
+        "ots",
+        "dutch"
+      ],
+      "layer_ids": [
+        "fg",
+        "mg-subject",
+        "bg"
+      ],
+      "technique_ids": [
+        "fg-blur",
+        "frame-in-frame",
+        "shallow-dof"
+      ],
+      "move_ids": [
+        "handheld-breath",
+        "slow-motion",
+        "static"
+      ],
+      "performance_ids": [
+        "side-glance",
+        "slow-blink",
+        "eyes-moist",
+        "lips-press"
+      ],
+      "atmosphere_ids": [
+        "smoke",
+        "rain",
+        "lens-flare"
+      ],
+      "sound": "",
+      "notes": ""
+    }
+  }
+}

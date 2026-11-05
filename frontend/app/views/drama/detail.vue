@@ -25,6 +25,10 @@
           </span>
         </div>
       </div>
+      <button class="btn head-action cine-head-btn" :class="{ on: cineEnabled }" :title="t('cinematic.descProject')" @click="cineOpen = true">
+        <Clapperboard :size="14" />
+        {{ cineEnabled ? t('cinematic.on') : t('cinematic.off') }}
+      </button>
       <button class="btn btn-primary head-action" @click="openAddEpisode">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
           <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
@@ -558,6 +562,7 @@
       @confirm="confirmDelEpisode"
       @cancel="episodeToDelete = null"
     />
+    <CinematicDialog :open="cineOpen" mode="project" :drama-id="dramaId" @close="cineOpen = false" @saved="onCineSaved" />
   </div>
 </template>
 
@@ -567,6 +572,9 @@ import { toastError } from '~/composables/useToast'
 import { useI18n } from 'vue-i18n'
 import { dramaAPI, episodeAPI, characterAPI, sceneAPI, propAPI, uploadAPI } from '~/composables/useApi'
 import BaseSelect from '~/components/BaseSelect.vue'
+import CinematicDialog from '~/components/CinematicDialog.vue'
+import { Clapperboard } from 'lucide-vue-next'
+import { cinematicAPI, cinematicFilledCount } from '~/composables/useCinematic'
 
 const { t, locale } = useI18n()
 
@@ -574,6 +582,15 @@ const route = useRoute()
 const drama = ref(null)
 const dramaId = Number(route.params.id)
 const addDialog = ref(false)
+// 影像参数（项目级）：四个 Agent 与视频生成都会用到
+const cineOpen = ref(false)
+const cineSpec = ref(null)
+const cineEnabled = computed(() => !!cineSpec.value?.enabled && cinematicFilledCount(cineSpec.value) > 0)
+cinematicAPI.getProject(dramaId).then(s => { cineSpec.value = s }).catch(() => {})
+function onCineSaved(spec) {
+  cineSpec.value = spec
+  load()
+}
 const creatingEpisode = ref(false)
 const newEpisodeTitle = ref('')
 const episodeToDelete = ref(null)
@@ -938,6 +955,7 @@ onMounted(load)
 }
 .head-info { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .head-action { flex-shrink: 0; }
+.cine-head-btn.on { background: var(--accent-bg); color: var(--accent-text); box-shadow: inset 0 0 0 1px var(--accent); }
 
 .back-btn {
   width: 30px; height: 30px; flex-shrink: 0;

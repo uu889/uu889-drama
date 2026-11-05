@@ -177,6 +177,11 @@
               <BaseSelect v-model="form.aspect_ratio" :options="aspectRatioOptions" :placeholder="t('index.createDialog.aspectRatioPlaceholder')" />
               <span class="field-hint">{{ t('index.createDialog.aspectRatioHint') }}</span>
             </label>
+            <label class="field">
+              <span class="field-label">{{ t('index.createDialog.cinematic') }}</span>
+              <BaseSelect v-model="cinePreset" :options="cinePresetOptions" :placeholder="t('index.createDialog.cinematicNone')" searchable />
+              <span class="field-hint">{{ cinePresetDesc || t('index.createDialog.cinematicHint') }}</span>
+            </label>
           </div>
           <div class="dialog-foot">
             <button type="button" class="btn" @click="showCreate = false">{{ t('common.cancel') }}</button>
@@ -243,6 +248,7 @@ import { useI18n } from 'vue-i18n'
 import { Clock, CircleHelp, Palette } from 'lucide-vue-next'
 import { catalogAPI } from '~/composables/useCatalog'
 import { dramaAPI, stylePresetAPI } from '~/composables/useApi'
+import { cinematicAPI } from '~/composables/useCinematic'
 import BaseSelect from '~/components/BaseSelect.vue'
 import { startTour, autoTour } from '~/composables/useTour'
 
@@ -263,6 +269,12 @@ const dramaToDelete = ref(null)
 const deletingDrama = ref(false)
 const form = ref({ title: '', style: '', aspect_ratio: '16:9' })
 const stylePresets = ref([])
+// 影像参数预设（catalog/cinematic）：新建项目时可选
+const cinePresets = ref([])
+const cinePreset = ref('')
+const cinePresetOptions = computed(() => [{ label: t('index.createDialog.cinematicNone'), value: '' }, ...cinePresets.value.map(p => ({ label: p.name, value: p.id }))])
+const cinePresetDesc = computed(() => cinePresets.value.find(p => p.id === cinePreset.value)?.description || '')
+cinematicAPI.presets().then(list => { cinePresets.value = list || [] }).catch(() => {})
 // 风格库（模板库 catalog/styles）里还没加入的风格也能直接选，建项目时自动加入
 const libStyles = ref([])
 const styleSelectOptions = computed(() => {
@@ -395,6 +407,9 @@ async function create() {
       stylePresets.value = (await stylePresetAPI.list()) || []
     }
     const d = await dramaAPI.create(form.value)
+    // 选了影像参数预设：存进项目（四个 Agent 与视频生成都会用到）
+    const preset = cinePresets.value.find(p => p.id === cinePreset.value)
+    if (preset) await cinematicAPI.saveProject(d.id, { ...preset.spec, enabled: true }).catch(toastError)
     showCreate.value = false
     navigateTo(`/drama/${d.id}`)
   } catch (e) {

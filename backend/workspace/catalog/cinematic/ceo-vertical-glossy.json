@@ -1,0 +1,102 @@
+{
+  "name": "竖屏霸总 · 高级感甜宠",
+  "description": "9:16 竖屏、黑金冷奢、干净高调的精致短剧质感",
+  "category": "都市甜宠",
+  "spec": {
+    "visual": {
+      "style_ids": [
+        "ceo-sweet"
+      ],
+      "style_anchor": "冷奢精致、情绪拉扯",
+      "camera_ids": [
+        "venice-2"
+      ],
+      "lens_ids": [
+        "arri-signature"
+      ],
+      "focal_ids": [
+        "50mm",
+        "85mm"
+      ],
+      "film_ids": [
+        "digital-clean"
+      ],
+      "aspect_id": "9:16",
+      "palette_id": "ceo-luxury",
+      "palette": [
+        {
+          "name": "曜石黑",
+          "hex": "#111214",
+          "percent": 50
+        },
+        {
+          "name": "香槟金",
+          "hex": "#C8A96A",
+          "percent": 25
+        },
+        {
+          "name": "大理石白",
+          "hex": "#E9E7E2",
+          "percent": 25
+        }
+      ],
+      "tone_notes": "干净通透、肤色白皙柔润"
+    },
+    "lighting": {
+      "key_light_id": "loop",
+      "key_light": "落地窗大面积柔光从侧前方照亮人物",
+      "ratio_id": "2:1",
+      "terminator": "从颧骨斜下到嘴角，柔和渐变",
+      "fill": "白墙暖色反光补亮暗部",
+      "dynamic": "",
+      "materials": "西装面料挺括有细腻纹理，金属袖扣反光",
+      "constraint_ids": [
+        "4k-film",
+        "no-plastic",
+        "hands",
+        "no-morph",
+        "no-text"
+      ]
+    },
+    "storyboard": {
+      "enabled": true,
+      "segment_seconds": 3,
+      "shot_size_ids": [
+        "ms",
+        "mcu",
+        "cu"
+      ],
+      "angle_ids": [
+        "low-hero",
+        "ots",
+        "eye-level"
+      ],
+      "layer_ids": [
+        "fg",
+        "mg-subject",
+        "bg"
+      ],
+      "technique_ids": [
+        "shallow-dof",
+        "rule-of-thirds"
+      ],
+      "move_ids": [
+        "slow-dolly-in",
+        "arc",
+        "crash-zoom"
+      ],
+      "performance_ids": [
+        "chin-raise",
+        "mouth-curl",
+        "side-glance",
+        "pupil-dilate"
+      ],
+      "atmosphere_ids": [
+        "hair-wind",
+        "lens-flare"
+      ],
+      "sound": "",
+      "notes": "竖屏构图人物占满画面，关键反应给特写"
+    }
+  }
+}

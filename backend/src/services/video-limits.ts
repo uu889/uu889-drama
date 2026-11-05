@@ -72,6 +72,7 @@ export function truncateBytes(text: string, maxBytes: number): string {
 
 /** 导演指令块（shot-direction.ts buildShotDirectives），按去掉的先后顺序 */
 const DROP_ORDER: Array<{ re: RegExp; label: string }> = [
+  { re: /^(【影像底座】|\[Cinematic baseline\])/, label: '影像底座' },
   { re: /^(【画风一致】|\[Style lock\])/, label: '画风一致' },
   { re: /^(【物理真实】|\[Physics\])/, label: '物理真实' },
   { re: /^(【场景一致】|\[Scene lock\])/, label: '场景一致' },
@@ -111,7 +112,7 @@ export function fitPromptBytes(prompt: string, maxBytes: number): FitResult {
   // 2. 拆出正文和后面的指令块（指令块从行首的【xx】/ [Xxx] 开始，直到下一个块）
   const lines = text.split('\n')
   // 正文里也可能有【镜头1】之类：只从第一个能识别的导演指令开始算指令块
-  const firstBlock = lines.findIndex((l) => /^(【(台词控制|画质|系统音|人物外观锁定|场景一致|画风一致|人物站位|接上一镜|物理真实)】|\[(Dialogue control|Quality|System voice|Character lock|Scene lock|Style lock|Blocking|Continuity|Physics)\])/.test(l))
+  const firstBlock = lines.findIndex((l) => /^(【(台词控制|画质|系统音|人物外观锁定|场景一致|画风一致|影像底座|人物站位|接上一镜|物理真实)】|\[(Dialogue control|Quality|System voice|Character lock|Scene lock|Style lock|Cinematic baseline|Blocking|Continuity|Physics)\])/.test(l))
   const body = (firstBlock < 0 ? lines : lines.slice(0, firstBlock)).join('\n').trim()
   const blocks: string[] = []
   if (firstBlock >= 0) {

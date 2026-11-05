@@ -55,6 +55,9 @@
               :options="models.options.value"
               :show-config="models.multiConfig.value"
             />
+            <button class="btn btn-sm cine-btn" :class="{ on: cineOn }" :title="t('cinematic.descChat')" @click="cineOpen = true">
+              <Clapperboard :size="13" />{{ cineOn ? t('cinematic.on') : t('cinematic.off') }}
+            </button>
             <button class="btn btn-sm" :disabled="!messages.length || running" @click="clearChat">{{ t('catalog.agents.clear') }}</button>
             <button class="btn btn-sm" @click="openEditor(current)">{{ current.builtin ? t('catalog.common.customize') : t('catalog.common.edit') }}</button>
             <button v-if="!current.builtin" class="btn btn-sm btn-danger" @click="removeCurrent">{{ t('common.delete') }}</button>
@@ -152,7 +155,8 @@
       </div>
     </Teleport>
 
-    <HandoffDialog :open="handoffOpen" :content="handoffText" @close="handoffOpen = false" />
+    <HandoffDialog :open="handoffOpen" :content="handoffText" :cinematic="cineOn ? cine : null" @close="handoffOpen = false" />
+    <CinematicDialog :open="cineOpen" mode="chat" :value="cine" :model-body="models.modelBody" @close="cineOpen = false" @saved="onCineSaved" />
   </div>
 </template>
 
@@ -164,6 +168,8 @@ import { toastError } from '~/composables/useToast'
 import { catalogAPI, postSse, useTextModelPick, groupByCategory } from '~/composables/useCatalog'
 import ModelSelect from '~/components/ModelSelect.vue'
 import HandoffDialog from '~/components/HandoffDialog.vue'
+import CinematicDialog from '~/components/CinematicDialog.vue'
+import { loadChatCinematic, saveChatCinematic, cinematicFilledCount, cinematicBody } from '~/composables/useCinematic'
 import '~/assets/catalog.css'
 
 const { t } = useI18n()
@@ -182,6 +188,12 @@ const handoffOpen = ref(false)
 const handoffText = ref('')
 let abort = null
 const models = useTextModelPick()
+
+// ── 影像参数（智能体 / 工作流共用一份，存在浏览器本地） ──
+const cine = ref(loadChatCinematic())
+const cineOpen = ref(false)
+const cineOn = computed(() => !!cine.value?.enabled && cinematicFilledCount(cine.value) > 0)
+function onCineSaved(spec) { cine.value = spec; saveChatCinematic(spec) }
 
 const CHAT_KEY = id => `uu889:agent-chat:${id}`
 function loadChat(id) {
@@ -237,6 +249,7 @@ async function send(text) {
     await postSse(`/catalog/agents/${current.value.id}/chat`, {
       messages: messages.value.slice(0, -1),
       ...models.modelBody(),
+      ...cinematicBody(cine.value),
     }, (event, data) => {
       if (event === 'delta' && data?.text) { reply.content += data.text; scrollBottom() }
       else if (event === 'done') reply.content = data?.text || reply.content

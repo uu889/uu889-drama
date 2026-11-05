@@ -7,6 +7,7 @@
  *   agents/<id>/AGENT.md      智能体：frontmatter name / description / category / icon / skills: [..] /
  *                             starters: [..] / source / source_url，正文为系统提示词
  *   workflows/<id>.json       工作流 { id, name, description, category, tags, source, inputs, steps, handoff }
+ *   cinematic/<id>.json       影像参数预设 { id, name, description, category, spec }（spec 见 services/cinematic/spec.ts）
  *
  * 内容是文件，不进数据库：新增模板只要丢文件进目录，不用改代码；读取时每次扫描（文件少，开销可忽略）。
  * 桌面版：catalog/ 随模板版本整体覆盖，catalog-user/ 不在模板里，升级不动。
@@ -341,6 +342,44 @@ export function listSkills(): CatalogSkill[] { return readMdItems('skills', 'SKI
 export function listAgents(): CatalogAgent[] { return readMdItems('agents', 'AGENT.md', parseAgent).sort(byName) }
 export function listWorkflows(): CatalogWorkflow[] { return readJsonItems('workflows', parseWorkflow).sort(byName) }
 
+export interface CinematicPresetFile {
+  id: string
+  name: string
+  description: string
+  category: string
+  /** 原样的 spec（使用方再 normalize） */
+  spec: unknown
+  builtin: boolean
+}
+
+export function parseCinematicPreset(id: string, json: any, builtin: boolean): CinematicPresetFile | null {
+  if (!json || typeof json !== 'object' || !json.spec || typeof json.spec !== 'object') return null
+  const name = String(json.name || '').trim()
+  if (!name) return null
+  return {
+    id,
+    name: name.slice(0, 60),
+    description: String(json.description || '').trim().slice(0, 300),
+    category: String(json.category || '').trim().slice(0, 30),
+    spec: json.spec,
+    builtin,
+  }
+}
+
+export function listCinematicPresets(): CinematicPresetFile[] { return readJsonItems('cinematic', parseCinematicPreset).sort(byName) }
+
+/** 用户保存的影像参数预设：catalog-user/cinematic/<id>.json */
+export function saveUserCinematicPreset(id: string, json: any): CinematicPresetFile {
+  if (!CATALOG_ID.test(id)) throw new Error('id 只能用小写字母、数字和连字符')
+  const preset = parseCinematicPreset(id, json, false)
+  if (!preset) throw new Error('预设需要名称和参数')
+  const { builtin: _b, ...data } = preset
+  const dir = path.join(USER_CATALOG_DIR, 'cinematic')
+  fs.mkdirSync(dir, { recursive: true })
+  fs.writeFileSync(path.join(dir, `${id}.json`), `${JSON.stringify(data, null, 2)}\n`)
+  return preset
+}
+
 export function getAgent(id: string) { return listAgents().find(a => a.id === id) || null }
 export function getWorkflow(id: string) { return listWorkflows().find(w => w.id === id) || null }
 
@@ -386,11 +425,11 @@ export function saveUserWorkflow(id: string, json: any): CatalogWorkflow {
 }
 
 /** 删除用户版（内置版不能删；删掉用户覆盖后内置版重新生效） */
-export function deleteUserItem(kind: 'agents' | 'workflows', id: string): boolean {
+export function deleteUserItem(kind: 'agents' | 'workflows' | 'cinematic', id: string): boolean {
   if (!CATALOG_ID.test(id)) return false
   const target = kind === 'agents'
     ? path.join(USER_CATALOG_DIR, 'agents', id)
-    : path.join(USER_CATALOG_DIR, 'workflows', `${id}.json`)
+    : path.join(USER_CATALOG_DIR, kind, `${id}.json`)
   if (!fs.existsSync(target)) return false
   fs.rmSync(target, { recursive: true, force: true })
   return true

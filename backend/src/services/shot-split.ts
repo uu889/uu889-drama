@@ -37,8 +37,8 @@ const QUOTE_PAIRS: Record<string, string> = { '「': '」', '『': '』', '“':
 const OPEN_QUOTES = Object.keys(QUOTE_PAIRS)
 const CLOSE_QUOTES = new Set(Object.values(QUOTE_PAIRS))
 
-/** 「0-3秒：」「3秒：」「0s-3s:」「【0-3秒】」 */
-const TIME_MARK_RE = /^\s*【?\s*\d+(?:\.\d+)?\s*(?:秒|s|S)?\s*(?:[-~～—–至到]\s*\d+(?:\.\d+)?\s*)?(?:秒|s|S|sec)\s*(?:】\s*[:：]?|[:：])\s*/
+/** 「0-3秒：」「3秒：」「0s-3s:」「【0-3秒】」「［0.0s - 2.5s］」「[0.0s-2.5s]」（时间戳分镜） */
+const TIME_MARK_RE = /^\s*[【［[]?\s*\d+(?:\.\d+)?\s*(?:秒|s|S)?\s*(?:[-~～—–至到]\s*\d+(?:\.\d+)?\s*)?(?:秒|s|S|sec)\s*(?:[】］\]]\s*[:：]?|[:：])\s*/
 const SHOT_MARK_RE = /【镜头\s*\d+\s*】/g
 /** 时间分段之后、不属于最后一段的全局说明行 */
 const GLOBAL_LINE_RE = /^\s*(?:【|全程|整体|画风|风格|画质|字幕|音效|背景音乐|BGM|无字幕|竖屏|横屏|注意|要求|Style|Overall|No subtitles)/i

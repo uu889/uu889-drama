@@ -27,7 +27,7 @@ const REPO_ROOT = path.resolve(DESKTOP_ROOT, '..')
 const BACKEND_BUNDLE = path.join(DESKTOP_ROOT, 'build', 'backend.mjs')
 
 /** workspace 模板版本：内置模板更新时递增，触发向用户目录补缺失文件 */
-const TEMPLATE_VERSION = '10'
+const TEMPLATE_VERSION = '11'
 /**
  * 更新过的内置 skill 目录：升级时用新版覆盖（用户改过的旧文件先备份成 *.bak-v<旧版本>）。
  * v5：分镜拆解按台词定时长 / 站位接戏，视频提示词无台词段标「无人说话」
@@ -36,6 +36,7 @@ const TEMPLATE_VERSION = '10'
  * v8：视频提示词写明生成时自动附加的导演指令（含【画质】），篇幅留给本镜画面
  * v9：分镜拆解限制每段台词 ≤ 50 字，长台词 / 独白按句拆到连续段落，引号成对
  * v10：新增模板库 catalog/（一键生成风格 / 智能体 / 工作流），每次升级整体覆盖；用户版在 catalog-user/ 不动
+ * v11：模板库新增 catalog/cinematic/ 影像参数预设
  */
 const UPDATED_SKILL_DIRS = [
   'storyboard-breaker',

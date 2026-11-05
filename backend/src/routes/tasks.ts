@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
-import { buildShotDirectives } from '../services/shot-direction.js'
+import { buildShotDirectives, isChinesePrompt } from '../services/shot-direction.js'
 import { getEpisodeSystemVoice } from '../services/system-voice.js'
+import { cinematicVideoBlock, getEpisodeCinematic } from '../services/cinematic/index.js'
 import { withTaskProgress } from '../services/task-progress.js'
 import { eq } from 'drizzle-orm'
 import { db, schema } from '../db/index.js'
@@ -42,6 +43,8 @@ async function buildStoryboardDirectives(
       previous = { number: prev.storyboardNumber, blocking: prev.blocking, description: prev.description }
     }
   }
+  const cine = direction.cinematic_lock !== false ? await getEpisodeCinematic(sb.episodeId).catch(() => null) : null
+  const zh = isChinesePrompt(prompt) || (!prompt && isChinesePrompt(sb.description))
   const frameMode = direction.previous_frame === 'first_frame' || direction.previous_frame === 'reference' ? direction.previous_frame : null
 
   return buildShotDirectives({
@@ -56,12 +59,14 @@ async function buildStoryboardDirectives(
     hasStylePreset: extra.hasStylePreset,
     compact: extra.compact,
     systemVoice: await getEpisodeSystemVoice(sb.episodeId),
+    cinematic: cine ? { full: cinematicVideoBlock(cine, zh, false), compact: cinematicVideoBlock(cine, zh, true) } : null,
     options: {
       dialogueLock: direction.dialogue_lock !== false,
       appearanceLock: direction.appearance_lock !== false,
       continuity: direction.continuity !== false,
       physicsLock: direction.physics_lock !== false,
       qualityLock: direction.quality_lock !== false,
+      cinematicLock: direction.cinematic_lock !== false,
     },
   })
 }

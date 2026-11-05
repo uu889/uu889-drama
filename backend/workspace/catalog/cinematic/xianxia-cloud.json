@@ -1,0 +1,106 @@
+{
+  "name": "云海仙山 · 仙侠玄幻",
+  "description": "月白天青、体积光与灵光粒子的空灵仙侠",
+  "category": "仙侠玄幻",
+  "spec": {
+    "visual": {
+      "style_ids": [
+        "ang-lee",
+        "xianxia"
+      ],
+      "style_anchor": "空灵出尘与宿命悲怆",
+      "camera_ids": [
+        "alexa-65"
+      ],
+      "lens_ids": [
+        "arri-signature"
+      ],
+      "focal_ids": [
+        "18mm",
+        "85mm"
+      ],
+      "film_ids": [
+        "vision3-50d",
+        "70mm-grain"
+      ],
+      "aspect_id": "2.39:1",
+      "palette_id": "xianxia-cloud",
+      "palette": [
+        {
+          "name": "月白",
+          "hex": "#E6ECF2",
+          "percent": 50
+        },
+        {
+          "name": "天青",
+          "hex": "#7FA7C4",
+          "percent": 30
+        },
+        {
+          "name": "灵光淡金",
+          "hex": "#E8D49A",
+          "percent": 20
+        }
+      ],
+      "tone_notes": "高调通透，阴影偏青"
+    },
+    "lighting": {
+      "key_light_id": "volumetric",
+      "key_light": "晨光穿过云海形成光柱，从人物背后斜照",
+      "ratio_id": "2:1",
+      "terminator": "沿鼻梁与下颌线柔化过渡",
+      "fill": "云层大面积柔光包裹，发丝有金色轮廓光",
+      "dynamic": "云影掠过，光线由明转暗",
+      "materials": "轻纱法衣半透明、随风层层飘起",
+      "constraint_ids": [
+        "4k-film",
+        "no-plastic",
+        "inertia",
+        "no-morph"
+      ]
+    },
+    "storyboard": {
+      "enabled": true,
+      "segment_seconds": 3,
+      "shot_size_ids": [
+        "els",
+        "fs",
+        "cu"
+      ],
+      "angle_ids": [
+        "aerial",
+        "low-hero",
+        "back"
+      ],
+      "layer_ids": [
+        "fg",
+        "mg-subject",
+        "bg"
+      ],
+      "technique_ids": [
+        "negative-space",
+        "silhouette",
+        "depth-layers"
+      ],
+      "move_ids": [
+        "crane-up",
+        "arc",
+        "drone-reveal",
+        "slow-motion"
+      ],
+      "performance_ids": [
+        "brow-relax",
+        "slow-blink",
+        "shoulders-relax"
+      ],
+      "atmosphere_ids": [
+        "mist-flow",
+        "petals",
+        "fabric-wind",
+        "hair-wind"
+      ],
+      "sound": "",
+      "notes": ""
+    }
+  }
+}

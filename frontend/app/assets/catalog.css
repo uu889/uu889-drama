@@ -107,3 +107,6 @@
   .cat-main-head { flex-direction: column; padding: 14px 16px 10px; }
   .cat-editor-grid { grid-template-columns: 1fr; }
 }
+
+/* 影像参数按钮：开启时高亮 */
+.cine-btn.on { background: var(--accent-bg); color: var(--accent-text); box-shadow: inset 0 0 0 1px var(--accent); }

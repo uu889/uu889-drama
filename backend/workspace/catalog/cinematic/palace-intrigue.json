@@ -1,0 +1,111 @@
+{
+  "name": "朱墙鎏金 · 古装宫廷权谋",
+  "description": "张艺谋式对称仪式感与浓烈朱红鎏金",
+  "category": "古装宫廷",
+  "spec": {
+    "visual": {
+      "style_ids": [
+        "zhang-yimou",
+        "palace"
+      ],
+      "style_anchor": "华服之下的暗涌与压迫",
+      "camera_ids": [
+        "alexa-65"
+      ],
+      "lens_ids": [
+        "cooke-s4"
+      ],
+      "focal_ids": [
+        "24mm",
+        "85mm"
+      ],
+      "film_ids": [
+        "vision3-250d",
+        "35mm-grain"
+      ],
+      "aspect_id": "2.35:1",
+      "palette_id": "palace-red-gold",
+      "palette": [
+        {
+          "name": "宫墙朱红",
+          "hex": "#8B1E1E",
+          "percent": 50
+        },
+        {
+          "name": "鎏金",
+          "hex": "#C9A24B",
+          "percent": 30
+        },
+        {
+          "name": "乌木深褐",
+          "hex": "#2A1A12",
+          "percent": 20
+        }
+      ],
+      "tone_notes": "饱和浓烈但肤色不偏红"
+    },
+    "lighting": {
+      "key_light_id": "candle",
+      "key_light": "殿内成排烛台的暖橙火光从侧下方照亮人物",
+      "ratio_id": "4:1",
+      "terminator": "暗侧脸颊形成伦勃朗三角光斑",
+      "fill": "金色帷幔反射暖光补亮暗部",
+      "dynamic": "烛火跳动让面部光影忽明忽暗",
+      "materials": "丝绸反光柔滑、随动作流动，金线刺绣有立体浮凸",
+      "constraint_ids": [
+        "4k-film",
+        "no-smoothing",
+        "no-plastic",
+        "inertia",
+        "no-text"
+      ]
+    },
+    "storyboard": {
+      "enabled": true,
+      "segment_seconds": 3,
+      "shot_size_ids": [
+        "els",
+        "fs",
+        "mcu",
+        "cu"
+      ],
+      "angle_ids": [
+        "top-down",
+        "eye-level",
+        "low-hero",
+        "back"
+      ],
+      "layer_ids": [
+        "fg",
+        "mg-subject",
+        "mg-left",
+        "mg-right",
+        "bg"
+      ],
+      "technique_ids": [
+        "symmetry",
+        "leading-lines",
+        "frame-in-frame"
+      ],
+      "move_ids": [
+        "crane-down",
+        "slow-dolly-in",
+        "static",
+        "pan"
+      ],
+      "performance_ids": [
+        "slow-blink",
+        "chin-raise",
+        "lips-press",
+        "eyes-moist"
+      ],
+      "atmosphere_ids": [
+        "candle-flicker",
+        "petals",
+        "smoke"
+      ],
+      "sound": "",
+      "notes": ""
+    }
+  }
+}

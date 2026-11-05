@@ -21,6 +21,10 @@
             <span class="field-label">{{ t('index.createDialog.aspectRatio') }}</span>
             <BaseSelect v-model="form.aspect_ratio" :options="ratioOptions" :searchable="false" />
           </label>
+          <label v-if="cinematic" class="field-check">
+            <input v-model="withCinematic" type="checkbox" />
+            <span>{{ t('catalog.handoff.withCinematic') }}</span>
+          </label>
           <label class="field">
             <span class="field-label">{{ t('catalog.handoff.content') }}</span>
             <textarea v-model="form.content" class="textarea handoff-content" rows="8"></textarea>
@@ -54,12 +58,15 @@ const props = defineProps({
   styleKey: { type: String, default: '' },
   aspectRatio: { type: String, default: '' },
   workflowId: { type: String, default: '' },
+  /** 智能体 / 工作流里开启的影像参数：一起带进新项目 */
+  cinematic: { type: Object, default: null },
 })
 const emit = defineEmits(['close'])
 const { t } = useI18n()
 
 const form = ref({ title: '', style: '', aspect_ratio: '9:16', content: '' })
 const busy = ref(false)
+const withCinematic = ref(true)
 const presets = ref([])
 const catalogStyles = ref([])
 
@@ -97,7 +104,11 @@ watch(() => props.open, async (open) => {
 async function submit() {
   busy.value = true
   try {
-    const res = await catalogAPI.handoff({ ...form.value, workflow_id: props.workflowId || undefined })
+    const res = await catalogAPI.handoff({
+      ...form.value,
+      workflow_id: props.workflowId || undefined,
+      cinematic: props.cinematic && withCinematic.value ? props.cinematic : undefined,
+    })
     emit('close')
     navigateTo(`/drama/${res.drama_id}/episode/${res.episode_number}`)
   } catch (e) {
@@ -115,6 +126,7 @@ async function submit() {
 .dialog-body { display: flex; flex-direction: column; gap: 14px; }
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field-label { font-size: 12px; font-weight: 600; color: var(--text-1); }
+.field-check { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-1); cursor: pointer; }
 .field-hint { font-size: 11px; color: var(--text-3); line-height: 1.5; }
 .handoff-content { min-height: 140px; resize: vertical; font-size: 12.5px; line-height: 1.6; }
 </style>

@@ -5,6 +5,7 @@ import { success, badRequest, notFound, created, now } from '../utils/response.j
 import { toSnakeCase, toSnakeCaseArray } from '../utils/transform.js'
 import { getDramaSystemVoice, saveDramaSystemVoice } from '../services/system-voice.js'
 import { getDramaShotMax, saveDramaShotMax } from '../services/shot-limits.js'
+import { applyCinematicToProject, getDramaCinematic, saveDramaCinematic } from '../services/cinematic/index.js'
 
 const app = new Hono()
 
@@ -140,6 +141,28 @@ app.put('/:id/system-voice', async (c) => {
   const saved = await saveDramaSystemVoice(Number(c.req.param('id')), body)
   if (!saved) return badRequest(c, '项目不存在')
   return success(c, saved)
+})
+
+// GET /dramas/:id/cinematic — 影像参数（全局视觉底座 / 人物 / 场景 / 道具 / 面部明暗 / 时间戳分镜）
+app.get('/:id/cinematic', async (c) => {
+  return success(c, await getDramaCinematic(Number(c.req.param('id'))))
+})
+
+// PUT /dramas/:id/cinematic — 保存影像参数（存在 dramas.metadata.cinematic）
+app.put('/:id/cinematic', async (c) => {
+  const body = await c.req.json().catch(() => ({}))
+  const saved = await saveDramaCinematic(Number(c.req.param('id')), body)
+  if (!saved) return badRequest(c, '项目不存在')
+  return success(c, saved)
+})
+
+// POST /dramas/:id/cinematic/apply — 把参数里的人物 / 场景 / 道具写进项目（同名更新，没有就新增）
+app.post('/:id/cinematic/apply', async (c) => {
+  const id = Number(c.req.param('id'))
+  const body = await c.req.json().catch(() => null)
+  const spec = body && typeof body === 'object' && Object.keys(body).length ? await saveDramaCinematic(id, body) : await getDramaCinematic(id)
+  if (!spec) return badRequest(c, '项目不存在')
+  return success(c, await applyCinematicToProject(id, spec))
 })
 
 // PUT /dramas/:id/shot-limit — 项目的单镜时长上限 { max_seconds: 3~120 | null }（null / 0 = 跟随视频配置，都没设按 15 秒）

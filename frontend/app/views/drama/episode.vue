@@ -57,6 +57,10 @@
           <button class="btn btn-icon tour-help-btn" :title="t('tour.helpTitle')" @click="startTour('episode', EPISODE_TOUR, t)">
             <CircleHelp :size="14" :stroke-width="1.8" />
           </button>
+          <button class="btn cine-topbar-btn" :class="{ on: cineEnabled }" :title="t('cinematic.descProject')" @click="cineOpen = true">
+            <Clapperboard :size="12" />
+            {{ cineEnabled ? t('cinematic.on') : t('cinematic.off') }}
+          </button>
           <button class="btn" @click="refresh">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
             {{ t('common.refresh') }}
@@ -1041,6 +1045,10 @@
                       <input v-model="videoDirection.quality_lock" type="checkbox" />
                       <span>{{ t('episode.direction.qualityLock') }}</span>
                     </label>
+                    <label v-if="cineEnabled" class="video-direction-toggle" :title="t('episode.direction.cinematicLockTip')">
+                      <input v-model="videoDirection.cinematic_lock" type="checkbox" />
+                      <span>{{ t('episode.direction.cinematicLock') }}</span>
+                    </label>
                     <label class="video-direction-toggle" :title="t('episode.direction.physicsLockTip')">
                       <input v-model="videoDirection.physics_lock" type="checkbox" />
                       <span>{{ t('episode.direction.physicsLock') }}</span>
@@ -1980,6 +1988,14 @@
         @confirm="confirmDeleteAsset"
         @cancel="assetDelete.open = false"
       />
+      <CinematicDialog
+        :open="cineOpen"
+        mode="project"
+        :drama-id="dramaId"
+        :model-body="() => ({ model: chatModelOverride(), config_id: chatConfigId() })"
+        @close="cineOpen = false"
+        @saved="onCineSaved"
+      />
     </main>
     </div>
   </div>
@@ -1994,6 +2010,8 @@ import {
 } from 'lucide-vue-next'
 import { api, dramaAPI, episodeAPI, storyboardAPI, characterAPI, sceneAPI, propAPI, taskAPI, mergeAPI, aiConfigAPI, uploadAPI } from '~/composables/useApi'
 import { startTour, autoTour } from '~/composables/useTour'
+import CinematicDialog from '~/components/CinematicDialog.vue'
+import { cinematicAPI, cinematicFilledCount } from '~/composables/useCinematic'
 import { useAgent } from '~/composables/useAgent'
 import { toastError, mapError, errorDetail, MODERATION_RE, isCancelledMessage, TASK_CANCELLED_MESSAGE } from '~/composables/useToast'
 import LocaleSwitcher from '~/components/LocaleSwitcher.vue'
@@ -4710,9 +4728,22 @@ function uploadAssetImage(kind, id) {
   })
 }
 
+// ===== 影像参数（项目级，后端 services/cinematic）：四个 Agent 按它写，生成视频附加【影像底座】 =====
+const cineOpen = ref(false)
+const cineSpec = ref(null)
+const cineEnabled = computed(() => !!cineSpec.value?.enabled && cinematicFilledCount(cineSpec.value) > 0)
+async function loadCinematic() {
+  try { cineSpec.value = await cinematicAPI.getProject(dramaId) } catch { cineSpec.value = null }
+}
+function onCineSaved(spec) {
+  cineSpec.value = spec
+  refresh()
+}
+onMounted(loadCinematic)
+
 // ===== 镜头导演：台词控制 / 人物场景画风锁定 / 接戏 =====
 const DIRECTION_STORE_KEY = 'uu889:video-direction'
-const DIRECTION_DEFAULTS = { dialogue_lock: true, appearance_lock: true, continuity: true, chain_previous: true, physics_lock: true, quality_lock: true }
+const DIRECTION_DEFAULTS = { dialogue_lock: true, appearance_lock: true, continuity: true, chain_previous: true, physics_lock: true, quality_lock: true, cinematic_lock: true }
 function readDirectionPrefs() {
   try { return { ...DIRECTION_DEFAULTS, ...(JSON.parse(localStorage.getItem(DIRECTION_STORE_KEY) || 'null') || {}) } } catch { return { ...DIRECTION_DEFAULTS } }
 }
@@ -4862,6 +4893,7 @@ async function genVid(sb, opts = {}) {
       continuity: videoDirection.continuity,
       physics_lock: videoDirection.physics_lock,
       quality_lock: videoDirection.quality_lock,
+      cinematic_lock: videoDirection.cinematic_lock,
       previous_frame: frameMode,
       previous_frame_index: frameMode === 'reference' ? 1 : undefined,
     },
@@ -5144,6 +5176,7 @@ onMounted(() => setTimeout(() => autoTour('episode', EPISODE_TOUR, t), 900))
   flex-shrink: 0;
 }
 
+.cine-topbar-btn.on { background: var(--accent-bg); color: var(--accent-text); box-shadow: inset 0 0 0 1px var(--accent); }
 .studio-actions {
   display: flex;
   gap: 6px;

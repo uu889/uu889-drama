@@ -21,6 +21,7 @@ import { buildLanguageDirective } from './language.js'
 import { getContentLanguageFromRC, getDramaId, getEpisodeId } from './context.js'
 import { getDramaSystemVoice, systemVoiceAgentDirective } from '../services/system-voice.js'
 import { shotLimitsAgentDirective, shotLimitsForEpisode } from '../services/shot-limits.js'
+import { cinematicAgentDirective, getDramaCinematic } from '../services/cinematic/index.js'
 import { createAiaskChatFetch, createClaudeFetch } from './aiask-chat.js'
 
 /**
@@ -415,7 +416,11 @@ function buildInstructions(type: string) {
         .then(l => shotLimitsAgentDirective(type, l, lang))
         .catch(() => '')
       : ''
-    return [baseInstructions, skillInstructions, systemDirective, limitsDirective, languageDirective]
+    // 项目锁定的影像参数（全局视觉底座 / 人物 / 场景 / 道具 / 面部明暗 / 时间戳分镜）
+    const cinematicDirective = await getDramaCinematic(getDramaId(requestContext))
+      .then(spec => cinematicAgentDirective(type, spec, lang))
+      .catch(() => '')
+    return [baseInstructions, skillInstructions, systemDirective, cinematicDirective, limitsDirective, languageDirective]
       .filter(Boolean)
       .join('\n\n')
   }

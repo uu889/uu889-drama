@@ -55,6 +55,9 @@
               :options="models.options.value"
               :show-config="models.multiConfig.value"
             />
+            <button class="btn btn-sm cine-btn" :class="{ on: cineOn }" :title="t('cinematic.descChat')" @click="cineOpen = true">
+              <Clapperboard :size="13" />{{ cineOn ? t('cinematic.on') : t('cinematic.off') }}
+            </button>
             <button class="btn btn-sm" @click="openEditor(current)">{{ current.builtin ? t('catalog.common.customize') : t('catalog.common.edit') }}</button>
             <button v-if="!current.builtin" class="btn btn-sm btn-danger" @click="removeCurrent">{{ t('common.delete') }}</button>
           </div>
@@ -152,8 +155,10 @@
       :style-key="current?.handoff?.style || ''"
       :aspect-ratio="current?.handoff?.aspect_ratio || ''"
       :workflow-id="current?.id || ''"
+      :cinematic="cineOn ? cine : null"
       @close="handoff.open = false"
     />
+    <CinematicDialog :open="cineOpen" mode="chat" :value="cine" :model-body="models.modelBody" @close="cineOpen = false" @saved="onCineSaved" />
   </div>
 </template>
 
@@ -165,6 +170,8 @@ import { toastError } from '~/composables/useToast'
 import { catalogAPI, postSse, useTextModelPick, groupByCategory } from '~/composables/useCatalog'
 import ModelSelect from '~/components/ModelSelect.vue'
 import HandoffDialog from '~/components/HandoffDialog.vue'
+import CinematicDialog from '~/components/CinematicDialog.vue'
+import { loadChatCinematic, saveChatCinematic, cinematicFilledCount, cinematicBody } from '~/composables/useCinematic'
 import '~/assets/catalog.css'
 
 const { t } = useI18n()
@@ -182,6 +189,12 @@ const running = ref(false)
 const handoff = reactive({ open: false, content: '', title: '' })
 let abort = null
 const models = useTextModelPick()
+
+// ── 影像参数（智能体 / 工作流共用一份，存在浏览器本地） ──
+const cine = ref(loadChatCinematic())
+const cineOpen = ref(false)
+const cineOn = computed(() => !!cine.value?.enabled && cinematicFilledCount(cine.value) > 0)
+function onCineSaved(spec) { cine.value = spec; saveChatCinematic(spec) }
 
 const groups = computed(() => {
   const k = keyword.value.toLowerCase()
@@ -240,6 +253,7 @@ async function run(startIndex) {
       start_step: wf.steps[startIndex]?.id,
       outputs: { ...outputs },
       ...models.modelBody(),
+      ...cinematicBody(cine.value),
     }, (event, data) => {
       if (event === 'step') { stepState[data.id] = 'running'; outputs[data.id] = '' }
       else if (event === 'delta') outputs[data.step] = (outputs[data.step] || '') + data.text

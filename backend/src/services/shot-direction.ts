@@ -298,13 +298,15 @@ export interface ShotDirectionInput {
   /** 已经解析好 @图片N 的视频提示词（用来沿用引用标记、判断语言） */
   prompt: string
   hasStylePreset?: boolean
-  options: { dialogueLock?: boolean; appearanceLock?: boolean; continuity?: boolean; physicsLock?: boolean; qualityLock?: boolean }
+  options: { dialogueLock?: boolean; appearanceLock?: boolean; continuity?: boolean; physicsLock?: boolean; qualityLock?: boolean; cinematicLock?: boolean }
   /**
    * 精简版：视频接口限制了提示词长度（设置了单镜上限，或 Grok 4096 字节）时一律用，同样的约束写得更短（约一半），
    * 每块各有长度上限（人物外观约 450 字节、站位 90 字、上一镜结尾 60 字），正文用剩下的预算，
    * 免得提交时为了凑长度整块去掉【接上一镜】【画风一致】等
    */
   compact?: boolean
+  /** 项目影像参数生成的【影像底座】（完整版 / 精简版），由调用方渲染好传进来 */
+  cinematic?: { full: string; compact: string } | null
   /** 系统音（系统流）：开启时分镜里系统的台词按画外电子音处理 */
   systemVoice?: { enabled: boolean; name: string; voice: string; chime: string; panel: boolean } | null
 }
@@ -450,6 +452,12 @@ export function buildShotDirectives(input: ShotDirectionInput): string {
     } else blocks.push(zh
       ? `【画风一致】${input.hasStylePreset ? '严格保持开头指定的画风，' : ''}画风、色调、光影质感与参考图一致，全片不得切换成其他画风（如写实 / 动漫 / 3D 互换）。`
       : `[Style lock] ${input.hasStylePreset ? 'Keep the style given at the start. ' : ''}Art style, color grading and lighting match the reference images; never switch styles (e.g. realistic ↔ anime ↔ 3D).`)
+  }
+
+  // ── 影像底座：项目锁定的风格 / 器材 / 画幅 / 色调 / 布光 / 硬性约束 ──
+  if (input.options.cinematicLock !== false && input.cinematic) {
+    const block = compact ? input.cinematic.compact : input.cinematic.full
+    if (block) blocks.push(block)
   }
 
   // ── 画质：精细度全靠这一句，任何时候都完整附加，精简提示词时也不去掉 ──

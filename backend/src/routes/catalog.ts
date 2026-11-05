@@ -23,6 +23,7 @@ import { toSnakeCase } from '../utils/transform.js'
 import { getActiveConfigId } from '../services/ai.js'
 import { getContentLanguage } from '../services/app-settings.js'
 import { buildLanguageDirective } from '../agents/language.js'
+import { cinematicChatDirective, isCinematicActive, normalizeCinematicSpec, saveDramaCinematic } from '../services/cinematic/index.js'
 import {
   CATALOG_ID, GENERIC_AGENT, composeAgentInstructions, deleteUserItem, getAgent, getWorkflow,
   listAgents, listSkills, listStyles, listWorkflows, renderTemplate, saveUserAgent, saveUserWorkflow,
@@ -104,19 +105,21 @@ app.delete('/agents/:id', (c) => {
   return success(c)
 })
 
-/** 智能体的完整系统提示词（正文 + skill + 内容语言） */
-function instructionsFor(agent: CatalogAgent): string {
-  return [composeAgentInstructions(agent, listSkills()), buildLanguageDirective(getContentLanguage())]
+/** 智能体的完整系统提示词（正文 + skill + 影像参数 + 内容语言） */
+function instructionsFor(agent: CatalogAgent, cinematic?: unknown): string {
+  const lang = getContentLanguage()
+  const cine = cinematic ? cinematicChatDirective(normalizeCinematicSpec(cinematic), lang) : ''
+  return [composeAgentInstructions(agent, listSkills()), cine, buildLanguageDirective(lang)]
     .filter(Boolean)
     .join('\n\n')
 }
 
-async function buildRunner(agent: CatalogAgent, model?: string, configId?: number) {
+async function buildRunner(agent: CatalogAgent, model?: string, configId?: number, cinematic?: unknown) {
   const { getTextModelFor } = await import('../agents/index.js')
   return new Agent({
     id: `catalog_${agent.id.replace(/-/g, '_')}`,
     name: agent.name,
-    instructions: instructionsFor(agent),
+    instructions: instructionsFor(agent, cinematic),
     model: () => getTextModelFor(model, configId),
   })
 }
@@ -158,7 +161,7 @@ app.post('/agents/:id/chat', async (c) => {
   const body = await c.req.json().catch(() => ({}))
   const messages = cleanMessages(body.messages)
   if (!messages.length || messages[messages.length - 1].role !== 'user') return badRequest(c, '请输入内容')
-  const runner = await buildRunner(agent, body.model || undefined, Number(body.config_id) || undefined)
+  const runner = await buildRunner(agent, body.model || undefined, Number(body.config_id) || undefined, body.cinematic)
 
   return streamSSE(c, async (stream) => {
     let aborted = false
@@ -238,7 +241,7 @@ app.post('/workflows/:id/run', async (c) => {
       await send('step', { id: step.id, index: i })
       try {
         const agent = step.agent ? agents.get(step.agent)! : GENERIC_AGENT
-        const runner = await buildRunner(agent, model, configId)
+        const runner = await buildRunner(agent, model, configId, body.cinematic)
         const prompt = renderTemplate(step.prompt, { inputs, steps, previous })
         const text = await streamText(runner, [{ role: 'user', content: prompt }], t => send('delta', { step: step.id, text: t }), () => aborted)
         if (aborted) return
@@ -292,6 +295,11 @@ app.post('/handoff', async (c) => {
     updatedAt: ts,
   })
   const dramaId = getInsertId(dramaRes)
+  // 智能体 / 工作流里设的影像参数一起带进项目（一键生成的四个 Agent 和视频生成都会用到）
+  if (body.cinematic && typeof body.cinematic === 'object') {
+    const spec = normalizeCinematicSpec(body.cinematic)
+    if (isCinematicActive(spec)) await saveDramaCinematic(dramaId, spec)
+  }
   await db.insert(schema.episodes).values({
     dramaId,
     episodeNumber: 1,

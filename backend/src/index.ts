@@ -26,6 +26,7 @@ import serverUpdate from './routes/serverUpdate.js'
 import modelInstaller from './routes/modelInstaller.js'
 import catalog from './routes/catalog.js'
 import voices from './routes/voices.js'
+import cinematic from './routes/cinematic.js'
 import { resumeJobsOnStartup } from './services/model-installer/jobs.js'
 import { requestLogger, errorHandler } from './middleware/logger.js'
 import { db, schema } from './db/index.js'
@@ -73,6 +74,7 @@ api.route('/props', props)
 api.route('/storage', storage)
 api.route('/settings', settings)
 api.route('/server-update', serverUpdate)
+api.route('/cinematic', cinematic)
 api.route('/model-installer', modelInstaller)
 api.route('/catalog', catalog)
 api.route('/voices', voices)

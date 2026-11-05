@@ -6,6 +6,7 @@
 - `skills/<id>/SKILL.md`：skill（22）
 - `agents/<id>/AGENT.md`：智能体模板（14），`skills` 引用上面的 skill id
 - `workflows/<id>.json`：工作流模板（12），步骤 `agent` 引用智能体 id，`handoff.style` 引用风格 id
+- `cinematic/<id>.json`：影像参数预设（7），全局视觉底座 / 人物 / 场景 / 道具 / 面部明暗 / 时间戳分镜
 
 全部条目为中文原创整理，每条带 `source` 注明思路来源；AGPL / GPL / 无许可证的来源只借鉴思路，未复制原文。
 
@@ -65,3 +66,13 @@ source_url: https://...
 
 步骤按顺序用文字模型执行。模板变量：`{{inputs.key}}`、`{{steps.<步骤id>}}`、`{{input}}`（第一个输入）、`{{previous}}`（上一步输出）。
 `agent` 不填用通用助手。`handoff` 可选：把某步输出作为第一集原文建成一键生成项目，接着走 改写 → 提取 → 生图 → 分镜 → 生视频 → 导出。
+
+### 影像参数预设 `cinematic/<id>.json`（一键生成 / 智能体 / 工作流共用）
+
+```json
+{ "name": "寒江孤舟 · 写实新国风武侠", "description": "一句话说明", "category": "古装武侠",
+  "spec": { "visual": {…}, "characters": […], "scene": {…}, "props": […], "lighting": {…}, "storyboard": {…} } }
+```
+
+`spec` 的字段与可选 id 见 `backend/src/services/cinematic/spec.ts` / `options.ts`（`GET /api/v1/cinematic/options`）。
+界面「影像参数」面板里「载入预设」可选；用户另存的预设写到 `catalog-user/cinematic/`。
