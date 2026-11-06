@@ -25,6 +25,7 @@ import storage from './routes/storage.js'
 import serverUpdate from './routes/serverUpdate.js'
 import modelInstaller from './routes/modelInstaller.js'
 import catalog from './routes/catalog.js'
+import studio from './routes/studio.js'
 import voices from './routes/voices.js'
 import cinematic from './routes/cinematic.js'
 import { resumeJobsOnStartup } from './services/model-installer/jobs.js'
@@ -77,6 +78,7 @@ api.route('/server-update', serverUpdate)
 api.route('/cinematic', cinematic)
 api.route('/model-installer', modelInstaller)
 api.route('/catalog', catalog)
+api.route('/studio', studio)
 api.route('/voices', voices)
 
 app.route('/api/v1', api)

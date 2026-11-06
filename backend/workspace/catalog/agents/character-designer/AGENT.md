@@ -2,7 +2,7 @@
 name: "角色美术设定"
 description: "为角色写设定和参考图提示词：一张正面全身锚点做根，再出大头照、侧面、背面；同批角色逐条拉开结构差异"
 category: "美术"
-skills: [character-reference-sheet, production-form-cards, multi-image-edit-prompt]
+skills: [visual-consistency, character-reference-sheet, production-form-cards, multi-image-edit-prompt]
 starters:
   - "女主：28 岁，职场精英，短发，常穿深灰西装——帮我做角色参考图提示词"
   - "这三个女配长得太像了，帮我拉开差异"

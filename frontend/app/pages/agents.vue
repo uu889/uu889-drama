@@ -58,43 +58,28 @@
             <button class="btn btn-sm cine-btn" :class="{ on: cineOn }" :title="t('cinematic.descChat')" @click="cineOpen = true">
               <Clapperboard :size="13" />{{ cineOn ? t('cinematic.on') : t('cinematic.off') }}
             </button>
-            <button class="btn btn-sm" :disabled="!messages.length || running" @click="clearChat">{{ t('catalog.agents.clear') }}</button>
+            <select v-if="sessions.length" class="input sp-session-select" :value="studio.session.value?.id || ''" :title="t('studio.history')" @change="openSession(Number($event.target.value) || null)">
+              <option value="">{{ t('studio.newSession') }}</option>
+              <option v-for="s in sessions" :key="s.id" :value="s.id">{{ s.title }}{{ s.running ? ' ⏳' : '' }}</option>
+            </select>
+            <button class="btn btn-sm" :disabled="!studio.session.value" @click="openSession(null)"><Plus :size="12" />{{ t('studio.newSession') }}</button>
+            <button v-if="studio.session.value" class="btn btn-sm" :title="t('studio.deleteSession')" @click="removeSession"><Trash2 :size="12" /></button>
             <button class="btn btn-sm" @click="openEditor(current)">{{ current.builtin ? t('catalog.common.customize') : t('catalog.common.edit') }}</button>
             <button v-if="!current.builtin" class="btn btn-sm btn-danger" @click="removeCurrent">{{ t('common.delete') }}</button>
           </div>
         </div>
 
-        <div ref="scrollEl" class="chat-scroll">
-          <div v-if="!messages.length" class="chat-welcome">
-            <MessagesSquare :size="26" :stroke-width="1.4" />
-            <p>{{ t('catalog.agents.welcome', { name: current.name }) }}</p>
-            <div v-if="current.starters?.length" class="starter-row">
-              <button v-for="s in current.starters" :key="s" class="starter" @click="send(s)">{{ s }}</button>
-            </div>
-          </div>
-          <div v-for="(m, i) in messages" :key="i" class="msg" :class="m.role">
-            <div class="msg-bubble">{{ m.content }}<span v-if="running && i === messages.length - 1 && m.role === 'assistant'" class="caret"></span></div>
-            <div v-if="m.role === 'assistant' && m.content && !(running && i === messages.length - 1)" class="msg-tools">
-              <button class="btn btn-ghost btn-sm" @click="copy(m.content)"><Copy :size="12" />{{ t('catalog.common.copy') }}</button>
-              <button class="btn btn-ghost btn-sm" @click="handoffText = m.content; handoffOpen = true"><Clapperboard :size="12" />{{ t('catalog.handoff.button') }}</button>
-            </div>
-          </div>
-        </div>
-
-        <form class="chat-input" @submit.prevent="send(draft)">
-          <textarea
-            v-model="draft"
-            class="textarea"
-            rows="3"
-            :placeholder="t('catalog.agents.placeholder')"
-            @keydown.enter.exact.prevent="send(draft)"
-          ></textarea>
-          <div class="chat-input-foot">
-            <span class="cat-field-hint">{{ t('catalog.agents.enterHint') }}</span>
-            <button v-if="running" type="button" class="btn" @click="stop"><Square :size="12" />{{ t('catalog.common.stop') }}</button>
-            <button v-else type="submit" class="btn btn-primary" :disabled="!draft.trim()"><Send :size="13" />{{ t('catalog.agents.send') }}</button>
-          </div>
-        </form>
+        <StudioPanel
+          :session="studio.session.value"
+          :starters="current.starters"
+          :welcome="t('studio.agentWelcome', { name: current.name })"
+          :placeholder="t('catalog.agents.placeholder')"
+          :extra-body="runBody"
+          :create-session="createSession"
+          handoff
+          @update="onSessionUpdate"
+          @handoff="text => { handoffText = text; handoffOpen = true }"
+        />
       </template>
       <div v-else class="cat-empty">
         <Bot :size="28" :stroke-width="1.4" />
@@ -163,10 +148,12 @@
 <script setup>
 import { toast } from 'vue-sonner'
 import { useI18n } from 'vue-i18n'
-import { Plus, Send, Square, Copy, Clapperboard, Bot, MessagesSquare } from 'lucide-vue-next'
+import { Plus, Clapperboard, Bot, Trash2 } from 'lucide-vue-next'
 import { toastError } from '~/composables/useToast'
-import { catalogAPI, postSse, useTextModelPick, groupByCategory } from '~/composables/useCatalog'
+import { catalogAPI, useTextModelPick, groupByCategory } from '~/composables/useCatalog'
 import ModelSelect from '~/components/ModelSelect.vue'
+import StudioPanel from '~/components/StudioPanel.vue'
+import { studioAPI, useStudioSession } from '~/composables/useStudio'
 import HandoffDialog from '~/components/HandoffDialog.vue'
 import CinematicDialog from '~/components/CinematicDialog.vue'
 import { loadChatCinematic, saveChatCinematic, cinematicFilledCount, cinematicBody } from '~/composables/useCinematic'
@@ -180,14 +167,11 @@ const skills = ref([])
 const loading = ref(true)
 const keyword = ref('')
 const current = ref(null)
-const messages = ref([])
-const draft = ref('')
-const running = ref(false)
-const scrollEl = ref(null)
 const handoffOpen = ref(false)
 const handoffText = ref('')
-let abort = null
 const models = useTextModelPick()
+const studio = useStudioSession()
+const sessions = ref([])
 
 // ── 影像参数（智能体 / 工作流共用一份，存在浏览器本地） ──
 const cine = ref(loadChatCinematic())
@@ -195,14 +179,7 @@ const cineOpen = ref(false)
 const cineOn = computed(() => !!cine.value?.enabled && cinematicFilledCount(cine.value) > 0)
 function onCineSaved(spec) { cine.value = spec; saveChatCinematic(spec) }
 
-const CHAT_KEY = id => `uu889:agent-chat:${id}`
-function loadChat(id) {
-  try { return JSON.parse(localStorage.getItem(CHAT_KEY(id)) || '[]') } catch { return [] }
-}
-function saveChat() {
-  if (!current.value) return
-  try { localStorage.setItem(CHAT_KEY(current.value.id), JSON.stringify(messages.value.slice(-40))) } catch { /* 忽略 */ }
-}
+const SESSION_KEY = id => `uu889:agent-session:${id}`
 
 const groups = computed(() => {
   const k = keyword.value.toLowerCase()
@@ -219,59 +196,64 @@ async function load() {
   } catch (e) { toastError(e) } finally { loading.value = false }
 }
 
+async function loadSessions() {
+  if (!current.value) return
+  try { sessions.value = (await studioAPI.list('agent', current.value.id)) || [] } catch { sessions.value = [] }
+}
+
 async function select(id) {
-  if (running.value) stop()
   try {
     current.value = await catalogAPI.agent(id)
-    messages.value = loadChat(id)
-    draft.value = ''
     if (route.query.agent !== id) navigateTo({ query: { agent: id } }, { replace: true })
-    scrollBottom()
+    await loadSessions()
+    let last = null
+    try { last = Number(localStorage.getItem(SESSION_KEY(id))) || null } catch { /* 忽略 */ }
+    await openSession(last && sessions.value.some(s => s.id === last) ? last : null)
   } catch (e) { toastError(e) }
 }
 
-function scrollBottom() {
-  nextTick(() => { if (scrollEl.value) scrollEl.value.scrollTop = scrollEl.value.scrollHeight })
-}
-
-async function send(text) {
-  const content = String(text || '').trim()
-  if (!content || running.value || !current.value) return
-  draft.value = ''
-  messages.value.push({ role: 'user', content })
-  const reply = reactive({ role: 'assistant', content: '' })
-  messages.value.push(reply)
-  scrollBottom()
-  running.value = true
-  const controller = new AbortController()
-  abort = controller
+async function openSession(id) {
   try {
-    await postSse(`/catalog/agents/${current.value.id}/chat`, {
-      messages: messages.value.slice(0, -1),
-      ...models.modelBody(),
-      ...cinematicBody(cine.value),
-    }, (event, data) => {
-      if (event === 'delta' && data?.text) { reply.content += data.text; scrollBottom() }
-      else if (event === 'done') reply.content = data?.text || reply.content
-      else if (event === 'error') throw new Error(data?.message || 'error')
-    }, controller.signal)
-    if (!reply.content.trim()) throw new Error(t('catalog.common.emptyOutput'))
-  } catch (e) {
-    if (e?.name !== 'AbortError') {
-      toastError(e)
-      if (!reply.content.trim()) messages.value.splice(messages.value.indexOf(reply), 1)
+    await studio.open(id)
+    if (current.value) {
+      try { id ? localStorage.setItem(SESSION_KEY(current.value.id), String(id)) : localStorage.removeItem(SESSION_KEY(current.value.id)) } catch { /* 忽略 */ }
     }
-  } finally {
-    running.value = false
-    abort = null
-    saveChat()
-  }
+  } catch (e) { toastError(e) }
 }
 
-function stop() { abort?.abort() }
-function clearChat() { messages.value = []; saveChat() }
-async function copy(text) {
-  try { await navigator.clipboard.writeText(text); toast.success(t('catalog.common.copied')) } catch (e) { toastError(e) }
+function runBody() {
+  return { ...models.modelBody(), ...cinematicBody(cine.value) }
+}
+
+async function createSession(text, settings, styleId) {
+  const s = await studioAPI.create({
+    kind: 'agent',
+    ref_id: current.value.id,
+    title: text ? text.split('\n')[0].slice(0, 30) : current.value.name,
+    settings,
+    style_id: styleId || undefined,
+    message: text || undefined,
+    ...runBody(),
+  })
+  try { localStorage.setItem(SESSION_KEY(current.value.id), String(s.id)) } catch { /* 忽略 */ }
+  loadSessions()
+  return s
+}
+
+function onSessionUpdate(s) {
+  studio.set(s)
+  const row = sessions.value.find(x => x.id === s.id)
+  if (row) { row.title = s.title; row.running = s.running } else loadSessions()
+}
+
+async function removeSession() {
+  const s = studio.session.value
+  if (!s || !confirm(t('studio.deleteSessionConfirm', { name: s.title }))) return
+  try {
+    await studioAPI.remove(s.id)
+    await loadSessions()
+    await openSession(null)
+  } catch (e) { toastError(e) }
 }
 
 // ── 编辑器 ──
@@ -316,48 +298,9 @@ onMounted(async () => {
   const first = agents.value.find(a => a.id === want) || agents.value[0]
   if (first) select(first.id)
 })
-onBeforeUnmount(stop)
 </script>
 
 <style scoped>
-.chat-scroll { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; }
-.chat-welcome { margin: auto; display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--text-3); text-align: center; max-width: 560px; }
-.chat-welcome p { font-size: 13px; }
-.starter-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 4px; }
-.starter {
-  border: 1px solid var(--border);
-  background: var(--surface-raised);
-  color: var(--text-1);
-  border-radius: var(--radius-pill);
-  font-size: 12px;
-  padding: 6px 12px;
-  cursor: pointer;
-  text-align: left;
-}
-.starter:hover { border-color: var(--border-hover); background: var(--bg-hover); }
-.msg { display: flex; flex-direction: column; gap: 4px; max-width: 860px; }
-.msg.user { align-self: flex-end; align-items: flex-end; }
-.msg.assistant { align-self: flex-start; }
-.msg-bubble {
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-size: 13px;
-  line-height: 1.7;
-  padding: 10px 14px;
-  border-radius: var(--radius-lg);
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
-  color: var(--text-0);
-}
-.msg.user .msg-bubble { background: var(--accent-bg); border-color: transparent; }
-.msg-tools { display: flex; gap: 4px; }
-.caret { display: inline-block; width: 7px; height: 14px; margin-left: 2px; background: var(--text-2); vertical-align: -2px; animation: blink 1s steps(1) infinite; }
-@keyframes blink { 50% { opacity: 0; } }
-.chat-input { border-top: 1px solid var(--border); padding: 12px 24px 16px; display: flex; flex-direction: column; gap: 8px; }
-.chat-input .textarea { resize: vertical; min-height: 64px; font-size: 13px; }
-.chat-input-foot { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
-.chat-input-foot .cat-field-hint { margin-right: auto; }
-@media (max-width: 760px) {
-  .chat-scroll, .chat-input { padding-left: 16px; padding-right: 16px; }
-}
+.cat-main { overflow: hidden; }
+.sp-session-select { height: var(--button-height-sm, 30px); padding: 0 8px; font-size: 12px; width: auto; max-width: 200px; }
 </style>

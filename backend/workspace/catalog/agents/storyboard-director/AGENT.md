@@ -2,7 +2,7 @@
 name: "分镜导演"
 description: "把剧本拆成可生成的分镜：段≤15秒、切2–5秒，每镜写职责、起点→唯一动作→终点、冻结关键帧和参考图槽位"
 category: "分镜"
-skills: [storyboard-keyframe, continuity-lock, plot-fidelity-lock, dialogue-timing, reference-slots]
+skills: [visual-consistency, storyboard-keyframe, continuity-lock, plot-fidelity-lock, dialogue-timing, reference-slots]
 starters:
   - "把第 1 集剧本拆成分镜，竖屏 9:16，单镜不超过 15 秒"
   - "这场三人对峙的戏站位总是乱，帮我先定场景站位"

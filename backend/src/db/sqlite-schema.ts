@@ -331,6 +331,38 @@ export const sqliteSchemaStatements = [
     value TEXT NOT NULL,
     updated_at TEXT NOT NULL
   )`,
+  // 创作会话（智能体 / 工作流里直接生图、生视频、剪成片）：timeline = 界面上的消息与工具卡片，
+  // bible = 一贯性设定（画风、画幅、角色 / 场景 / 道具设定图与外观描述），settings = 画幅 / 分辨率 / 模型等
+  `CREATE TABLE IF NOT EXISTS studio_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind TEXT NOT NULL,
+    ref_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    settings TEXT,
+    bible TEXT,
+    timeline TEXT,
+    status TEXT NOT NULL DEFAULT 'idle',
+    error_msg TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_studio_sessions_ref ON studio_sessions(kind, ref_id)`,
+  `CREATE TABLE IF NOT EXISTS studio_assets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id INTEGER NOT NULL,
+    kind TEXT NOT NULL,
+    role TEXT,
+    name TEXT NOT NULL,
+    prompt TEXT,
+    task_id INTEGER,
+    path TEXT,
+    status TEXT NOT NULL DEFAULT 'processing',
+    error_msg TEXT,
+    meta TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_studio_assets_session ON studio_assets(session_id)`,
 ]
 
 /**

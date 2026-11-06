@@ -1,0 +1,26 @@
+{
+  "id": "idea-to-video",
+  "name": "一句话成片",
+  "description": "一句话创意 → 分镜脚本 → 定画风与角色设定 → 关键帧 → 并行生成片段 → 质检 → 剪成成片，全程在本页完成，画面一贯",
+  "category": "视频生成",
+  "tags": ["成片", "一贯性", "uu889-video"],
+  "source": { "name": "uu889-video · 视频智能体", "url": "https://github.com/uu889/uu889-video" },
+  "inputs": [
+    { "key": "idea", "label": "一句话创意", "placeholder": "例如：雨夜便利店，女孩把最后一把伞让给了陌生老人", "multiline": true },
+    { "key": "duration", "label": "成片时长", "placeholder": "例如：30 秒", "default": "30 秒", "required": false },
+    { "key": "style", "label": "画风", "placeholder": "例如：电影感写实 / 国漫 / 3D 卡通", "default": "电影感写实", "required": false }
+  ],
+  "steps": [
+    {
+      "id": "storyboard",
+      "name": "分镜脚本",
+      "agent": "video-director",
+      "prompt": "把创意「{{inputs.idea}}」做成 {{inputs.duration}} 的短片分镜（只写文字，不要调用任何工具）。\n先写：一句话梗概、画风基调（{{inputs.style}}，40–120 字，具体到媒介 / 色调 / 光影 / 质感）、画幅。\n再列固定出场的角色 / 场景 / 道具设定（每个写成可复现的外观锁面）。\n最后用表格写分镜：镜号｜时长（≤15 秒）｜画面（关键帧那一刻）｜动作与运镜｜声音 / 台词｜出场设定。"
+    }
+  ],
+  "video": {
+    "agent": "video-director",
+    "aspect_ratio": "9:16",
+    "prompt": "按下面的分镜把成片做出来：先 set_look 定画风，再为设定表里的角色 / 场景 / 道具出设定图，然后每镜出关键帧、并行生成片段、质检，最后 render_video 剪成成片（字幕写台词，片头写标题）。\n\n{{steps.storyboard}}"
+  }
+}

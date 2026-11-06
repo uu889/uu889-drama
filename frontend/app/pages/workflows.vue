@@ -39,6 +39,7 @@
             <div class="cat-meta">
               <span v-for="tag in current.tags" :key="tag" class="tag">{{ tag }}</span>
               <span class="tag tag-info">{{ t('catalog.workflows.stepCount', { n: current.steps.length }) }}</span>
+              <span class="tag tag-accent">{{ t('studio.wfCanVideo') }}</span>
               <span v-if="current.handoff" class="tag tag-success">{{ t('catalog.workflows.hasHandoff') }}</span>
               <template v-if="current.source?.name || current.source?.url">
                 <span>{{ t('catalog.common.source') }}：</span>
@@ -75,10 +76,20 @@
             <button v-if="running" class="btn" @click="stop"><Square :size="12" />{{ t('catalog.common.stop') }}</button>
             <button v-else class="btn btn-primary" @click="run(0)"><Play :size="13" />{{ t('catalog.workflows.run') }}</button>
             <button
+              v-if="finalOutput && !running"
+              class="btn btn-primary"
+              :disabled="videoStarting"
+              :title="t('studio.wfVideoHint')"
+              @click="startVideo"
+            ><Film :size="13" />{{ t('studio.wfVideo') }}</button>
+            <button
               v-if="current.handoff && finalOutput && !running"
               class="btn"
               @click="openHandoff(finalOutput)"
             ><Clapperboard :size="13" />{{ t('catalog.handoff.button') }}</button>
+            <label class="wf-auto" :title="t('studio.wfAutoHint')">
+              <input v-model="autoVideo" type="checkbox" />{{ t('studio.wfAuto') }}
+            </label>
           </div>
 
           <ol class="wf-steps">
@@ -113,6 +124,31 @@
               <p v-if="stepErrors[s.id]" class="wf-error">{{ stepErrors[s.id] }}</p>
             </li>
           </ol>
+
+          <section ref="videoEl" class="wf-video">
+            <div class="wf-video-head">
+              <Film :size="14" />
+              <span class="wf-step-name">{{ t('studio.wfVideoTitle') }}</span>
+              <span class="wf-step-agent">{{ t('studio.wfVideoSub', { agent: videoAgentName }) }}</span>
+              <span class="wf-step-tools">
+                <select v-if="videoSessions.length" class="input sp-session-select" :value="studio.session.value?.id || ''" @change="openVideoSession(Number($event.target.value) || null)">
+                  <option value="">{{ t('studio.newSession') }}</option>
+                  <option v-for="v in videoSessions" :key="v.id" :value="v.id">{{ v.title }}{{ v.running ? ' ⏳' : '' }}</option>
+                </select>
+                <button v-if="studio.session.value" class="btn btn-ghost btn-sm" :title="t('studio.deleteSession')" @click="removeVideoSession"><Trash2 :size="12" /></button>
+              </span>
+            </div>
+            <div class="wf-video-panel">
+              <StudioPanel
+                :session="studio.session.value"
+                :welcome="t('studio.wfWelcome')"
+                :extra-body="runBody"
+                :create-session="createVideoSession"
+                :defaults="videoDefaults"
+                @update="onVideoUpdate"
+              />
+            </div>
+          </section>
         </div>
       </template>
       <div v-else class="cat-empty">
@@ -165,10 +201,12 @@
 <script setup>
 import { toast } from 'vue-sonner'
 import { useI18n } from 'vue-i18n'
-import { Plus, Play, Square, Copy, Clapperboard, Check, X, Loader2, RotateCcw, Workflow } from 'lucide-vue-next'
+import { Plus, Play, Square, Copy, Clapperboard, Check, X, Loader2, RotateCcw, Workflow, Film, Trash2 } from 'lucide-vue-next'
 import { toastError } from '~/composables/useToast'
 import { catalogAPI, postSse, useTextModelPick, groupByCategory } from '~/composables/useCatalog'
 import ModelSelect from '~/components/ModelSelect.vue'
+import StudioPanel from '~/components/StudioPanel.vue'
+import { studioAPI, useStudioSession, renderWorkflowTemplate } from '~/composables/useStudio'
 import HandoffDialog from '~/components/HandoffDialog.vue'
 import CinematicDialog from '~/components/CinematicDialog.vue'
 import { loadChatCinematic, saveChatCinematic, cinematicFilledCount, cinematicBody } from '~/composables/useCinematic'
@@ -211,6 +249,105 @@ const finalOutput = computed(() => {
 
 function reset(obj) { for (const k of Object.keys(obj)) delete obj[k] }
 
+// ── 在本页生成视频（创作会话，不跳一键生成） ──
+const studio = useStudioSession()
+const videoSessions = ref([])
+const videoStarting = ref(false)
+const videoEl = ref(null)
+const AUTO_KEY = 'uu889:workflow-auto-video'
+const autoVideo = ref((() => { try { return localStorage.getItem(AUTO_KEY) === '1' } catch { return false } })())
+watch(autoVideo, v => { try { localStorage.setItem(AUTO_KEY, v ? '1' : '0') } catch { /* 忽略 */ } })
+const VIDEO_AGENT = 'video-director'
+const videoAgentId = computed(() => current.value?.video?.agent || VIDEO_AGENT)
+const videoAgentName = computed(() => agentNames.value[videoAgentId.value] || videoAgentId.value)
+const agentNames = ref({})
+const videoDefaults = computed(() => ({
+  agent_id: videoAgentId.value,
+  ...(current.value?.video?.aspect_ratio || current.value?.handoff?.aspect_ratio
+    ? { aspect_ratio: current.value.video?.aspect_ratio || (current.value.handoff.aspect_ratio === 'adaptive' ? '9:16' : current.value.handoff.aspect_ratio) }
+    : {}),
+}))
+
+function runBody() {
+  return { ...models.modelBody(), ...cinematicBody(cine.value) }
+}
+
+async function loadVideoSessions() {
+  if (!current.value) return
+  try { videoSessions.value = (await studioAPI.list('workflow', current.value.id)) || [] } catch { videoSessions.value = [] }
+}
+
+async function openVideoSession(id) {
+  try { await studio.open(id) } catch (e) { toastError(e) }
+}
+
+async function createVideoSession(text, settings, styleId) {
+  const wf = current.value
+  const s = await studioAPI.create({
+    kind: 'workflow',
+    ref_id: wf.id,
+    title: (text || wf.name).split('\n')[0].slice(0, 30),
+    settings: { ...settings, agent_id: videoAgentId.value },
+    style_id: styleId || wf.video?.style || wf.handoff?.style || undefined,
+    message: text || undefined,
+    ...runBody(),
+  })
+  loadVideoSessions()
+  return s
+}
+
+function videoMessage() {
+  const wf = current.value
+  const ctx = { inputs: { ...inputs }, steps: { ...outputs }, previous: finalOutput.value }
+  if (wf.video?.prompt) return renderWorkflowTemplate(wf.video.prompt, ctx)
+  return t('studio.wfDefaultPrompt', { name: wf.name }) + '\n\n' + finalOutput.value
+}
+
+async function startVideo() {
+  const wf = current.value
+  if (!wf || !finalOutput.value || videoStarting.value) return
+  videoStarting.value = true
+  try {
+    const firstInput = wf.inputs[0]?.key
+    const title = String((firstInput && inputs[firstInput]) || wf.name).split('\n')[0].slice(0, 30)
+    const s = await studioAPI.create({
+      kind: 'workflow',
+      ref_id: wf.id,
+      title,
+      settings: { ...loadStudioSettings(), ...videoDefaults.value },
+      style_id: wf.video?.style || wf.handoff?.style || undefined,
+      message: videoMessage(),
+      ...runBody(),
+    })
+    studio.set(s)
+    await loadVideoSessions()
+    nextTick(() => videoEl.value?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  } catch (e) { toastError(e) } finally { videoStarting.value = false }
+}
+
+function loadStudioSettings() {
+  try {
+    const v = JSON.parse(localStorage.getItem('uu889:studio-settings') || '{}') || {}
+    return { ...v, tools: true }
+  } catch { return { tools: true } }
+}
+
+function onVideoUpdate(s) {
+  studio.set(s)
+  const row = videoSessions.value.find(x => x.id === s.id)
+  if (row) { row.title = s.title; row.running = s.running } else loadVideoSessions()
+}
+
+async function removeVideoSession() {
+  const s = studio.session.value
+  if (!s || !confirm(t('studio.deleteSessionConfirm', { name: s.title }))) return
+  try {
+    await studioAPI.remove(s.id)
+    await loadVideoSessions()
+    await studio.open(null)
+  } catch (e) { toastError(e) }
+}
+
 async function load() {
   loading.value = true
   try { workflows.value = (await catalogAPI.workflows()) || [] } catch (e) { toastError(e) } finally { loading.value = false }
@@ -224,6 +361,8 @@ async function select(id) {
     reset(inputs); reset(outputs); reset(stepState); reset(stepErrors)
     for (const inp of wf.inputs) inputs[inp.key] = inp.default || ''
     if (route.query.workflow !== id) navigateTo({ query: { workflow: id } }, { replace: true })
+    await loadVideoSessions()
+    await studio.open(videoSessions.value[0]?.id || null)
   } catch (e) { toastError(e) }
 }
 
@@ -263,7 +402,10 @@ async function run(startIndex) {
         throw new Error(data?.message || 'error')
       } else if (event === 'done') finished = true
     }, controller.signal)
-    if (finished) toast.success(t('catalog.workflows.finished'))
+    if (finished) {
+      toast.success(t('catalog.workflows.finished'))
+      if (autoVideo.value) await startVideo()
+    }
   } catch (e) {
     if (e?.name === 'AbortError') toast.info(t('catalog.workflows.stopped'))
     else toastError(e)
@@ -336,6 +478,7 @@ async function removeCurrent() {
 
 onMounted(async () => {
   models.loadModels()
+  catalogAPI.agents().then(list => { agentNames.value = Object.fromEntries((list || []).map(a => [a.id, a.name])) }).catch(() => null)
   await load()
   const want = String(route.query.workflow || '')
   const first = workflows.value.find(w => w.id === want) || workflows.value[0]
@@ -377,6 +520,11 @@ onBeforeUnmount(stop)
 .wf-step-tools { margin-left: auto; display: flex; gap: 2px; }
 .wf-output { resize: vertical; font-size: 12.5px; line-height: 1.65; min-height: 96px; }
 .wf-error { font-size: 12px; color: var(--error); white-space: pre-wrap; }
+.wf-auto { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-2); cursor: pointer; margin-left: 4px; }
+.wf-video { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-raised); display: flex; flex-direction: column; max-width: 1100px; overflow: hidden; }
+.wf-video-head { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.wf-video-panel { height: min(78vh, 760px); display: flex; flex-direction: column; min-height: 420px; }
+.sp-session-select { height: 28px; padding: 0 8px; font-size: 12px; width: auto; max-width: 200px; }
 @media (max-width: 760px) {
   .wf-body { padding: 14px 16px 24px; }
 }
