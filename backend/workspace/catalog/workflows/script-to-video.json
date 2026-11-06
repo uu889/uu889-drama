@@ -1,0 +1,31 @@
+{
+  "id": "script-to-video",
+  "name": "剧本直出视频",
+  "description": "贴一段剧本 / 小说片段 → 拆镜头（≤15 秒、台词估时）→ 锁定角色与场景设定 → 关键帧 + 片段 → 剪成带字幕的成片，不用建项目",
+  "category": "视频生成",
+  "tags": ["剧本", "短剧", "一贯性"],
+  "source": { "name": "uu889-video · 视频智能体；drama-skills · short-drama-storyboard", "url": "https://github.com/uu889/uu889-video" },
+  "inputs": [
+    { "key": "script", "label": "剧本 / 片段", "placeholder": "粘贴一场戏的剧本或小说片段", "multiline": true },
+    { "key": "style", "label": "画风", "placeholder": "例如：写实短剧 / 国漫 / 日系动画", "default": "写实短剧，电影感", "required": false }
+  ],
+  "steps": [
+    {
+      "id": "cast",
+      "name": "角色与场景设定",
+      "agent": "character-designer",
+      "prompt": "从下面的剧本提取固定出场的角色、场景、关键道具（只写文字，不要调用工具）。每个角色写：年龄、脸型五官、发型发色、体型、标志特征，服装配色另起一行；每个场景写空间布局、陈设、门窗、时间段与主光方向；道具写形状、颜色、材质。画风：{{inputs.style}}。\n\n{{inputs.script}}"
+    },
+    {
+      "id": "shots",
+      "name": "拆镜头",
+      "agent": "storyboard-director",
+      "prompt": "按下面的剧本拆成可生成的镜头（只写文字，不要调用工具）：每镜 ≤15 秒，按台词每秒 4–5 字估时长；写景别机位、起点 → 唯一动作 → 终点、台词（谁说、引号）、出场设定名字（与设定表完全一致）。同一场戏保持轴线和站位。\n\n设定：\n{{steps.cast}}\n\n剧本：\n{{inputs.script}}"
+    }
+  ],
+  "video": {
+    "agent": "video-director",
+    "aspect_ratio": "9:16",
+    "prompt": "按下面的设定和镜头表做成片：set_look（画风：{{inputs.style}}）→ 按设定表 create_reference 出每个角色 / 场景 / 道具的设定图（名字与镜头表一致）→ 每镜关键帧（写 characters / scene）→ 片段（台词写进提示词，连续动作接上一镜）→ inspect_media 对照设定图质检 → render_video（caption 写本镜台词）。\n\n设定：\n{{steps.cast}}\n\n镜头表：\n{{steps.shots}}"
+  }
+}

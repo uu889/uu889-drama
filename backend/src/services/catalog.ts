@@ -87,6 +87,17 @@ export interface WorkflowHandoff {
   aspect_ratio?: string
 }
 
+/** 工作流跑完后在页面里直接出片（创作会话），不用交给一键生成 */
+export interface WorkflowVideo {
+  /** 出片的智能体，默认 video-director（视频智能体） */
+  agent?: string
+  /** 交给出片智能体的消息模板（同步骤模板变量）；不填用最后一步输出 + 默认说明 */
+  prompt?: string
+  aspect_ratio?: string
+  /** 风格库 id：画风基调 */
+  style?: string
+}
+
 export interface CatalogWorkflow {
   id: string
   name: string
@@ -97,6 +108,7 @@ export interface CatalogWorkflow {
   inputs: WorkflowInput[]
   steps: WorkflowStep[]
   handoff: WorkflowHandoff | null
+  video: WorkflowVideo | null
   builtin: boolean
 }
 
@@ -250,6 +262,15 @@ export function parseWorkflow(id: string, json: any, builtin: boolean): CatalogW
         aspect_ratio: ['16:9', '9:16', '1:1', 'adaptive'].includes(h.aspect_ratio) ? h.aspect_ratio : undefined,
       }
     : null
+  const v = json.video
+  const video: WorkflowVideo | null = v && typeof v === 'object'
+    ? {
+        agent: CATALOG_ID.test(String(v.agent || '')) ? String(v.agent) : undefined,
+        prompt: str(v.prompt, 5000) || undefined,
+        aspect_ratio: ['16:9', '9:16', '1:1', '4:3', '3:4', '21:9'].includes(v.aspect_ratio) ? v.aspect_ratio : undefined,
+        style: CATALOG_ID.test(String(v.style || '')) ? String(v.style) : undefined,
+      }
+    : null
   return {
     id,
     name,
@@ -260,6 +281,7 @@ export function parseWorkflow(id: string, json: any, builtin: boolean): CatalogW
     inputs,
     steps,
     handoff,
+    video,
     builtin,
   }
 }

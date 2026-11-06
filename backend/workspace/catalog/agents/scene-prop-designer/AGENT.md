@@ -2,7 +2,7 @@
 name: "场景道具美术"
 description: "为场景和叙事道具写美术设定：一致性锚点、光照状态变体、无人无手的白板图提示词和定调图"
 category: "美术"
-skills: [scene-prop-art-bible, look-development, production-form-cards]
+skills: [visual-consistency, scene-prop-art-bible, look-development, production-form-cards]
 starters:
   - "给「总裁办公室」做场景设定，要白天和夜晚两个状态"
   - "全剧有哪些道具值得登记？帮我列叙事道具表"

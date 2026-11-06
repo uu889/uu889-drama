@@ -23,6 +23,7 @@ configs/   — 遗留死配置，代码零引用
 - `npm start` — tsx 生产启动
 - `npm run typecheck` — TypeScript 类型检查
 - `npm run backfill-artwork` — 存量图片/视频补缩略图与海报帧
+- **创作会话（智能体 / 工作流页内直接出图出视频）**: `services/studio/`，表 `studio_sessions`（kind agent / workflow，settings / bible / timeline JSON）+ `studio_assets`（task_id 关联 sys_task，`syncAssets` 回写状态与 localPath）；`runner.ts startRun` 用 Mastra Agent（智能体正文 + skill + `prompt.ts studioToolsPrompt` 照搬 uu889-video 导演流程 + `sessionStateNote`）流式跑，工具卡片 / 文字写进 timeline，后台运行、前端 1.5 秒轮询；`tools.ts` 11 个工具（update_plan / set_look / create_reference / generate_image / generate_video / extract_frame / inspect_media / generate_voiceover / fetch_webpage（`web.ts` 只许公网地址）/ render_video / list_assets），本轮视频数受 `settings.max_clips` 限制；画面一贯性在工具里强制（`consistency.ts` 纯函数，测试 `studio-consistency.test.ts`）：会话「设定」bible = 画风基调 + 角色 / 场景 / 道具设定图与外观描述，`pickReferences` 角色→场景→道具自动带参考图、`tagReferences` 标 @图片N、生图 / 生视频提示词附【画风】【外观锁定】及 `buildShotDirectives` 锁定块，有首帧时不写 @图片N 改写【首帧】；`planFirstFrame` 接上一镜取 `_last.jpg`，超过 `MAX_FIRST_FRAME_GENERATIONS` 改作参考图；`render.ts` 统一画幅 / 字幕 / 旁白 / 片头 / 配乐出成片到 `static/studio/`；路由 `/api/v1/studio/sessions`；前端 `components/StudioPanel.vue` + `composables/useStudio.ts`，`pages/agents.vue` 每个智能体多会话，`pages/workflows.vue`「在本页生成视频」（工作流 JSON `video: { agent, prompt, aspect_ratio, style }`）
 
 ### Frontend (`frontend/`)
 - `npm run dev` — Vite 开发服务（端口 3013，代理 /api 与 /static 到 5679）

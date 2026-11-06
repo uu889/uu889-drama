@@ -1,0 +1,25 @@
+{
+  "id": "url-to-video",
+  "name": "网址转带货视频",
+  "description": "商品 / 文章网址 → 读取卖点与图片 → 营销脚本 → 产品设定图锁定外观 → 关键帧与片段 → 带卖点字幕与行动号召的成片",
+  "category": "视频生成",
+  "tags": ["带货", "营销", "网址"],
+  "source": { "name": "uu889-video · 网址转视频", "url": "https://github.com/uu889/uu889-video" },
+  "inputs": [
+    { "key": "url", "label": "网址", "placeholder": "https://…" },
+    { "key": "duration", "label": "时长", "default": "20 秒", "required": false },
+    { "key": "notes", "label": "补充要求", "placeholder": "目标人群、品牌色、必须出现的卖点…", "multiline": true, "required": false }
+  ],
+  "steps": [
+    {
+      "id": "brief",
+      "name": "脚本要求",
+      "prompt": "整理一份 {{inputs.duration}} 竖屏营销视频的制作要求：结构为 钩子（0–3 秒）→ 痛点 / 使用场景 → 产品亮点 → 信任背书 → 行动号召；每段写画面方向与一句字幕。补充要求：{{inputs.notes}}。网页内容在下一步由出片智能体读取，这里先写结构与语气，不要编造具体参数。"
+    }
+  ],
+  "video": {
+    "agent": "url-to-video",
+    "aspect_ratio": "9:16",
+    "prompt": "读取这个网址并做成 {{inputs.duration}} 的竖屏带货视频：{{inputs.url}}\n\n先 fetch_webpage，产品用网页图 create_reference 锁定外观，再按下面的要求出片：\n\n{{steps.brief}}"
+  }
+}

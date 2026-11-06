@@ -3,9 +3,9 @@
 一键生成 / 智能体 / 工作流三个板块的数据源。来源调研见 `docs/reference-research.md`。
 
 - `styles/<id>.json`：视觉风格（30）
-- `skills/<id>/SKILL.md`：skill（22）
-- `agents/<id>/AGENT.md`：智能体模板（14），`skills` 引用上面的 skill id
-- `workflows/<id>.json`：工作流模板（12），步骤 `agent` 引用智能体 id，`handoff.style` 引用风格 id
+- `skills/<id>/SKILL.md`：skill（23）
+- `agents/<id>/AGENT.md`：智能体模板（19），`skills` 引用上面的 skill id；「视频生成」分类的 5 个复刻自 uu889-video
+- `workflows/<id>.json`：工作流模板（15），步骤 `agent` 引用智能体 id，`handoff.style` / `video.style` 引用风格 id
 - `cinematic/<id>.json`：影像参数预设（7），全局视觉底座 / 人物 / 场景 / 道具 / 面部明暗 / 时间戳分镜
 
 全部条目为中文原创整理，每条带 `source` 注明思路来源；AGPL / GPL / 无许可证的来源只借鉴思路，未复制原文。
@@ -65,7 +65,17 @@ source_url: https://...
 ```
 
 步骤按顺序用文字模型执行。模板变量：`{{inputs.key}}`、`{{steps.<步骤id>}}`、`{{input}}`（第一个输入）、`{{previous}}`（上一步输出）。
-`agent` 不填用通用助手。`handoff` 可选：把某步输出作为第一集原文建成一键生成项目，接着走 改写 → 提取 → 生图 → 分镜 → 生视频 → 导出。
+`agent` 不填用通用助手。
+
+`video` 可选：工作流跑完后在本页直接出片（创作会话，不跳一键生成），`{ "agent": "video-director", "prompt": "按下面的分镜出片：{{steps.storyboard}}", "aspect_ratio": "9:16", "style": "风格 id" }`。
+不写 `video` 时也能出片：用「视频智能体」+ 最后一步的输出。
+
+### 智能体直接出片
+
+智能体页的对话就是「创作会话」（`/api/v1/studio`）：智能体可以调用工具生图、生视频、截帧、看图质检、配音、读网页、剪成片，素材和进度显示在对话里。
+画面一贯性由工具强制套用（`backend/src/services/studio/consistency.ts`）：画风基调、角色 / 场景 / 道具设定图自动作参考图、外观锁定、关键帧优先、接上一镜代数上限。
+
+`handoff` 可选：把某步输出作为第一集原文建成一键生成项目，接着走 改写 → 提取 → 生图 → 分镜 → 生视频 → 导出。
 
 ### 影像参数预设 `cinematic/<id>.json`（一键生成 / 智能体 / 工作流共用）
 

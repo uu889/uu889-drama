@@ -326,3 +326,40 @@ export const appSettings = sqliteTable('app_settings', {
   value: text('value').notNull(),
   updatedAt: text('updated_at').notNull(),
 })
+
+/** 创作会话：智能体 / 工作流里直接生成图片、视频并剪成片（services/studio/） */
+export const studioSessions = sqliteTable('studio_sessions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  /** agent / workflow */
+  kind: text('kind').notNull(),
+  /** 智能体或工作流 id */
+  refId: text('ref_id').notNull(),
+  title: text('title').notNull(),
+  settings: text('settings'),
+  bible: text('bible'),
+  timeline: text('timeline'),
+  /** idle / running / error */
+  status: text('status').notNull().default('idle'),
+  errorMsg: text('error_msg'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+})
+
+export const studioAssets = sqliteTable('studio_assets', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  sessionId: integer('session_id').notNull(),
+  /** image / video / frame / upload / render / voice */
+  kind: text('kind').notNull(),
+  /** character / scene / prop / keyframe / clip / final / reference … */
+  role: text('role'),
+  name: text('name').notNull(),
+  prompt: text('prompt'),
+  taskId: integer('task_id'),
+  path: text('path'),
+  /** processing / completed / failed */
+  status: text('status').notNull().default('processing'),
+  errorMsg: text('error_msg'),
+  meta: text('meta'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+})
